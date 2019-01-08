@@ -218,3 +218,31 @@ impl Opcode {
         }
     }
 }
+
+pub enum JVMValue {
+    Boolean { val: u8 }, // Only 0 and 1 used
+    Byte { val: i8 },
+    Short { val: i16 },
+    Int { val: i32 },
+    Long { val: i64 },
+    Float { val: f32 },
+    Double { val: f64 },
+    Char,
+    ObjRef,
+}
+
+impl JVMValue {
+    fn name(&self) -> char {
+        match *self {
+            JVMValue::Boolean { val } => 'Z',
+            JVMValue::Byte { val } => 'B',
+            JVMValue::Short { val } => 'S',
+            JVMValue::Int { val } => 'I',
+            JVMValue::Long { val } => 'J',
+            JVMValue::Float { val } => 'F',
+            JVMValue::Double { val } => 'D',
+            JVMValue::Char => 'C',
+            JVMValue::ObjRef => 'A',
+        }
+    }
+}
