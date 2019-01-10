@@ -2,12 +2,15 @@ mod opcode;
 
 // static lookup_bytecodes : [opcode::Opcode; 256] = make_bytecode_table();
 
+static heap : JVMStorage = SimpleLinkedJVMHeap::new();
+static repo : ClassRepository = ClassRepository::of();
+
 fn main() {
     println!("Hello, world!");
     let op = opcode::Opcode::ALOAD;
 }
 
-fn exec_method(klass_name: String, desc: String, instr: Vec<u8>) -> Option<opcode::JVMValue> {
+fn exec_method(klass_name: String, desc: String, instr: Vec<u8>, lvt : LocalVariableTable>) -> Option<opcode::JVMValue> {
     let mut current = 0;
     let eval: EvaluationStack = EvaluationStack::new();
 
@@ -78,16 +81,16 @@ fn exec_method(klass_name: String, desc: String, instr: Vec<u8>) -> Option<opcod
             DUP_X1 => eval.dupX1(),
 
             // GETFIELD => {
-            //     cpLookup = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     OCField field = repo.lookupField(klassName, (short) cpLookup);
+            //     let cp_lookup = ((int) instr[current++] << 8) + (int) instr[current++];
+            //     OCField field = repo.lookupField(klass_name, (short) cp_lookup);
             //     JVMValue receiver = eval.pop();
             //     // VERIFY: Should check to make sure receiver is an A
             //     JVMObj obj = heap.findObject(receiver.value);
             //     eval.push(obj.getField(field));
             // },
             // GETSTATIC => {
-            //     cpLookup = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     OCField f = repo.lookupField(klassName, (short) cpLookup);
+            //     let cp_lookup = ((int) instr[current++] << 8) + (int) instr[current++];
+            //     OCField f = repo.lookupField(klass_name, (short) cp_lookup);
             //     OCKlass fgKlass = f.getKlass();
             //     eval.push(fgKlass.getStaticField(f));
             // },
@@ -204,20 +207,20 @@ fn exec_method(klass_name: String, desc: String, instr: Vec<u8>) -> Option<opcod
             INEG => eval.ineg(),
 
             INVOKESPECIAL => {
-                cpLookup = (instr[current] << 8) + instr[current + 1];
+                let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
-                dispatchInvoke(repo.lookupMethodExact(currentKlass, cpLookup), eval);
+                dispatchInvoke(repo.lookupMethodExact(currentKlass, cp_lookup), eval);
             }
             INVOKESTATIC => {
-                cpLookup = (instr[current] << 8) + instr[current + 1];
+                let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
-                dispatchInvoke(repo.lookupMethodExact(currentKlass, cpLookup), eval);
+                dispatchInvoke(repo.lookupMethodExact(currentKlass, cp_lookup), eval);
             }
             // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
             INVOKEVIRTUAL => {
-                cpLookup = (instr[current] << 8) + instr[current + 1];
+                let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
-                dispatchInvoke(repo.lookupMethodVirtual(currentKlass, cpLookup), eval);
+                dispatchInvoke(repo.lookupMethodVirtual(currentKlass, cp_lookup), eval);
             }
             IOR => eval.ior(),
 
@@ -241,10 +244,10 @@ fn exec_method(klass_name: String, desc: String, instr: Vec<u8>) -> Option<opcod
             MONITORENTER | MONITOREXIT => eval.pop(),
 
             NEW => {
-                cpLookup = (instr[current] << 8) + instr[current + 1];
+                let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
 
-                let klass: OCKlass = repo.lookupKlass(currentKlass, cpLookup);
+                let klass: OCKlass = repo.lookupKlass(currentKlass, cp_lookup);
                 eval.push(entryRef(heap.allocateObj(klass)));
             }
             NOP => 1,
@@ -260,10 +263,10 @@ fn exec_method(klass_name: String, desc: String, instr: Vec<u8>) -> Option<opcod
                 eval.pop();
             }
             PUTFIELD => {
-                cpLookup = (instr[current] << 8) + instr[current + 1];
+                let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
 
-                let putf: OCField = repo.lookupField(klassName, cpLookup);
+                let putf: OCField = repo.lookupField(klass_name, cp_lookup);
                 let val: Opcode::JVMValue = eval.pop();
 
                 let recvp: Opcode::JVMValue = eval.pop();
@@ -272,10 +275,10 @@ fn exec_method(klass_name: String, desc: String, instr: Vec<u8>) -> Option<opcod
                 objp.putField(putf, val);
             }
             PUTSTATIC => {
-                cpLookup = (instr[current] << 8) + instr[current + 1];
+                let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
 
-                let puts: OCField = repo.lookupField(klassName, cpLookup);
+                let puts: OCField = repo.lookupField(klass_name, cp_lookup);
                 let fKlass: OCKlass = puts.getKlass();
                 let vals: Opcode::JVMValue = eval.pop();
                 fKlass.setStaticField(puts.getName(), vals);
