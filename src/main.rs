@@ -5,18 +5,17 @@ mod opcode;
 fn main() {
     println!("Hello, world!");
     let op = opcode::Opcode::ALOAD;
-    
 }
 
 fn exec_method(klass_name: String, desc: String, instr: Vec<u8>) -> Option<opcode::JVMValue> {
     let mut current = 0;
 
     loop {
-        let ins =  opcode::Opcode::ALOAD; // lookup_bytecodes[0];
+        let ins = opcode::Opcode::ALOAD; // lookup_bytecodes[0];
         current = current + 1;
 
         match ins {
-            _ => break Some(opcode::JVMValue::Boolean { val: true })
+            _ => break Some(opcode::JVMValue::Boolean { val: true }),
         }
     }
 }
