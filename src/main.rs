@@ -11,10 +11,11 @@ fn exec_method(klass_name: String, desc: String, instr: Vec<u8>) -> Option<opcod
     let mut current = 0;
 
     loop {
-        let ins = opcode::Opcode::ALOAD; // lookup_bytecodes[0];
-        current = current + 1;
+        let ins = instr.get(current);
+        current += 1;
 
         match ins {
+            
             _ => break Some(opcode::JVMValue::Boolean { val: true }),
         }
     }

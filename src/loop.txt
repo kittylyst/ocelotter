@@ -1,0 +1,325 @@
+                case ACONST_NULL:
+                    eval.aconst_null();
+                    break;
+                case ALOAD:
+                    eval.push(lvt.aload(instr[current++]));
+                    break;
+                case ALOAD_0:
+                    eval.push(lvt.aload((byte) 0));
+                    break;
+                case ALOAD_1:
+                    eval.push(lvt.aload((byte) 1));
+                    break;
+                case ARETURN:
+                    return eval.pop();
+                case ASTORE:
+                    lvt.astore(instr[current++], eval.pop());
+                    break;
+                case ASTORE_0:
+                    lvt.astore((byte) 0, eval.pop());
+                    break;
+                case ASTORE_1:
+                    lvt.astore((byte) 1, eval.pop());
+                    break;
+                case BIPUSH:
+                    eval.iconst((int) instr[current++]);
+                    break;
+                case DADD:
+                    eval.dadd();
+                    break;
+                case DCONST_0:
+                    eval.dconst(0.0);
+                    break;
+                case DCONST_1:
+                    eval.dconst(1.0);
+                    break;
+                case DLOAD:
+                    eval.push(lvt.dload(instr[current++]));
+                    break;
+                case DLOAD_0:
+                    eval.push(lvt.dload((byte) 0));
+                    break;
+                case DLOAD_1:
+                    eval.push(lvt.dload((byte) 1));
+                    break;
+                case DLOAD_2:
+                    eval.push(lvt.dload((byte) 2));
+                    break;
+                case DLOAD_3:
+                    eval.push(lvt.dload((byte) 3));
+                    break;
+                case DRETURN:
+                    return eval.pop();
+                case DSTORE:
+                    lvt.store(instr[current++], eval.pop());
+                    break;
+                case DSTORE_0:
+                    lvt.store((byte) 0, eval.pop());
+                    break;
+                case DSTORE_1:
+                    lvt.store((byte) 1, eval.pop());
+                    break;
+                case DSTORE_2:
+                    lvt.store((byte) 2, eval.pop());
+                    break;
+                case DSTORE_3:
+                    lvt.store((byte) 3, eval.pop());
+                    break;
+                case DSUB:
+                    eval.dsub();
+                    break;
+                case DUP:
+                    eval.dup();
+                    break;
+                case DUP_X1:
+                    eval.dupX1();
+                    break;
+                case GETFIELD:
+                    cpLookup = ((int) instr[current++] << 8) + (int) instr[current++];
+                    OCField field = repo.lookupField(klassName, (short) cpLookup);
+                    JVMValue receiver = eval.pop();
+                    // VERIFY: Should check to make sure receiver is an A
+                    JVMObj obj = heap.findObject(receiver.value);
+                    eval.push(obj.getField(field));
+                    break;
+                case GETSTATIC:
+                    cpLookup = ((int) instr[current++] << 8) + (int) instr[current++];
+                    OCField f = repo.lookupField(klassName, (short) cpLookup);
+                    OCKlass fgKlass = f.getKlass();
+                    eval.push(fgKlass.getStaticField(f));
+                    break;
+                case GOTO:
+                    current += 2 + ((int) instr[current] << 8) + (int) instr[current + 1];
+                    break;
+                case I2D:
+                    eval.i2d();
+                    break;
+                case IADD:
+                    eval.iadd();
+                    break;
+                case IAND:
+                    eval.iand();
+                    break;
+                case ICONST_0:
+                    eval.iconst(0);
+                    break;
+                case ICONST_1:
+                    eval.iconst(1);
+                    break;
+                case ICONST_2:
+                    eval.iconst(2);
+                    break;
+                case ICONST_3:
+                    eval.iconst(3);
+                    break;
+                case ICONST_4:
+                    eval.iconst(4);
+                    break;
+                case ICONST_5:
+                    eval.iconst(5);
+                    break;
+                case ICONST_M1:
+                    eval.iconst(-1);
+                    break;
+                case IDIV:
+                    eval.idiv();
+                    break;
+                case IF_ICMPEQ:
+                    v = eval.pop();
+                    v2 = eval.pop();
+                    jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
+                    if (v.value == v2.value) {
+                        current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
+                    }
+                    break;
+                case IFEQ:
+                    v = eval.pop();
+                    jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
+                    if (v.value == 0L) {
+                        current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
+                    }
+                    break;
+                case IFGE:
+                    v = eval.pop();
+                    jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
+                    if (v.value >= 0L) {
+                        current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
+                    }
+                    break;
+                case IFGT:
+                    v = eval.pop();
+                    jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
+                    if (v.value > 0L) {
+                        current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
+                    }
+                    break;
+                case IFLE:
+                    v = eval.pop();
+                    jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
+                    if (v.value <= 0L) {
+                        current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
+                    }
+                    break;
+                case IFLT:
+                    v = eval.pop();
+                    jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
+                    if (v.value < 0L) {
+                        current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
+                    }
+                    break;
+                case IFNE:
+                    v = eval.pop();
+                    jumpTo = ((int) instr[current] << 8) + (int) instr[current + 1];
+                    if (v.value != 0L) {
+                        current += jumpTo - 1;  // The -1 is necessary as we've already inc'd current
+                    }
+                    break;
+                case IFNONNULL:
+                    v = eval.pop();
+                    jumpTo = ((int) instr[current] << 8) + (int) instr[current + 1];
+                    // FIXME Check that this is of reference type
+                    if (v.value != 0L) {
+                        current += jumpTo - 1;  // The -1 is necessary as we've already inc'd current
+                    }
+                    break;
+                case IFNULL:
+                    v = eval.pop();
+                    jumpTo = ((int) instr[current] << 8) + (int) instr[current + 1];
+                    // FIXME Check that this is of reference type
+                    if (v.value == 0L) {
+                        current += jumpTo - 1;  // The -1 is necessary as we've already inc'd current
+                    }
+                    break;
+                case IINC:
+                    lvt.iinc(instr[current++], instr[current++]);
+                    break;
+                case ILOAD:
+                    eval.push(lvt.iload(instr[current++]));
+                    break;
+                case ILOAD_0:
+                    eval.push(lvt.iload((byte) 0));
+                    break;
+                case ILOAD_1:
+                    eval.push(lvt.iload((byte) 1));
+                    break;
+                case ILOAD_2:
+                    eval.push(lvt.iload((byte) 2));
+                    break;
+                case ILOAD_3:
+                    eval.push(lvt.iload((byte) 3));
+                    break;
+                case IMUL:
+                    eval.imul();
+                    break;
+                case INEG:
+                    eval.ineg();
+                    break;
+                case INVOKESPECIAL:
+                    cpLookup = ((int) instr[current++] << 8) + (int) instr[current++];
+                    dispatchInvoke(repo.lookupMethodExact(currentKlass, (short) cpLookup), eval);
+                    break;
+                case INVOKESTATIC:
+                    cpLookup = ((int) instr[current++] << 8) + (int) instr[current++];
+                    dispatchInvoke(repo.lookupMethodExact(currentKlass, (short) cpLookup), eval);
+                    break;
+                // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
+                case INVOKEVIRTUAL:
+                    cpLookup = ((int) instr[current++] << 8) + (int) instr[current++];
+                    dispatchInvoke(repo.lookupMethodVirtual(currentKlass, (short) cpLookup), eval);
+                    break;
+                case IOR:
+                    eval.ior();
+                    break;
+                case IREM:
+                    eval.irem();
+                    break;
+                case IRETURN:
+                    return eval.pop();
+                case ISTORE:
+                    lvt.store(instr[current++], eval.pop());
+                    break;
+                case ISTORE_0:
+                    lvt.store((byte) 0, eval.pop());
+                    break;
+                case ISTORE_1:
+                    lvt.store((byte) 1, eval.pop());
+                    break;
+                case ISTORE_2:
+                    lvt.store((byte) 2, eval.pop());
+                    break;
+                case ISTORE_3:
+                    lvt.store((byte) 3, eval.pop());
+                    break;
+                case ISUB:
+                    eval.isub();
+                    break;
+                case MONITORENTER:
+                case MONITOREXIT:
+                    // FIXME TEMP
+                    eval.pop();
+                    break;
+                case NEW:
+                    cpLookup = ((int) instr[current++] << 8) + (int) instr[current++];
+                    OCKlass klass = repo.lookupKlass(currentKlass, (short) cpLookup);
+                    eval.push(entryRef(heap.allocateObj(klass)));
+                    break;
+                case NOP:
+                    break;
+                case POP:
+                    eval.pop();
+                    break;
+                case POP2:
+                    JVMValue discard = eval.pop();
+                    if (discard.type == JVMType.J || discard.type == JVMType.D) {
+                        break;
+                    }
+                    eval.pop();
+                    break;
+                case PUTFIELD:
+                    cpLookup = ((int) instr[current++] << 8) + (int) instr[current++];
+                    OCField putf = repo.lookupField(klassName, (short) cpLookup);
+                    JVMValue val = eval.pop();
+                    JVMValue recvp = eval.pop();
+                    // VERIFY: Should check to make sure receiver is an A
+                    JVMObj objp = heap.findObject(recvp.value);
+                    objp.putField(putf, val);
+                    break;
+                case PUTSTATIC:
+                    cpLookup = ((int) instr[current++] << 8) + (int) instr[current++];
+                    OCField puts = repo.lookupField(klassName, (short) cpLookup);
+                    OCKlass fKlass = puts.getKlass();
+                    JVMValue vals = eval.pop();
+                    fKlass.setStaticField(puts.getName(), vals);
+                    break;
+                case RETURN:
+                    return null;
+                case SIPUSH:
+                    eval.iconst(((int) instr[current++] << 8) + (int) instr[current++]);
+                    break;
+                case SWAP:
+                    JVMValue val1 = eval.pop();
+                    JVMValue val2 = eval.pop();
+                    eval.push(val1);
+                    eval.push(val2);
+                    break;
+                // Dummy implementation
+                case LDC:
+                    System.out.print("Executing " + op + " with param bytes: ");
+                    for (int i = current; i < current + num; i++) {
+                        System.out.print(instr[i] + " ");
+                    }
+                    current += num;
+                    System.out.println();
+                    break;
+                // Disallowed opcodes
+                case BREAKPOINT:
+                case IMPDEP1:
+                case IMPDEP2:
+                case JSR:
+                case JSR_W:
+                case RET:
+                    throw new IllegalArgumentException("Illegal opcode byte: " + (b & 0xff) + " encountered at position " + (current - 1) + ". Stopping.");
+                default:
+                    System.err.println("Saw " + op + " - that can't happen. Stopping.");
+                    System.exit(1);
+
