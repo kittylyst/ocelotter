@@ -2,15 +2,20 @@ mod opcode;
 
 // static lookup_bytecodes : [opcode::Opcode; 256] = make_bytecode_table();
 
-static heap : JVMStorage = SimpleLinkedJVMHeap::new();
-static repo : ClassRepository = ClassRepository::of();
+static heap: JVMStorage = SimpleLinkedJVMHeap::new();
+static repo: ClassRepository = ClassRepository::of();
 
 fn main() {
     println!("Hello, world!");
     let op = opcode::Opcode::ALOAD;
 }
 
-fn exec_method(klass_name: String, desc: String, instr: Vec<u8>, lvt : LocalVariableTable>) -> Option<opcode::JVMValue> {
+fn exec_method(
+    klass_name: String,
+    desc: String,
+    instr: Vec<u8>,
+    lvt: LocalVariableTable,
+) -> Option<opcode::JVMValue> {
     let mut current = 0;
     let eval: EvaluationStack = EvaluationStack::new();
 
@@ -209,18 +214,18 @@ fn exec_method(klass_name: String, desc: String, instr: Vec<u8>, lvt : LocalVari
             INVOKESPECIAL => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
-                dispatchInvoke(repo.lookupMethodExact(currentKlass, cp_lookup), eval);
+                dispatchInvoke(repo.lookupMethodExact(klass_name, cp_lookup), eval);
             }
             INVOKESTATIC => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
-                dispatchInvoke(repo.lookupMethodExact(currentKlass, cp_lookup), eval);
+                dispatchInvoke(repo.lookupMethodExact(klass_name, cp_lookup), eval);
             }
             // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
             INVOKEVIRTUAL => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
-                dispatchInvoke(repo.lookupMethodVirtual(currentKlass, cp_lookup), eval);
+                dispatchInvoke(repo.lookupMethodVirtual(klass_name, cp_lookup), eval);
             }
             IOR => eval.ior(),
 
@@ -241,21 +246,24 @@ fn exec_method(klass_name: String, desc: String, instr: Vec<u8>, lvt : LocalVari
 
             ISUB => eval.isub(),
             // FIXME TEMP
-            MONITORENTER | MONITOREXIT => eval.pop(),
+            MONITORENTER => eval.pop(),
+            MONITOREXIT => eval.pop(),
 
             NEW => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
 
-                let klass: OCKlass = repo.lookupKlass(currentKlass, cp_lookup);
-                eval.push(entryRef(heap.allocateObj(klass)));
+                let klass: OCKlass = repo.lookupKlass(klass_name, cp_lookup);
+                eval.push(opcode::JVMValue::ObjRef {
+                    val: heap.allocateObj(klass),
+                });
             }
             NOP => 1,
 
             POP => eval.pop(),
 
             POP2 => {
-                let discard: Opcode::JVMValue = eval.pop();
+                let discard: opcode::JVMValue = eval.pop();
                 // FIXME Change to type match
                 // if (discard.type == JVMType.J || discard.type == JVMType.D) {
 
@@ -267,9 +275,9 @@ fn exec_method(klass_name: String, desc: String, instr: Vec<u8>, lvt : LocalVari
                 current += 2;
 
                 let putf: OCField = repo.lookupField(klass_name, cp_lookup);
-                let val: Opcode::JVMValue = eval.pop();
+                let val: opcode::JVMValue = eval.pop();
 
-                let recvp: Opcode::JVMValue = eval.pop();
+                let recvp: opcode::JVMValue = eval.pop();
                 // VERIFY: Should check to make sure receiver is an A
                 let objp: JVMObj = heap.findObject(recvp.value);
                 objp.putField(putf, val);
@@ -280,7 +288,7 @@ fn exec_method(klass_name: String, desc: String, instr: Vec<u8>, lvt : LocalVari
 
                 let puts: OCField = repo.lookupField(klass_name, cp_lookup);
                 let fKlass: OCKlass = puts.getKlass();
-                let vals: Opcode::JVMValue = eval.pop();
+                let vals: opcode::JVMValue = eval.pop();
                 fKlass.setStaticField(puts.getName(), vals);
             }
             RETURN => break None,
@@ -289,8 +297,8 @@ fn exec_method(klass_name: String, desc: String, instr: Vec<u8>, lvt : LocalVari
                 current += 2;
             }
             SWAP => {
-                let val1: Opcode::JVMValue = eval.pop();
-                let val2: Opcode::JVMValue = eval.pop();
+                let val1: opcode::JVMValue = eval.pop();
+                let val2: opcode::JVMValue = eval.pop();
                 eval.push(val1);
                 eval.push(val2);
             }
@@ -304,14 +312,20 @@ fn exec_method(klass_name: String, desc: String, instr: Vec<u8>, lvt : LocalVari
                 // System.out.println();
             }
             // Disallowed opcodes
-            BREAKPOINT | IMPDEP1 | IMPDEP2 | JSR | JSR_W | RET => {
-                break Some(opcode::JVMValue::Boolean { val: true })
-            }
+            BREAKPOINT => break Some(opcode::JVMValue::Boolean { val: false }),
+            IMPDEP1 => break Some(opcode::JVMValue::Boolean { val: false }),
+            IMPDEP2 => break Some(opcode::JVMValue::Boolean { val: false }),
+            JSR => break Some(opcode::JVMValue::Boolean { val: false }),
+            JSR_W => break Some(opcode::JVMValue::Boolean { val: false }),
+            RET => break Some(opcode::JVMValue::Boolean { val: false }),
+
             // throw new IllegalArgumentException("Illegal opcode byte: " + (b & 0xff) + " encountered at position " + (current - 1) + ". Stopping."),
             _ => break Some(opcode::JVMValue::Boolean { val: true }),
         }
     }
 }
+
+fn dispatchInvoke(to_be_called: OCMethod, eval: EvaluationStack) -> () {}
 
 // fn make_bytecode_table() -> [opcode::Opcode; 256] {
 //     [opcode::Opcode::ALOAD; 256]
