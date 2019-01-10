@@ -3,8 +3,8 @@ mod runtime;
 
 // static lookup_bytecodes : [opcode::Opcode; 256] = make_bytecode_table();
 
-static heap: JVMStorage = SimpleLinkedJVMHeap::new();
-static repo: runtime::ClassRepository = runtime::ClassRepository::new();
+static heap: SimpleLinkedJVMHeap = SimpleLinkedJVMHeap {};
+static repo: runtime::ClassRepository = runtime::ClassRepository {};
 
 fn main() {
     println!("Hello, world!");
@@ -18,7 +18,7 @@ fn exec_method(
     lvt: runtime::LocalVariableTable,
 ) -> Option<runtime::JVMValue> {
     let mut current = 0;
-    let eval = runtime::EvaluationStack::new();
+    let eval = runtime::EvaluationStack {};
 
     loop {
         let ins = instr.get(current);
@@ -247,8 +247,12 @@ fn exec_method(
 
             ISUB => eval.isub(),
             // FIXME TEMP
-            MONITORENTER => eval.pop(),
-            MONITOREXIT => eval.pop(),
+            MONITORENTER => {
+                eval.pop();
+            },
+            MONITOREXIT => {
+                eval.pop();
+            },
 
             NEW => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
@@ -258,11 +262,14 @@ fn exec_method(
                 eval.push(runtime::JVMValue::ObjRef {
                     // val: heap.allocateObj(klass),
                 });
-            }
-            NOP => 1,
+            },
+            NOP => {
+                ();
+            },
 
-            POP => eval.pop(),
-
+            POP => {
+                eval.pop();
+            },
             POP2 => {
                 let discard: runtime::JVMValue = eval.pop();
                 // FIXME Change to type match
