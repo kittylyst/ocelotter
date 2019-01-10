@@ -220,7 +220,7 @@ impl Opcode {
 }
 
 pub enum JVMValue {
-    Boolean { val: u8 }, // Only 0 and 1 used
+    Boolean { val: bool },
     Byte { val: i8 },
     Short { val: i16 },
     Int { val: i32 },
