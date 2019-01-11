@@ -63,7 +63,7 @@ impl EvaluationStack {
     pub fn push(&self, val: JVMValue) -> () {}
 
     pub fn pop(&self) -> crate::runtime::JVMValue {
-        JVMValue::Boolean { val: true };
+        JVMValue::Boolean { val: true }
     }
 
     pub fn aconst_null(&self) -> () {
@@ -89,7 +89,7 @@ impl EvaluationStack {
     pub fn dmul(&self) -> () {}
 
     pub fn dconst(&self, v: f64) -> () {
-        push(JVMValue::Double { val: v });
+        self.push(JVMValue::Double { val: v });
     }
 
     pub fn i2d(&self) -> () {}
@@ -101,7 +101,7 @@ pub struct LocalVariableTable {}
 
 impl LocalVariableTable {
     pub fn iload(&self, idx: u8) -> JVMValue {
-        return JVMValue::Int { val: 1 };
+        JVMValue::Int { val: 1 }
     }
 
     pub fn store(&self, idx: u8, val: JVMValue) -> () {}
@@ -109,11 +109,11 @@ impl LocalVariableTable {
     pub fn iinc(&self, idx: u8, incr: u8) -> () {}
 
     pub fn dload(&self, idx: u8) -> crate::runtime::JVMValue {
-        JVMValue::Double { val: 0.001 };
+        JVMValue::Double { val: 0.001 }
     }
 
     pub fn aload(&self, idx: u8) -> crate::runtime::JVMValue {
-        JVMValue::ObjRef{};
+        JVMValue::ObjRef{}
     }
 
     pub fn astore(&self, idx: u8, val: JVMValue) -> () {}
@@ -150,6 +150,11 @@ pub struct SimpleLinkedJVMHeap {}
 
 impl SimpleLinkedJVMHeap {
     pub fn allocateObj(&self, klass: OCKlass ) -> JVMValue {
-        JVMValue::ObjRef{};
+        JVMValue::ObjRef{}
     }
+
+    pub fn findObject(&self, id: u32) -> crate::runtime::JVMValue {
+        JVMValue::Boolean { val: true }
+    }
+
 }

@@ -45,7 +45,7 @@ fn exec_method(
             ASTORE_1 => lvt.astore(1, eval.pop()),
 
             BIPUSH => {
-                eval.iconst(instr[current]);
+                eval.iconst(instr[current] as i32);
                 current += 1;
             }
             DADD => eval.dadd(),
@@ -100,7 +100,7 @@ fn exec_method(
             //     runtime::OCKlass fgKlass = f.getKlass();
             //     eval.push(fgKlass.getStaticField(f));
             // },
-            GOTO => current += 2 + (instr[current] << 8) + instr[current + 1],
+            GOTO => current += 2 + (instr[current] as usize) << 8 + instr[current + 1] as usize,
 
             I2D => eval.i2d(),
 
@@ -287,7 +287,10 @@ fn exec_method(
 
                 let recvp: runtime::JVMValue = eval.pop();
                 // VERIFY: Should check to make sure receiver is an A
+                // FIXME Match expression & destructure for recvp
                 let objp: runtime::JVMObj = heap.findObject(recvp.value);
+
+
                 objp.putField(putf, val);
             }
             PUTSTATIC => {
@@ -301,8 +304,8 @@ fn exec_method(
             }
             RETURN => break None,
             SIPUSH => {
-                let xxxxx: usize = ((instr[current] << 8) + instr[current + 1] as usize);
-                eval.iconst(xxxxx);
+                let vtmp = (instr[current] as i32) << 8 + instr[current + 1] as i32;
+                eval.iconst(vtmp);
                 current += 2;
             }
             SWAP => {
