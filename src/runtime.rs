@@ -149,5 +149,7 @@ impl ClassRepository {
 pub struct SimpleLinkedJVMHeap {}
 
 impl SimpleLinkedJVMHeap {
-
+    pub fn allocateObj(&self, klass: OCKlass ) -> JVMValue {
+        JVMValue::ObjRef{};
+    }
 }

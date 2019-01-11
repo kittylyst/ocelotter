@@ -3,7 +3,7 @@ mod runtime;
 
 // static lookup_bytecodes : [opcode::Opcode; 256] = make_bytecode_table();
 
-static heap: SimpleLinkedJVMHeap = SimpleLinkedJVMHeap {};
+static heap: runtime::SimpleLinkedJVMHeap = runtime::SimpleLinkedJVMHeap {};
 static repo: runtime::ClassRepository = runtime::ClassRepository {};
 
 fn main() {
