@@ -1,3 +1,5 @@
+use std::fmt;
+
 pub enum JVMValue {
     Boolean { val: bool },
     Byte { val: i8 },
@@ -22,6 +24,22 @@ impl JVMValue {
             JVMValue::Double { val: _ } => 'D',
             JVMValue::Char => 'C',
             JVMValue::ObjRef => 'A',
+        }
+    }
+}
+
+impl fmt::Display for JVMValue {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            JVMValue::Boolean { val: v } => write!(f, "{}", v),
+            JVMValue::Byte { val: v } => write!(f, "{}", v),
+            JVMValue::Short { val: v } => write!(f, "{}", v),
+            JVMValue::Int { val: v } => write!(f, "{}", v),
+            JVMValue::Long { val: v } => write!(f, "{}", v),
+            JVMValue::Float { val: v } => write!(f, "{}", v),
+            JVMValue::Double { val: v } => write!(f, "{}", v),
+            JVMValue::Char => write!(f, "XXX"),
+            JVMValue::ObjRef => write!(f, "YYY"),
         }
     }
 }
@@ -58,7 +76,7 @@ impl OCField {
 }
 
 pub struct EvaluationStack {
-    stack: Vec<JVMValue>,
+    stack: Vec<crate::runtime::JVMValue>,
 }
 
 impl EvaluationStack {
@@ -71,8 +89,15 @@ impl EvaluationStack {
         s.push(val);
     }
 
-    pub fn pop(&mut self) -> crate::runtime::JVMValue {
-        JVMValue::Boolean { val: true }
+    pub fn pop(&mut self) -> JVMValue {
+        let s = &mut self.stack;
+        match s.pop() {
+            Some(value) => value,
+            None => {
+                println!("pop() on empty stack");
+                JVMValue::Boolean { val: false }
+            }
+        }
     }
 
     pub fn aconst_null(&mut self) -> () {
@@ -87,13 +112,23 @@ impl EvaluationStack {
         let ev1 = self.pop();
         let ev2 = self.pop();
         // // For a runtime checking interpreter - type checks would go here...
-        // let i1 = match ev1 {
+        let i1 = match ev1 {
+            JVMValue::Int { val: i } => i,
+            _ => {
+                println!("Unexpected, non-integer value encountered");
+                0
+            }
+        };
+        let i2 = match ev1 {
+            JVMValue::Int { val: i } => i,
+            _ => {
+                println!("Unexpected, non-integer value encountered");
+                0
+            }
+        };
 
-        // }
-
-        // int add = (int) ev1.value + (int) ev2.value;
-        // self.push(entry(add));
-
+        let add = i1 + i2;
+        self.push(JVMValue::Int { val: add });
     }
 
     pub fn isub(&self) -> () {}
@@ -148,21 +183,21 @@ impl ClassRepository {
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookupField(&self, klass_name: &String, idx: u8) -> OCField {
+    pub fn lookupField(&self, klass_name: &String, idx: u16) -> OCField {
         OCField {}
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookupMethodExact(&self, klass_name: &String, idx: u8) -> OCMethod {
+    pub fn lookupMethodExact(&self, klass_name: &String, idx: u16) -> OCMethod {
         OCMethod {}
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookupMethodVirtual(&self, klass_name: &String, idx: u8) -> OCMethod {
+    pub fn lookupMethodVirtual(&self, klass_name: &String, idx: u16) -> OCMethod {
         OCMethod {}
     }
 
-    pub fn lookupKlass(&self, klass_name: &String, idx: u8) -> OCKlass {
+    pub fn lookupKlass(&self, klass_name: &String, idx: u16) -> OCKlass {
         OCKlass {}
     }
 }

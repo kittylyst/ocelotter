@@ -8,14 +8,30 @@ static repo: runtime::ClassRepository = runtime::ClassRepository {};
 
 fn main() {
     println!("Hello, world!");
-    let op = opcode::Opcode::ALOAD;
+    let first_test = vec![
+        opcode::Opcode::ICONST_1,
+        opcode::Opcode::ICONST_1,
+        opcode::Opcode::IADD,
+        opcode::Opcode::IRETURN,
+    ];
+    let lvt = runtime::LocalVariableTable {};
+    let opt_ret = exec_method(
+        "DUMMY".to_string(),
+        "DUMMY_DESC".to_string(),
+        &first_test,
+        &lvt,
+    );
+    match opt_ret {
+        Some(value) => println!("Method returns: {}", value),
+        None => println!("Method has void return"),
+    };
 }
 
 fn exec_method(
     klass_name: String,
     desc: String,
-    instr: Vec<u8>,
-    lvt: runtime::LocalVariableTable,
+    instr: &Vec<u8>,
+    lvt: &runtime::LocalVariableTable,
 ) -> Option<runtime::JVMValue> {
     let mut current = 0;
     let mut eval = runtime::EvaluationStack::new();
@@ -222,18 +238,18 @@ fn exec_method(
             opcode::Opcode::INEG => eval.ineg(),
 
             opcode::Opcode::INVOKESPECIAL => {
-                let cp_lookup = (instr[current] << 8) + instr[current + 1];
+                let cp_lookup = (instr[current] as u16) << 8 + instr[current + 1] as u16;
                 current += 2;
                 dispatch_invoke(repo.lookupMethodExact(&klass_name, cp_lookup), &eval);
             }
             opcode::Opcode::INVOKESTATIC => {
-                let cp_lookup = (instr[current] << 8) + instr[current + 1];
+                let cp_lookup = (instr[current] as u16) << 8 + instr[current + 1] as u16;
                 current += 2;
                 dispatch_invoke(repo.lookupMethodExact(&klass_name, cp_lookup), &eval);
             }
             // FIXME DOES NOT ACTUALLY opcode::Opcode::DO VIRTUAL LOOKUP YET
             opcode::Opcode::INVOKEVIRTUAL => {
-                let cp_lookup = (instr[current] << 8) + instr[current + 1];
+                let cp_lookup = (instr[current] as u16) << 8 + instr[current + 1] as u16;
                 current += 2;
                 dispatch_invoke(repo.lookupMethodVirtual(&klass_name, cp_lookup), &eval);
             }
@@ -274,7 +290,7 @@ fn exec_method(
             }
 
             opcode::Opcode::NEW => {
-                let cp_lookup = (instr[current] << 8) + instr[current + 1];
+                let cp_lookup = (instr[current] as u16) << 8 + instr[current + 1] as u16;
                 current += 2;
 
                 let klass: runtime::OCKlass = repo.lookupKlass(&klass_name, cp_lookup);
@@ -298,7 +314,7 @@ fn exec_method(
                 eval.pop();
             }
             opcode::Opcode::PUTFIELD => {
-                let cp_lookup = (instr[current] << 8) + instr[current + 1];
+                let cp_lookup = (instr[current] as u16) << 8 + instr[current + 1] as u16;
                 current += 2;
 
                 let putf: runtime::OCField = repo.lookupField(&klass_name, cp_lookup);
@@ -315,7 +331,7 @@ fn exec_method(
                 obj.putField(putf, val);
             }
             opcode::Opcode::PUTSTATIC => {
-                let cp_lookup = (instr[current] << 8) + instr[current + 1];
+                let cp_lookup = (instr[current] as u16) << 8 + instr[current + 1] as u16;
                 current += 2;
 
                 let puts: runtime::OCField = repo.lookupField(&klass_name, cp_lookup);
