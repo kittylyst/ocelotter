@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[derive(Copy, Clone)]
 pub enum JVMValue {
     Boolean { val: bool },
     Byte { val: i8 },
@@ -236,8 +237,18 @@ impl EvaluationStack {
     }
 
     pub fn i2d(&self) -> () {}
-    pub fn dup(&self) -> () {}
-    pub fn dupX1(&self) -> () {}
+    pub fn dup(&mut self) -> () {
+        let i1 = self.pop();
+        self.push(i1);
+        self.push(i1);
+    }
+    pub fn dupX1(&mut self) -> () {
+        let i1 = self.pop();
+        let i2 = self.pop();
+        self.push(i1);
+        self.push(i2);
+        self.push(i1);
+    }
 }
 
 pub struct LocalVariableTable {}
