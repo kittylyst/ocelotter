@@ -18,7 +18,7 @@ fn exec_method(
     lvt: runtime::LocalVariableTable,
 ) -> Option<runtime::JVMValue> {
     let mut current = 0;
-    let eval = runtime::EvaluationStack {};
+    let mut eval = runtime::EvaluationStack::new();
 
     loop {
         let opt_ins = instr.get(current);
@@ -27,7 +27,7 @@ fn exec_method(
             None => {
                 println!("Byte {} has no value", current);
                 0
-            },
+            }
         };
         current += 1;
 
@@ -107,7 +107,9 @@ fn exec_method(
             //     runtime::OCKlass fgKlass = f.getKlass();
             //     eval.push(fgKlass.getStaticField(f));
             // },
-            opcode::Opcode::GOTO => current += 2 + (instr[current] as usize) << 8 + instr[current + 1] as usize,
+            opcode::Opcode::GOTO => {
+                current += 2 + (instr[current] as usize) << 8 + instr[current + 1] as usize
+            }
 
             opcode::Opcode::I2D => eval.i2d(),
 
@@ -253,7 +255,7 @@ fn exec_method(
             opcode::Opcode::ISTORE_3 => lvt.store(3, eval.pop()),
 
             opcode::Opcode::ISUB => eval.isub(),
-                        // Dummy implementation
+            // Dummy implementation
             opcode::Opcode::LDC => {
                 // System.out.print("Executing " + op + " with param bytes: ");
                 // for (int i = current; i < current + num; i++) {
@@ -266,10 +268,10 @@ fn exec_method(
             // FIXME TEMP
             opcode::Opcode::MONITORENTER => {
                 eval.pop();
-            },
+            }
             opcode::Opcode::MONITOREXIT => {
                 eval.pop();
-            },
+            }
 
             opcode::Opcode::NEW => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
@@ -279,14 +281,14 @@ fn exec_method(
                 eval.push(runtime::JVMValue::ObjRef {
                     // val: heap.allocateObj(klass),
                 });
-            },
+            }
             opcode::Opcode::NOP => {
                 ();
-            },
+            }
 
             opcode::Opcode::POP => {
                 eval.pop();
-            },
+            }
             opcode::Opcode::POP2 => {
                 let _discard: runtime::JVMValue = eval.pop();
                 // FIXME Change to type match
@@ -306,8 +308,8 @@ fn exec_method(
                 // VERIFY: Should check to make sure receiver is an opcode::Opcode::A
                 // FIXME Match expression & destructure for recvp
                 let obj = match recvp {
-                    runtime::JVMValue::ObjRef => runtime::JVMObj{},
-                    _ => runtime::JVMObj{}
+                    runtime::JVMValue::ObjRef => runtime::JVMObj {},
+                    _ => runtime::JVMObj {},
                 };
 
                 obj.putField(putf, val);
@@ -355,8 +357,8 @@ fn dispatch_invoke(to_be_called: runtime::OCMethod, eval: &runtime::EvaluationSt
     // Setup return value
     // let val : Option<runtime::JVMValue> = execMethod(toBeCalled, withVars);
     // FIXME convert to match expr
-        // if (val != null)
-        //     eval.push(val);
+    // if (val != null)
+    //     eval.push(val);
 
 }
 

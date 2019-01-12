@@ -57,24 +57,45 @@ impl OCField {
     }
 }
 
-pub struct EvaluationStack {}
+pub struct EvaluationStack {
+    stack: Vec<JVMValue>,
+}
 
 impl EvaluationStack {
-    pub fn push(&self, val: JVMValue) -> () {}
+    pub fn new() -> EvaluationStack {
+        EvaluationStack { stack: Vec::new() }
+    }
 
-    pub fn pop(&self) -> crate::runtime::JVMValue {
+    pub fn push(&mut self, val: JVMValue) -> () {
+        let s = &mut self.stack;
+        s.push(val);
+    }
+
+    pub fn pop(&mut self) -> crate::runtime::JVMValue {
         JVMValue::Boolean { val: true }
     }
 
-    pub fn aconst_null(&self) -> () {
+    pub fn aconst_null(&mut self) -> () {
         self.push(JVMValue::ObjRef {});
     }
 
-    pub fn iconst(&self, v: i32) -> () {
+    pub fn iconst(&mut self, v: i32) -> () {
         self.push(JVMValue::Int { val: v });
     }
 
-    pub fn iadd(&self) -> () {}
+    pub fn iadd(&mut self) -> () {
+        let ev1 = self.pop();
+        let ev2 = self.pop();
+        // // For a runtime checking interpreter - type checks would go here...
+        // let i1 = match ev1 {
+
+        // }
+
+        // int add = (int) ev1.value + (int) ev2.value;
+        // self.push(entry(add));
+
+    }
+
     pub fn isub(&self) -> () {}
     pub fn imul(&self) -> () {}
     pub fn irem(&self) -> () {}
@@ -88,7 +109,7 @@ impl EvaluationStack {
     pub fn dsub(&self) -> () {}
     pub fn dmul(&self) -> () {}
 
-    pub fn dconst(&self, v: f64) -> () {
+    pub fn dconst(&mut self, v: f64) -> () {
         self.push(JVMValue::Double { val: v });
     }
 
@@ -113,7 +134,7 @@ impl LocalVariableTable {
     }
 
     pub fn aload(&self, idx: u8) -> crate::runtime::JVMValue {
-        JVMValue::ObjRef{}
+        JVMValue::ObjRef {}
     }
 
     pub fn astore(&self, idx: u8, val: JVMValue) -> () {}
@@ -149,7 +170,7 @@ impl ClassRepository {
 pub struct SimpleLinkedJVMHeap {}
 
 impl SimpleLinkedJVMHeap {
-    pub fn allocateObj(&self, klass: OCKlass ) -> JVMValue {
-        JVMValue::ObjRef{}
+    pub fn allocateObj(&self, klass: OCKlass) -> JVMValue {
+        JVMValue::ObjRef {}
     }
 }
