@@ -51,7 +51,7 @@ fn exec_method(
 
             opcode::Opcode::ASTORE_1 => lvt.astore(1, eval.pop()),
 
-            BIPUSH => {
+            opcode::Opcode::BIPUSH => {
                 eval.iconst(instr[current] as i32);
                 current += 1;
             }
@@ -107,7 +107,7 @@ fn exec_method(
             //     runtime::OCKlass fgKlass = f.getKlass();
             //     eval.push(fgKlass.getStaticField(f));
             // },
-            GOTO => current += 2 + (instr[current] as usize) << 8 + instr[current + 1] as usize,
+            opcode::Opcode::GOTO => current += 2 + (instr[current] as usize) << 8 + instr[current + 1] as usize,
 
             opcode::Opcode::I2D => eval.i2d(),
 
@@ -222,18 +222,18 @@ fn exec_method(
             opcode::Opcode::INVOKESPECIAL => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
-                dispatchInvoke(repo.lookupMethodExact(klass_name, cp_lookup), eval);
+                dispatch_invoke(repo.lookupMethodExact(&klass_name, cp_lookup), &eval);
             }
             opcode::Opcode::INVOKESTATIC => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
-                dispatchInvoke(repo.lookupMethodExact(klass_name, cp_lookup), eval);
+                dispatch_invoke(repo.lookupMethodExact(&klass_name, cp_lookup), &eval);
             }
             // FIXME DOES NOT ACTUALLY opcode::Opcode::DO VIRTUAL LOOKUP YET
             opcode::Opcode::INVOKEVIRTUAL => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
-                dispatchInvoke(repo.lookupMethodVirtual(klass_name, cp_lookup), eval);
+                dispatch_invoke(repo.lookupMethodVirtual(&klass_name, cp_lookup), &eval);
             }
             opcode::Opcode::IOR => eval.ior(),
 
@@ -253,43 +253,53 @@ fn exec_method(
             opcode::Opcode::ISTORE_3 => lvt.store(3, eval.pop()),
 
             opcode::Opcode::ISUB => eval.isub(),
+                        // Dummy implementation
+            opcode::Opcode::LDC => {
+                // System.out.print("Executing " + op + " with param bytes: ");
+                // for (int i = current; i < current + num; i++) {
+                //     System.out.print(instr[i] + " ");
+                // }
+                // current += num;
+                // System.out.println();
+            }
+
             // FIXME TEMP
-            MONITORENTER => {
+            opcode::Opcode::MONITORENTER => {
                 eval.pop();
             },
-            MONITOREXIT => {
+            opcode::Opcode::MONITOREXIT => {
                 eval.pop();
             },
 
-            NEW => {
+            opcode::Opcode::NEW => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
 
-                let klass: runtime::OCKlass = repo.lookupKlass(klass_name, cp_lookup);
+                let klass: runtime::OCKlass = repo.lookupKlass(&klass_name, cp_lookup);
                 eval.push(runtime::JVMValue::ObjRef {
                     // val: heap.allocateObj(klass),
                 });
             },
-            NOP => {
+            opcode::Opcode::NOP => {
                 ();
             },
 
-            POP => {
+            opcode::Opcode::POP => {
                 eval.pop();
             },
-            POP2 => {
-                let discard: runtime::JVMValue = eval.pop();
+            opcode::Opcode::POP2 => {
+                let _discard: runtime::JVMValue = eval.pop();
                 // FIXME Change to type match
                 // if (discard.type == JVMType.J || discard.type == JVMType.D) {
 
                 // }
                 eval.pop();
             }
-            PUTFIELD => {
+            opcode::Opcode::PUTFIELD => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
 
-                let putf: runtime::OCField = repo.lookupField(klass_name, cp_lookup);
+                let putf: runtime::OCField = repo.lookupField(&klass_name, cp_lookup);
                 let val: runtime::JVMValue = eval.pop();
 
                 let recvp: runtime::JVMValue = eval.pop();
@@ -302,43 +312,34 @@ fn exec_method(
 
                 obj.putField(putf, val);
             }
-            PUTSTATIC => {
+            opcode::Opcode::PUTSTATIC => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
 
-                let puts: runtime::OCField = repo.lookupField(klass_name, cp_lookup);
+                let puts: runtime::OCField = repo.lookupField(&klass_name, cp_lookup);
                 let fKlass: runtime::OCKlass = puts.getKlass();
                 let vals: runtime::JVMValue = eval.pop();
                 fKlass.setStaticField(puts.getName(), vals);
             }
-            RETURN => break None,
-            SIPUSH => {
+            opcode::Opcode::RETURN => break None,
+            opcode::Opcode::SIPUSH => {
                 let vtmp = (instr[current] as i32) << 8 + instr[current + 1] as i32;
                 eval.iconst(vtmp);
                 current += 2;
             }
-            SWAP => {
+            opcode::Opcode::SWAP => {
                 let val1: runtime::JVMValue = eval.pop();
                 let val2: runtime::JVMValue = eval.pop();
                 eval.push(val1);
                 eval.push(val2);
             }
-            // Dummy implementation
-            LDC => {
-                // System.out.print("Executing " + op + " with param bytes: ");
-                // for (int i = current; i < current + num; i++) {
-                //     System.out.print(instr[i] + " ");
-                // }
-                // current += num;
-                // System.out.println();
-            }
             // Disallowed opcodes
-            BREAKPOINT => break Some(runtime::JVMValue::Boolean { val: false }),
+            opcode::Opcode::BREAKPOINT => break Some(runtime::JVMValue::Boolean { val: false }),
             opcode::Opcode::IMPDEP1 => break Some(runtime::JVMValue::Boolean { val: false }),
             opcode::Opcode::IMPDEP2 => break Some(runtime::JVMValue::Boolean { val: false }),
-            JSR => break Some(runtime::JVMValue::Boolean { val: false }),
-            JSR_W => break Some(runtime::JVMValue::Boolean { val: false }),
-            RET => break Some(runtime::JVMValue::Boolean { val: false }),
+            opcode::Opcode::JSR => break Some(runtime::JVMValue::Boolean { val: false }),
+            opcode::Opcode::JSR_W => break Some(runtime::JVMValue::Boolean { val: false }),
+            opcode::Opcode::RET => break Some(runtime::JVMValue::Boolean { val: false }),
 
             // throw new IllegalArgumentException("Illegal opcode byte: " + (b & 0xff) + " encountered at position " + (current - 1) + ". Stopping."),
             _ => break Some(runtime::JVMValue::Boolean { val: true }),
@@ -346,7 +347,18 @@ fn exec_method(
     }
 }
 
-fn dispatchInvoke(to_be_called: runtime::OCMethod, eval: runtime::EvaluationStack) -> () {}
+fn dispatch_invoke(to_be_called: runtime::OCMethod, eval: &runtime::EvaluationStack) -> () {
+    // Setup call
+
+    // Invoke
+
+    // Setup return value
+    // let val : Option<runtime::JVMValue> = execMethod(toBeCalled, withVars);
+    // FIXME convert to match expr
+        // if (val != null)
+        //     eval.push(val);
+
+}
 
 // fn make_bytecode_table() -> [opcode::Opcode; 256] {
 //     [opcode::Opcode::ALOAD; 256]

@@ -13,13 +13,13 @@ pub enum JVMValue {
 impl JVMValue {
     fn name(&self) -> char {
         match *self {
-            JVMValue::Boolean { val } => 'Z',
-            JVMValue::Byte { val } => 'B',
-            JVMValue::Short { val } => 'S',
-            JVMValue::Int { val } => 'I',
-            JVMValue::Long { val } => 'J',
-            JVMValue::Float { val } => 'F',
-            JVMValue::Double { val } => 'D',
+            JVMValue::Boolean { val: _ } => 'Z',
+            JVMValue::Byte { val: _ } => 'B',
+            JVMValue::Short { val: _ } => 'S',
+            JVMValue::Int { val: _ } => 'I',
+            JVMValue::Long { val: _ } => 'J',
+            JVMValue::Float { val: _ } => 'F',
+            JVMValue::Double { val: _ } => 'D',
             JVMValue::Char => 'C',
             JVMValue::ObjRef => 'A',
         }
@@ -127,21 +127,21 @@ impl ClassRepository {
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookupField(&self, klass_name: String, idx: u8) -> OCField {
+    pub fn lookupField(&self, klass_name: &String, idx: u8) -> OCField {
         OCField {}
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookupMethodExact(&self, klass_name: String, idx: u8) -> OCMethod {
+    pub fn lookupMethodExact(&self, klass_name: &String, idx: u8) -> OCMethod {
         OCMethod {}
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookupMethodVirtual(&self, klass_name: String, idx: u8) -> OCMethod {
+    pub fn lookupMethodVirtual(&self, klass_name: &String, idx: u8) -> OCMethod {
         OCMethod {}
     }
 
-    pub fn lookupKlass(&self, klass_name: String, idx: u8) -> OCKlass {
+    pub fn lookupKlass(&self, klass_name: &String, idx: u8) -> OCKlass {
         OCKlass {}
     }
 }
