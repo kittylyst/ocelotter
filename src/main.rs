@@ -207,14 +207,18 @@ fn exec_method(
             //         current += jumpTo - 1;  // The -1 is necessary as we've already inc'd current
             //     }
             // },
-            // opcode::Opcode::IFNULL => {
-            //     v = eval.pop();
-            //     jumpTo = ((int) instr[current] << 8) + (int) instr[current + 1];
-            //     // FIXME Check that this is of reference type
-            //     if (v.value == 0L) {
-            //         current += jumpTo - 1;  // The -1 is necessary as we've already inc'd current
-            //     }
-            // },
+            opcode::Opcode::IFNULL => {
+                let v = eval.pop();
+                let jumpTo = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+
+                match v {
+                    runtime::JVMValue::ObjRef => {
+                        // FIXME Check that this is actually null
+                        current += jumpTo - 1;
+                    }
+                    _ => println!("Value not of reference type found for IFNULL"),
+                };
+            }
             opcode::Opcode::IINC => {
                 lvt.iinc(instr[current], instr[current + 1]);
                 current += 2;
