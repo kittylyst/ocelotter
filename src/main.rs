@@ -34,70 +34,70 @@ fn exec_method(
         match ins {
             opcode::Opcode::ACONST_NULL => eval.aconst_null(),
 
-            ALOAD => {
+            opcode::Opcode::ALOAD => {
                 eval.push(lvt.aload(instr[current]));
                 current += 1;
             }
-            ALOAD_0 => eval.push(lvt.aload(0)),
+            opcode::Opcode::ALOAD_0 => eval.push(lvt.aload(0)),
 
-            ALOAD_1 => eval.push(lvt.aload(1)),
+            opcode::Opcode::ALOAD_1 => eval.push(lvt.aload(1)),
 
-            ARETURN => break Some(eval.pop()),
-            ASTORE => {
+            opcode::Opcode::ARETURN => break Some(eval.pop()),
+            opcode::Opcode::ASTORE => {
                 lvt.astore(instr[current], eval.pop());
                 current += 1;
             }
-            ASTORE_0 => lvt.astore(0, eval.pop()),
+            opcode::Opcode::ASTORE_0 => lvt.astore(0, eval.pop()),
 
-            ASTORE_1 => lvt.astore(1, eval.pop()),
+            opcode::Opcode::ASTORE_1 => lvt.astore(1, eval.pop()),
 
             BIPUSH => {
                 eval.iconst(instr[current] as i32);
                 current += 1;
             }
-            DADD => eval.dadd(),
+            opcode::Opcode::DADD => eval.dadd(),
 
-            DCONST_0 => eval.dconst(0.0),
+            opcode::Opcode::DCONST_0 => eval.dconst(0.0),
 
-            DCONST_1 => eval.dconst(1.0),
+            opcode::Opcode::DCONST_1 => eval.dconst(1.0),
 
-            DLOAD => {
+            opcode::Opcode::DLOAD => {
                 eval.push(lvt.dload(instr[current]));
                 current += 1;
             }
 
-            DLOAD_0 => eval.push(lvt.dload(0)),
+            opcode::Opcode::DLOAD_0 => eval.push(lvt.dload(0)),
 
-            DLOAD_1 => eval.push(lvt.dload(1)),
+            opcode::Opcode::DLOAD_1 => eval.push(lvt.dload(1)),
 
-            DLOAD_2 => eval.push(lvt.dload(2)),
+            opcode::Opcode::DLOAD_2 => eval.push(lvt.dload(2)),
 
-            DLOAD_3 => eval.push(lvt.dload(3)),
+            opcode::Opcode::DLOAD_3 => eval.push(lvt.dload(3)),
 
-            DRETURN => break Some(eval.pop()),
-            DSTORE => {
+            opcode::Opcode::DRETURN => break Some(eval.pop()),
+            opcode::Opcode::DSTORE => {
                 lvt.store(instr[current], eval.pop());
                 current += 1;
             }
-            DSTORE_0 => lvt.store(0, eval.pop()),
+            opcode::Opcode::DSTORE_0 => lvt.store(0, eval.pop()),
 
-            DSTORE_1 => lvt.store(1, eval.pop()),
+            opcode::Opcode::DSTORE_1 => lvt.store(1, eval.pop()),
 
-            DSTORE_2 => lvt.store(2, eval.pop()),
+            opcode::Opcode::DSTORE_2 => lvt.store(2, eval.pop()),
 
-            DSTORE_3 => lvt.store(3, eval.pop()),
+            opcode::Opcode::DSTORE_3 => lvt.store(3, eval.pop()),
 
-            DSUB => eval.dsub(),
+            opcode::Opcode::DSUB => eval.dsub(),
 
-            DUP => eval.dup(),
+            opcode::Opcode::DUP => eval.dup(),
 
-            DUP_X1 => eval.dupX1(),
+            opcode::Opcode::DUP_X1 => eval.dupX1(),
 
             // GETFIELD => {
             //     let cp_lookup = ((int) instr[current++] << 8) + (int) instr[current++];
             //     runtime::OCField field = repo.lookupField(klass_name, (short) cp_lookup);
             //     runtime::JVMValue receiver = eval.pop();
-            //     // VERIFY: Should check to make sure receiver is an A
+            //     // VERIFY: Should check to make sure receiver is an opcode::Opcode::A
             //     runtime::JVMObj obj = heap.findObject(receiver.value);
             //     eval.push(obj.getField(field));
             // },
@@ -109,29 +109,29 @@ fn exec_method(
             // },
             GOTO => current += 2 + (instr[current] as usize) << 8 + instr[current + 1] as usize,
 
-            I2D => eval.i2d(),
+            opcode::Opcode::I2D => eval.i2d(),
 
-            IADD => eval.iadd(),
+            opcode::Opcode::IADD => eval.iadd(),
 
-            IAND => eval.iand(),
+            opcode::Opcode::IAND => eval.iand(),
 
-            ICONST_0 => eval.iconst(0),
+            opcode::Opcode::ICONST_0 => eval.iconst(0),
 
-            ICONST_1 => eval.iconst(1),
+            opcode::Opcode::ICONST_1 => eval.iconst(1),
 
-            ICONST_2 => eval.iconst(2),
+            opcode::Opcode::ICONST_2 => eval.iconst(2),
 
-            ICONST_3 => eval.iconst(3),
+            opcode::Opcode::ICONST_3 => eval.iconst(3),
 
-            ICONST_4 => eval.iconst(4),
+            opcode::Opcode::ICONST_4 => eval.iconst(4),
 
-            ICONST_5 => eval.iconst(5),
+            opcode::Opcode::ICONST_5 => eval.iconst(5),
 
-            ICONST_M1 => eval.iconst(-1),
+            opcode::Opcode::ICONST_M1 => eval.iconst(-1),
 
-            IDIV => eval.idiv(),
+            opcode::Opcode::IDIV => eval.idiv(),
 
-            // IF_ICMPEQ => {
+            // opcode::Opcode::IF_ICMPEQ => {
             //     v = eval.pop();
             //     v2 = eval.pop();
             //     jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
@@ -139,49 +139,49 @@ fn exec_method(
             //         current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // },
-            // IFEQ => {
+            // opcode::Opcode::IFEQ => {
             //     v = eval.pop();
             //     jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
             //     if (v.value == 0L) {
             //         current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // }    ,
-            // IFGE => {
+            // opcode::Opcode::IFGE => {
             //     v = eval.pop();
             //     jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
             //     if (v.value >= 0L) {
             //         current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // } ,
-            // IFGT => {
+            // opcode::Opcode::IFGT => {
             //     v = eval.pop();
             //     jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
             //     if (v.value > 0L) {
             //         current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // },
-            // IFLE => {
+            // opcode::Opcode::IFLE => {
             //     v = eval.pop();
             //     jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
             //     if (v.value <= 0L) {
             //         current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // },
-            // IFLT => {
+            // opcode::Opcode::IFLT => {
             //     v = eval.pop();
             //     jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
             //     if (v.value < 0L) {
             //         current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // },
-            // IFNE => {
+            // opcode::Opcode::IFNE => {
             //     v = eval.pop();
             //     jumpTo = ((int) instr[current] << 8) + (int) instr[current + 1];
             //     if (v.value != 0L) {
             //         current += jumpTo - 1;  // The -1 is necessary as we've already inc'd current
             //     }
             // },
-            // IFNONNULL => {
+            // opcode::Opcode::IFNONNULL => {
             //     v = eval.pop();
             //     jumpTo = ((int) instr[current] << 8) + (int) instr[current + 1];
             //     // FIXME Check that this is of reference type
@@ -189,7 +189,7 @@ fn exec_method(
             //         current += jumpTo - 1;  // The -1 is necessary as we've already inc'd current
             //     }
             // },
-            // IFNULL => {
+            // opcode::Opcode::IFNULL => {
             //     v = eval.pop();
             //     jumpTo = ((int) instr[current] << 8) + (int) instr[current + 1];
             //     // FIXME Check that this is of reference type
@@ -197,62 +197,62 @@ fn exec_method(
             //         current += jumpTo - 1;  // The -1 is necessary as we've already inc'd current
             //     }
             // },
-            IINC => {
+            opcode::Opcode::IINC => {
                 lvt.iinc(instr[current], instr[current + 1]);
                 current += 2;
             }
 
-            ILOAD => {
+            opcode::Opcode::ILOAD => {
                 eval.push(lvt.iload(instr[current]));
                 current += 1
             }
 
-            ILOAD_0 => eval.push(lvt.iload(0)),
+            opcode::Opcode::ILOAD_0 => eval.push(lvt.iload(0)),
 
-            ILOAD_1 => eval.push(lvt.iload(1)),
+            opcode::Opcode::ILOAD_1 => eval.push(lvt.iload(1)),
 
-            ILOAD_2 => eval.push(lvt.iload(2)),
+            opcode::Opcode::ILOAD_2 => eval.push(lvt.iload(2)),
 
-            ILOAD_3 => eval.push(lvt.iload(3)),
+            opcode::Opcode::ILOAD_3 => eval.push(lvt.iload(3)),
 
-            IMUL => eval.imul(),
+            opcode::Opcode::IMUL => eval.imul(),
 
-            INEG => eval.ineg(),
+            opcode::Opcode::INEG => eval.ineg(),
 
-            INVOKESPECIAL => {
+            opcode::Opcode::INVOKESPECIAL => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
                 dispatchInvoke(repo.lookupMethodExact(klass_name, cp_lookup), eval);
             }
-            INVOKESTATIC => {
+            opcode::Opcode::INVOKESTATIC => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
                 dispatchInvoke(repo.lookupMethodExact(klass_name, cp_lookup), eval);
             }
-            // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
-            INVOKEVIRTUAL => {
+            // FIXME DOES NOT ACTUALLY opcode::Opcode::DO VIRTUAL LOOKUP YET
+            opcode::Opcode::INVOKEVIRTUAL => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
                 current += 2;
                 dispatchInvoke(repo.lookupMethodVirtual(klass_name, cp_lookup), eval);
             }
-            IOR => eval.ior(),
+            opcode::Opcode::IOR => eval.ior(),
 
-            IREM => eval.irem(),
+            opcode::Opcode::IREM => eval.irem(),
 
-            IRETURN => break Some(eval.pop()),
-            ISTORE => {
+            opcode::Opcode::IRETURN => break Some(eval.pop()),
+            opcode::Opcode::ISTORE => {
                 lvt.store(instr[current], eval.pop());
                 current += 1;
             }
-            ISTORE_0 => lvt.store(0, eval.pop()),
+            opcode::Opcode::ISTORE_0 => lvt.store(0, eval.pop()),
 
-            ISTORE_1 => lvt.store(1, eval.pop()),
+            opcode::Opcode::ISTORE_1 => lvt.store(1, eval.pop()),
 
-            ISTORE_2 => lvt.store(2, eval.pop()),
+            opcode::Opcode::ISTORE_2 => lvt.store(2, eval.pop()),
 
-            ISTORE_3 => lvt.store(3, eval.pop()),
+            opcode::Opcode::ISTORE_3 => lvt.store(3, eval.pop()),
 
-            ISUB => eval.isub(),
+            opcode::Opcode::ISUB => eval.isub(),
             // FIXME TEMP
             MONITORENTER => {
                 eval.pop();
@@ -293,7 +293,7 @@ fn exec_method(
                 let val: runtime::JVMValue = eval.pop();
 
                 let recvp: runtime::JVMValue = eval.pop();
-                // VERIFY: Should check to make sure receiver is an A
+                // VERIFY: Should check to make sure receiver is an opcode::Opcode::A
                 // FIXME Match expression & destructure for recvp
                 let obj = match recvp {
                     runtime::JVMValue::ObjRef => runtime::JVMObj{},
@@ -334,8 +334,8 @@ fn exec_method(
             }
             // Disallowed opcodes
             BREAKPOINT => break Some(runtime::JVMValue::Boolean { val: false }),
-            IMPDEP1 => break Some(runtime::JVMValue::Boolean { val: false }),
-            IMPDEP2 => break Some(runtime::JVMValue::Boolean { val: false }),
+            opcode::Opcode::IMPDEP1 => break Some(runtime::JVMValue::Boolean { val: false }),
+            opcode::Opcode::IMPDEP2 => break Some(runtime::JVMValue::Boolean { val: false }),
             JSR => break Some(runtime::JVMValue::Boolean { val: false }),
             JSR_W => break Some(runtime::JVMValue::Boolean { val: false }),
             RET => break Some(runtime::JVMValue::Boolean { val: false }),
