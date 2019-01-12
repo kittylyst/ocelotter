@@ -152,9 +152,4 @@ impl SimpleLinkedJVMHeap {
     pub fn allocateObj(&self, klass: OCKlass ) -> JVMValue {
         JVMValue::ObjRef{}
     }
-
-    pub fn findObject(&self, id: u32) -> crate::runtime::JVMValue {
-        JVMValue::Boolean { val: true }
-    }
-
 }

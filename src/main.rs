@@ -21,11 +21,18 @@ fn exec_method(
     let eval = runtime::EvaluationStack {};
 
     loop {
-        let ins = instr.get(current);
+        let opt_ins = instr.get(current);
+        let ins: u8 = match opt_ins {
+            Some(value) => *value,
+            None => {
+                println!("Byte {} has no value", current);
+                0
+            },
+        };
         current += 1;
 
         match ins {
-            ACONST_NULL => eval.aconst_null(),
+            opcode::Opcode::ACONST_NULL => eval.aconst_null(),
 
             ALOAD => {
                 eval.push(lvt.aload(instr[current]));
@@ -288,10 +295,12 @@ fn exec_method(
                 let recvp: runtime::JVMValue = eval.pop();
                 // VERIFY: Should check to make sure receiver is an A
                 // FIXME Match expression & destructure for recvp
-                let objp: runtime::JVMObj = heap.findObject(recvp.value);
+                let obj = match recvp {
+                    runtime::JVMValue::ObjRef => runtime::JVMObj{},
+                    _ => runtime::JVMObj{}
+                };
 
-
-                objp.putField(putf, val);
+                obj.putField(putf, val);
             }
             PUTSTATIC => {
                 let cp_lookup = (instr[current] << 8) + instr[current + 1];
