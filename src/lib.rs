@@ -358,3 +358,6 @@ fn dispatch_invoke(to_be_called: runtime::OCMethod, eval: &runtime::EvaluationSt
     //     eval.push(val);
 
 }
+
+#[cfg(test)]
+mod tests;

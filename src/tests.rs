@@ -1,18 +1,15 @@
-use ocelotter;
-
-// mod runtime;
-// use opcode;
+use super::*;
 
 #[test]
 fn adds_to_two() {
     let first_test = vec![
         opcode::Opcode::ICONST_1,
-        Opcode::ICONST_1,
-        Opcode::IADD,
-        Opcode::IRETURN,
+        opcode::Opcode::ICONST_1,
+        opcode::Opcode::IADD,
+        opcode::Opcode::IRETURN,
     ];
-    let lvt = ocelotter::runtime::LocalVariableTable {};
-    let opt_ret = ocelotter::exec_method(
+    let lvt = runtime::LocalVariableTable {};
+    let opt_ret = exec_method(
         "DUMMY".to_string(),
         "DUMMY_DESC".to_string(),
         &first_test,
@@ -20,10 +17,10 @@ fn adds_to_two() {
     );
     let ret_jvm = match opt_ret {
         Some(value) => value,
-        None => JVMValue::ObjRef {},
+        None => runtime::JVMValue::ObjRef {},
     };
     let ret = match ret_jvm {
-        JVMValue::Int { val: i } => i,
+        runtime::JVMValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
