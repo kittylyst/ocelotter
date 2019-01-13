@@ -239,18 +239,18 @@ pub fn exec_method(
             opcode::Opcode::INEG => eval.ineg(),
 
             opcode::Opcode::INVOKESPECIAL => {
-                let cp_lookup = (instr[current] as u16) << 8 + instr[current + 1] as u16;
+                let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 dispatch_invoke(repo.lookupMethodExact(&klass_name, cp_lookup), &eval);
             }
             opcode::Opcode::INVOKESTATIC => {
-                let cp_lookup = (instr[current] as u16) << 8 + instr[current + 1] as u16;
+                let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 dispatch_invoke(repo.lookupMethodExact(&klass_name, cp_lookup), &eval);
             }
-            // FIXME DOES NOT ACTUALLY opcode::Opcode::DO VIRTUAL LOOKUP YET
+            // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
             opcode::Opcode::INVOKEVIRTUAL => {
-                let cp_lookup = (instr[current] as u16) << 8 + instr[current + 1] as u16;
+                let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 dispatch_invoke(repo.lookupMethodVirtual(&klass_name, cp_lookup), &eval);
             }
@@ -291,7 +291,7 @@ pub fn exec_method(
             }
 
             opcode::Opcode::NEW => {
-                let cp_lookup = (instr[current] as u16) << 8 + instr[current + 1] as u16;
+                let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
                 let klass: runtime::OCKlass = repo.lookupKlass(&klass_name, cp_lookup);
@@ -315,7 +315,7 @@ pub fn exec_method(
                 eval.pop();
             }
             opcode::Opcode::PUTFIELD => {
-                let cp_lookup = (instr[current] as u16) << 8 + instr[current + 1] as u16;
+                let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
                 let putf: runtime::OCField = repo.lookupField(&klass_name, cp_lookup);
@@ -332,7 +332,7 @@ pub fn exec_method(
                 obj.putField(putf, val);
             }
             opcode::Opcode::PUTSTATIC => {
-                let cp_lookup = (instr[current] as u16) << 8 + instr[current + 1] as u16;
+                let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
                 let puts: runtime::OCField = repo.lookupField(&klass_name, cp_lookup);
@@ -342,7 +342,7 @@ pub fn exec_method(
             }
             opcode::Opcode::RETURN => break None,
             opcode::Opcode::SIPUSH => {
-                let vtmp = (instr[current] as i32) << 8 + instr[current + 1] as i32;
+                let vtmp = ((instr[current] as i32) << 8) + instr[current + 1] as i32;
                 eval.iconst(vtmp);
                 current += 2;
             }
