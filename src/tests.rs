@@ -17,7 +17,9 @@ fn adds_to_two() {
     );
     let ret_jvm = match opt_ret {
         Some(value) => value,
-        None => runtime::JVMValue::ObjRef {},
+        None => runtime::JVMValue::ObjRef {
+            val: runtime::JVMObj::get_null(),
+        },
     };
     let ret = match ret_jvm {
         runtime::JVMValue::Int { val: i } => i,
