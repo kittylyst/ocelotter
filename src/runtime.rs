@@ -62,7 +62,7 @@ impl JVMObj {
     }
 
     pub fn is_null(&self) -> bool {
-        if (self.mark == 0u64 && self.klassid == 0u32) {
+        if self.mark == 0u64 && self.klassid == 0u32 {
             true
         } else {
             false
@@ -119,10 +119,7 @@ impl EvaluationStack {
         let s = &mut self.stack;
         match s.pop() {
             Some(value) => value,
-            None => {
-                println!("pop() on empty stack");
-                JVMValue::Boolean { val: false }
-            }
+            None => panic!("pop() on empty stack"),
         }
     }
 
@@ -140,17 +137,11 @@ impl EvaluationStack {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
             JVMValue::Int { val: i } => i,
-            _ => {
-                println!("Unexpected, non-integer value encountered");
-                0
-            }
+            _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
             JVMValue::Int { val: i } => i,
-            _ => {
-                println!("Unexpected, non-integer value encountered");
-                0
-            }
+            _ => panic!("Unexpected, non-integer value encountered"),
         };
 
         self.push(JVMValue::Int { val: i1 + i2 });
@@ -160,17 +151,11 @@ impl EvaluationStack {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
             JVMValue::Int { val: i } => i,
-            _ => {
-                println!("Unexpected, non-integer value encountered");
-                0
-            }
+            _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
             JVMValue::Int { val: i } => i,
-            _ => {
-                println!("Unexpected, non-integer value encountered");
-                0
-            }
+            _ => panic!("Unexpected, non-integer value encountered"),
         };
 
         self.push(JVMValue::Int { val: i1 - i2 });
@@ -179,17 +164,11 @@ impl EvaluationStack {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
             JVMValue::Int { val: i } => i,
-            _ => {
-                println!("Unexpected, non-integer value encountered");
-                0
-            }
+            _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
             JVMValue::Int { val: i } => i,
-            _ => {
-                println!("Unexpected, non-integer value encountered");
-                0
-            }
+            _ => panic!("Unexpected, non-integer value encountered"),
         };
 
         self.push(JVMValue::Int { val: i1 * i2 });
@@ -199,17 +178,11 @@ impl EvaluationStack {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
             JVMValue::Int { val: i } => i,
-            _ => {
-                println!("Unexpected, non-integer value encountered");
-                0
-            }
+            _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
             JVMValue::Int { val: i } => i,
-            _ => {
-                println!("Unexpected, non-integer value encountered");
-                0
-            }
+            _ => panic!("Unexpected, non-integer value encountered"),
         };
 
         self.push(JVMValue::Int { val: i2 % i1 });
@@ -219,17 +192,11 @@ impl EvaluationStack {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
             JVMValue::Int { val: i } => i,
-            _ => {
-                println!("Unexpected, non-integer value encountered");
-                0
-            }
+            _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
             JVMValue::Int { val: i } => i,
-            _ => {
-                println!("Unexpected, non-integer value encountered");
-                0
-            }
+            _ => panic!("Unexpected, non-integer value encountered"),
         };
 
         self.push(JVMValue::Int { val: i2 / i1 });
@@ -238,10 +205,7 @@ impl EvaluationStack {
     pub fn ineg(&mut self) -> () {
         let i1 = match self.pop() {
             JVMValue::Int { val: i } => i,
-            _ => {
-                println!("Unexpected, non-integer value encountered");
-                0
-            }
+            _ => panic!("Unexpected, non-integer value encountered"),
         };
         self.push(JVMValue::Int { val: -i1 });
     }
@@ -251,17 +215,11 @@ impl EvaluationStack {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
             JVMValue::Double { val: i } => i,
-            _ => {
-                println!("Unexpected, non-double value encountered");
-                0.0f64
-            }
+            _ => panic!("Unexpected, non-double value encountered"),
         };
         let i2 = match self.pop() {
             JVMValue::Double { val: i } => i,
-            _ => {
-                println!("Unexpected, non-double value encountered");
-                0.0f64
-            }
+            _ => panic!("Unexpected, non-double value encountered"),
         };
 
         self.push(JVMValue::Double { val: i1 + i2 });
@@ -270,17 +228,11 @@ impl EvaluationStack {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
             JVMValue::Double { val: i } => i,
-            _ => {
-                println!("Unexpected, non-double value encountered");
-                0.0f64
-            }
+            _ => panic!("Unexpected, non-double value encountered"),
         };
         let i2 = match self.pop() {
             JVMValue::Double { val: i } => i,
-            _ => {
-                println!("Unexpected, non-double value encountered");
-                0.0f64
-            }
+            _ => panic!("Unexpected, non-double value encountered"),
         };
 
         self.push(JVMValue::Double { val: i1 - i2 });
@@ -289,17 +241,11 @@ impl EvaluationStack {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
             JVMValue::Double { val: i } => i,
-            _ => {
-                println!("Unexpected, non-double value encountered");
-                0.0f64
-            }
+            _ => panic!("Unexpected, non-double value encountered"),
         };
         let i2 = match self.pop() {
             JVMValue::Double { val: i } => i,
-            _ => {
-                println!("Unexpected, non-double value encountered");
-                0.0f64
-            }
+            _ => panic!("Unexpected, non-double value encountered"),
         };
 
         self.push(JVMValue::Double { val: i1 * i2 });

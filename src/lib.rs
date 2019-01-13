@@ -1,3 +1,4 @@
+mod klass_parser;
 mod opcode;
 mod runtime;
 
@@ -17,10 +18,7 @@ pub fn exec_method(
         let opt_ins = instr.get(current);
         let ins: u8 = match opt_ins {
             Some(value) => *value,
-            None => {
-                println!("Byte {} has no value", current);
-                0
-            }
+            None => panic!("Byte {} has no value", current),
         };
         current += 1;
 
@@ -193,7 +191,10 @@ pub fn exec_method(
                             current += 2;
                         }
                     }
-                    _ => println!("Value not of reference type found for IFNULL"),
+                    _ => panic!(
+                        "Value not of reference type found for IFNULL at {}",
+                        current
+                    ),
                 };
             }
             opcode::Opcode::IFNULL => {
@@ -209,7 +210,10 @@ pub fn exec_method(
                             current += 2;
                         }
                     }
-                    _ => println!("Value not of reference type found for IFNULL"),
+                    _ => panic!(
+                        "Value not of reference type found for IFNULL at {}",
+                        current
+                    ),
                 };
             }
             opcode::Opcode::IINC => {
@@ -322,7 +326,7 @@ pub fn exec_method(
                 // FIXME Match expression & destructure for recvp
                 let obj = match recvp {
                     runtime::JVMValue::ObjRef { val: v } => v,
-                    _ => runtime::JVMObj::get_null(),
+                    _ => panic!("Not an object ref at {}", current),
                 };
 
                 obj.putField(putf, val);
@@ -356,8 +360,11 @@ pub fn exec_method(
             opcode::Opcode::JSR_W => break Some(runtime::JVMValue::Boolean { val: false }),
             opcode::Opcode::RET => break Some(runtime::JVMValue::Boolean { val: false }),
 
-            // throw new IllegalArgumentException("Illegal opcode byte: " + (b & 0xff) + " encountered at position " + (current - 1) + ". Stopping."),
-            _ => break Some(runtime::JVMValue::Boolean { val: true }),
+            _ => panic!(
+                "Illegal opcode byte: {} encountered at position {}. Stopping.",
+                ins,
+                (current - 1)
+            ),
         }
     }
 }
@@ -373,6 +380,13 @@ fn dispatch_invoke(to_be_called: runtime::OCMethod, eval: &runtime::EvaluationSt
     // if (val != null)
     //     eval.push(val);
 
+}
+
+fn parse_class(bytes: Vec<u8>, fname: String) -> runtime::OCKlass {
+    let mut parser = klass_parser::oc_parser::new(bytes, fname);
+    parser.parse();
+    // parser.klass();
+    runtime::OCKlass {}
 }
 
 #[cfg(test)]
