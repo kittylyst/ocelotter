@@ -101,7 +101,7 @@ pub fn exec_method(
             //     eval.push(fgKlass.getStaticField(f));
             // },
             opcode::Opcode::GOTO => {
-                current += 2 + (instr[current] as usize) << 8 + instr[current + 1] as usize
+                current += ((instr[current] as usize) << 8) + instr[current + 1] as usize
             }
 
             opcode::Opcode::I2D => eval.i2d(),
@@ -127,10 +127,16 @@ pub fn exec_method(
             opcode::Opcode::IDIV => eval.idiv(),
 
             // opcode::Opcode::IF_ICMPEQ => {
-            //     v = eval.pop();
-            //     v2 = eval.pop();
-            //     jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     if (v.value == v2.value) {
+            //     let jumpTo = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+            //     let v1 = match eval.pop() {
+            //         runtime::JVMValue::ObjRef { val: v } => v,
+            //         _ => println!("Value not of reference type found for IFNULL"),
+            //     };
+            //     let v2 = match eval.pop() {
+            //         runtime::JVMValue::ObjRef { val: v } => v,
+            //         _ => println!("Value not of reference type found for IFNULL"),
+            //     };
+            //     if v1 == v2 {
             //         current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // },
@@ -176,22 +182,32 @@ pub fn exec_method(
             //         current += jumpTo - 1;  // The -1 is necessary as we've already inc'd current
             //     }
             // },
-            // opcode::Opcode::IFNONNULL => {
-            //     v = eval.pop();
-            //     jumpTo = ((int) instr[current] << 8) + (int) instr[current + 1];
-            //     // FIXME Check that this is of reference type
-            //     if (v.value != 0L) {
-            //         current += jumpTo - 1;  // The -1 is necessary as we've already inc'd current
-            //     }
-            // },
-            opcode::Opcode::IFNULL => {
-                let v = eval.pop();
-                let jumpTo = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+            opcode::Opcode::IFNONNULL => {
+                let jumpTo = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
 
-                match v {
-                    runtime::JVMValue::ObjRef { val: _ } => {
-                        // FIXME Check that this is actually null
-                        current += jumpTo - 1;
+                match eval.pop() {
+                    runtime::JVMValue::ObjRef { val: v } => {
+                        if !v.is_null() {
+                            current += jumpTo;
+                        } else {
+                            current += 2;
+                        }
+                    }
+                    _ => println!("Value not of reference type found for IFNULL"),
+                };
+            }
+            opcode::Opcode::IFNULL => {
+                let jumpTo = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+
+                match eval.pop() {
+                    runtime::JVMValue::ObjRef { val: v } => {
+                        if v.is_null() {
+                            // println!("Ins[curr]: {} and {}", instr[current], instr[current + 1]);
+                            // println!("Attempting to jump by: {} from {}", jumpTo, current);
+                            current += jumpTo;
+                        } else {
+                            current += 2;
+                        }
                     }
                     _ => println!("Value not of reference type found for IFNULL"),
                 };

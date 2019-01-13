@@ -60,6 +60,14 @@ impl JVMObj {
             klassid: 0u32,
         }
     }
+
+    pub fn is_null(&self) -> bool {
+        if (self.mark == 0u64 && self.klassid == 0u32) {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl fmt::Display for JVMObj {
@@ -94,7 +102,7 @@ impl OCField {
 }
 
 pub struct EvaluationStack {
-    stack: Vec<crate::runtime::JVMValue>,
+    stack: Vec<JVMValue>,
 }
 
 impl EvaluationStack {
@@ -320,6 +328,7 @@ pub struct LocalVariableTable {}
 
 impl LocalVariableTable {
     pub fn iload(&self, idx: u8) -> JVMValue {
+        // FIXME Type checks...
         JVMValue::Int { val: 1 }
     }
 
@@ -336,10 +345,7 @@ impl LocalVariableTable {
     pub fn aload(&self, idx: u8) -> crate::runtime::JVMValue {
         // FIXME Load from LVT
         JVMValue::ObjRef {
-            val: JVMObj {
-                mark: 0u64,
-                klassid: 0u32,
-            },
+            val: JVMObj::get_null(),
         }
     }
 
@@ -377,9 +383,7 @@ pub struct SimpleLinkedJVMHeap {}
 
 impl SimpleLinkedJVMHeap {
     pub fn allocateObj(&self, klass: OCKlass) -> JVMObj {
-        JVMObj {
-            mark: 0u64,
-            klassid: 0u32, // FIXME: This should become a pointer at some point
-        }
+        // FIXME
+        JVMObj::get_null()
     }
 }
