@@ -189,7 +189,7 @@ pub fn exec_method(
                 let jumpTo = (instr[current] as usize) << 8 + instr[current + 1] as usize;
 
                 match v {
-                    runtime::JVMValue::ObjRef => {
+                    runtime::JVMValue::ObjRef { val: _ } => {
                         // FIXME Check that this is actually null
                         current += jumpTo - 1;
                     }
@@ -276,7 +276,7 @@ pub fn exec_method(
 
                 let klass: runtime::OCKlass = repo.lookupKlass(&klass_name, cp_lookup);
                 eval.push(runtime::JVMValue::ObjRef {
-                    // val: heap.allocateObj(klass),
+                    val: heap.allocateObj(klass),
                 });
             }
             opcode::Opcode::NOP => {
@@ -302,11 +302,11 @@ pub fn exec_method(
                 let val: runtime::JVMValue = eval.pop();
 
                 let recvp: runtime::JVMValue = eval.pop();
-                // VERIFY: Should check to make sure receiver is an opcode::Opcode::A
+                // VERIFY: Should check to make sure receiver is an A
                 // FIXME Match expression & destructure for recvp
                 let obj = match recvp {
-                    runtime::JVMValue::ObjRef => runtime::JVMObj {},
-                    _ => runtime::JVMObj {},
+                    runtime::JVMValue::ObjRef { val: v } => v,
+                    _ => runtime::JVMObj::get_null(),
                 };
 
                 obj.putField(putf, val);

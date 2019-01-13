@@ -9,8 +9,8 @@ pub enum JVMValue {
     Long { val: i64 },
     Float { val: f32 },
     Double { val: f64 },
-    Char,
-    ObjRef,
+    Char { val: char },
+    ObjRef { val: JVMObj },
 }
 
 impl JVMValue {
@@ -23,8 +23,8 @@ impl JVMValue {
             JVMValue::Long { val: _ } => 'J',
             JVMValue::Float { val: _ } => 'F',
             JVMValue::Double { val: _ } => 'D',
-            JVMValue::Char => 'C',
-            JVMValue::ObjRef => 'A',
+            JVMValue::Char { val: _ } => 'C',
+            JVMValue::ObjRef { val: _ } => 'A',
         }
     }
 }
@@ -39,16 +39,33 @@ impl fmt::Display for JVMValue {
             JVMValue::Long { val: v } => write!(f, "{}", v),
             JVMValue::Float { val: v } => write!(f, "{}", v),
             JVMValue::Double { val: v } => write!(f, "{}", v),
-            JVMValue::Char => write!(f, "XXX"),
-            JVMValue::ObjRef => write!(f, "YYY"),
+            JVMValue::Char { val: v } => write!(f, "{}", v),
+            JVMValue::ObjRef { val: v } => write!(f, "{}", v),
         }
     }
 }
 
-pub struct JVMObj {}
+#[derive(Copy, Clone)]
+pub struct JVMObj {
+    mark: u64,
+    klassid: u32, // FIXME: This should become a pointer at some point
+}
 
 impl JVMObj {
     pub fn putField(&self, f: OCField, val: JVMValue) -> () {}
+
+    pub fn get_null() -> JVMObj {
+        JVMObj {
+            mark: 0u64,
+            klassid: 0u32,
+        }
+    }
+}
+
+impl fmt::Display for JVMObj {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "MarK: {} ; Klass: {}", self.mark, self.klassid)
+    }
 }
 
 pub struct OCKlass {}
@@ -102,7 +119,12 @@ impl EvaluationStack {
     }
 
     pub fn aconst_null(&mut self) -> () {
-        self.push(JVMValue::ObjRef {});
+        self.push(JVMValue::ObjRef {
+            val: JVMObj {
+                mark: 0u64,
+                klassid: 0u32, // FIXME: This should become a pointer at some point
+            },
+        });
     }
 
     pub fn iconst(&mut self, v: i32) -> () {
@@ -258,7 +280,9 @@ impl LocalVariableTable {
         JVMValue::Int { val: 1 }
     }
 
-    pub fn store(&self, idx: u8, val: JVMValue) -> () {}
+    pub fn store(&self, idx: u8, val: JVMValue) -> () {
+        // FIXME Load from LVT
+    }
 
     pub fn iinc(&self, idx: u8, incr: u8) -> () {}
 
@@ -267,7 +291,13 @@ impl LocalVariableTable {
     }
 
     pub fn aload(&self, idx: u8) -> crate::runtime::JVMValue {
-        JVMValue::ObjRef {}
+        // FIXME Load from LVT
+        JVMValue::ObjRef {
+            val: JVMObj {
+                mark: 0u64,
+                klassid: 0u32,
+            },
+        }
     }
 
     pub fn astore(&self, idx: u8, val: JVMValue) -> () {}
@@ -303,7 +333,10 @@ impl ClassRepository {
 pub struct SimpleLinkedJVMHeap {}
 
 impl SimpleLinkedJVMHeap {
-    pub fn allocateObj(&self, klass: OCKlass) -> JVMValue {
-        JVMValue::ObjRef {}
+    pub fn allocateObj(&self, klass: OCKlass) -> JVMObj {
+        JVMObj {
+            mark: 0u64,
+            klassid: 0u32, // FIXME: This should become a pointer at some point
+        }
     }
 }
