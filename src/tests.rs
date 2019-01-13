@@ -19,8 +19,7 @@ fn adds_to_two() {
         opcode::Opcode::IADD,
         opcode::Opcode::IRETURN,
     ];
-    let ret_jvm = execute_method(&first_test);
-    let ret = match ret_jvm {
+    let ret = match execute_method(&first_test) {
         runtime::JVMValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
@@ -38,8 +37,7 @@ fn iconst_dup() {
         opcode::Opcode::IADD,
         opcode::Opcode::IRETURN,
     ];
-    let ret_jvm = execute_method(&buf);
-    let ret = match ret_jvm {
+    let ret = match execute_method(&buf) {
         runtime::JVMValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
@@ -47,48 +45,79 @@ fn iconst_dup() {
         }
     };
     assert_eq!(2, ret);
+
+    let buf2 = vec![
+        opcode::Opcode::ICONST_1,
+        opcode::Opcode::DUP,
+        opcode::Opcode::IADD,
+        opcode::Opcode::DUP,
+        opcode::Opcode::IADD,
+        opcode::Opcode::IRETURN,
+    ];
+    let ret2 = match execute_method(&buf2) {
+        runtime::JVMValue::Int { val: i } => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0
+        }
+    };
+    assert_eq!(4, ret2);
 }
 
-// @Test
-// public void iconst_dup() {
-//     byte[] buf = {ICONST_1.B(), DUP.B(), IADD.B(), IRETURN.B()};
-//     JVMValue res = im.execMethod("", "main:()V", buf, new LocalVars());
+#[test]
+fn iconst_dup_nop_pop() {
+    let buf = vec![
+        opcode::Opcode::ICONST_1,
+        opcode::Opcode::DUP,
+        opcode::Opcode::NOP,
+        opcode::Opcode::POP,
+        opcode::Opcode::IRETURN,
+    ];
+    let ret = match execute_method(&buf) {
+        runtime::JVMValue::Int { val: i } => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0
+        }
+    };
+    assert_eq!(1, ret);
+}
 
-//     assertEquals("Return type should be int", JVMType.I, res.type);
-//     assertEquals("Return value should be 2", 2, (int) res.value);
+#[test]
+fn iconst_dup_x1() {
+    let buf = vec![
+        opcode::Opcode::ICONST_1,
+        opcode::Opcode::ICONST_2,
+        opcode::Opcode::DUP_X1,
+        opcode::Opcode::IADD,
+        opcode::Opcode::IADD,
+        opcode::Opcode::IRETURN,
+    ];
+    let ret = match execute_method(&buf) {
+        runtime::JVMValue::Int { val: i } => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0
+        }
+    };
+    assert_eq!(5, ret);
 
-//     byte[] buf2 = {ICONST_1.B(), DUP.B(), IADD.B(), DUP.B(), IADD.B(), IRETURN.B()};
-//     res = im.execMethod("", "main:()V", buf2, new LocalVars());
-
-//     assertEquals("Return type should be int", JVMType.I, res.type);
-//     assertEquals("Return value should be 4", 4, (int) res.value);
-// }
-
-// @Test
-// public void iconst_dup_nop_pop() {
-//     byte[] buf = {ICONST_1.B(), DUP.B(), NOP.B(), POP.B(), IRETURN.B()};
-//     JVMValue res = im.execMethod("", "main:()V", buf, new LocalVars());
-
-//     assertEquals("Return type should be int", JVMType.I, res.type);
-//     assertEquals("Return value should be 1", 1, (int) res.value);
-
-//     byte[] buf2 = {ICONST_1.B(), DUP.B(), NOP.B(), POP.B(), POP.B(), RETURN.B()};
-//     res = im.execMethod("", "main:()V", buf2, new LocalVars());
-
-//     assertNull("Return should be null", res);
-// }
-
-// @Test
-// public void iconst_dup_x1() {
-//     byte[] buf = {ICONST_1.B(), ICONST_2.B(), DUP_X1.B(), IADD.B(), IADD.B(), IRETURN.B()};
-//     JVMValue res = im.execMethod("", "main:()V", buf, new LocalVars());
-
-//     assertEquals("Return type should be int", JVMType.I, res.type);
-//     assertEquals("Return value should be 2", 5, (int) res.value);
-
-//     byte[] buf2 = {ICONST_1.B(), ICONST_2.B(), DUP_X1.B(), IADD.B(), DUP_X1.B(), IADD.B(), IADD.B(), IRETURN.B()};
-//     res = im.execMethod("", "main:()V", buf2, new LocalVars());
-
-//     assertEquals("Return type should be int", JVMType.I, res.type);
-//     assertEquals("Return value should be 4", 8, (int) res.value);
-// }
+    let buf2 = vec![
+        opcode::Opcode::ICONST_1,
+        opcode::Opcode::ICONST_2,
+        opcode::Opcode::DUP_X1,
+        opcode::Opcode::IADD,
+        opcode::Opcode::DUP_X1,
+        opcode::Opcode::IADD,
+        opcode::Opcode::IADD,
+        opcode::Opcode::IRETURN,
+    ];
+    let ret2 = match execute_method(&buf2) {
+        runtime::JVMValue::Int { val: i } => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0
+        }
+    };
+    assert_eq!(8, ret2);
+}
