@@ -120,10 +120,7 @@ impl EvaluationStack {
 
     pub fn aconst_null(&mut self) -> () {
         self.push(JVMValue::ObjRef {
-            val: JVMObj {
-                mark: 0u64,
-                klassid: 0u32, // FIXME: This should become a pointer at some point
-            },
+            val: JVMObj::get_null(),
         });
     }
 
@@ -189,11 +186,57 @@ impl EvaluationStack {
 
         self.push(JVMValue::Int { val: i1 * i2 });
     }
-    pub fn irem(&self) -> () {}
+
+    pub fn irem(&mut self) -> () {
+        // For a runtime checking interpreter - type checks would go here...
+        let i1 = match self.pop() {
+            JVMValue::Int { val: i } => i,
+            _ => {
+                println!("Unexpected, non-integer value encountered");
+                0
+            }
+        };
+        let i2 = match self.pop() {
+            JVMValue::Int { val: i } => i,
+            _ => {
+                println!("Unexpected, non-integer value encountered");
+                0
+            }
+        };
+
+        self.push(JVMValue::Int { val: i2 % i1 });
+    }
     pub fn ixor(&self) -> () {}
-    pub fn idiv(&self) -> () {}
+    pub fn idiv(&mut self) -> () {
+        // For a runtime checking interpreter - type checks would go here...
+        let i1 = match self.pop() {
+            JVMValue::Int { val: i } => i,
+            _ => {
+                println!("Unexpected, non-integer value encountered");
+                0
+            }
+        };
+        let i2 = match self.pop() {
+            JVMValue::Int { val: i } => i,
+            _ => {
+                println!("Unexpected, non-integer value encountered");
+                0
+            }
+        };
+
+        self.push(JVMValue::Int { val: i2 / i1 });
+    }
     pub fn iand(&self) -> () {}
-    pub fn ineg(&self) -> () {}
+    pub fn ineg(&mut self) -> () {
+        let i1 = match self.pop() {
+            JVMValue::Int { val: i } => i,
+            _ => {
+                println!("Unexpected, non-integer value encountered");
+                0
+            }
+        };
+        self.push(JVMValue::Int { val: -i1 });
+    }
     pub fn ior(&self) -> () {}
 
     pub fn dadd(&mut self) -> () {

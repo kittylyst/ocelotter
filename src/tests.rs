@@ -65,6 +65,42 @@ fn iconst_dup() {
 }
 
 #[test]
+fn irem_works() {
+    let buf = vec![
+        opcode::Opcode::ICONST_5,
+        opcode::Opcode::ICONST_3,
+        opcode::Opcode::IREM,
+        opcode::Opcode::IRETURN,
+    ];
+    let ret = match execute_method(&buf) {
+        runtime::JVMValue::Int { val: i } => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0
+        }
+    };
+    assert_eq!(2, ret);
+}
+
+#[test]
+fn idiv_works() {
+    let buf = vec![
+        opcode::Opcode::ICONST_5,
+        opcode::Opcode::ICONST_3,
+        opcode::Opcode::IDIV,
+        opcode::Opcode::IRETURN,
+    ];
+    let ret = match execute_method(&buf) {
+        runtime::JVMValue::Int { val: i } => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0
+        }
+    };
+    assert_eq!(1, ret);
+}
+
+#[test]
 fn iconst_dup_nop_pop() {
     let buf = vec![
         opcode::Opcode::ICONST_1,
