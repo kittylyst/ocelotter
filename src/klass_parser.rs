@@ -1,4 +1,5 @@
 use std::slice::Iter;
+use std::vec::IntoIter;
 
 pub const ACC_PUBLIC: u16 = 0x0001; // Declared public; may be accessed from outside its package.
 pub const ACC_PRIVATE: u16 = 0x0002; // Declared private; usable only within the defining class.
@@ -24,7 +25,7 @@ pub const ACC_ABSTRACT_M: u16 = 0x0400; // (Method) Declared abstract; no implem
 pub const ACC_STRICT: u16 = 0x0800; // (Method) Declared strictfp; floating-point mode is FP-strict.
 
 pub struct oc_parser {
-    clz_iter: Iter<u8>,
+    clz_iter: IntoIter<u8>,
     filename: String,
 
     major: u16,
@@ -47,7 +48,7 @@ pub struct oc_parser {
 impl oc_parser {
     pub fn new(buf: Vec<u8>, fname: String) -> oc_parser {
         oc_parser {
-            clz_iter: buf.iter(),
+            clz_iter: buf.into_iter(),
             filename: fname,
             major: 0,
             minor: 0,

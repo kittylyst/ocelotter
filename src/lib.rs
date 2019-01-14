@@ -193,7 +193,7 @@ pub fn exec_method(
                     }
                     _ => panic!(
                         "Value not of reference type found for IFNULL at {}",
-                        current
+                        (current - 1)
                     ),
                 };
             }
@@ -212,7 +212,7 @@ pub fn exec_method(
                     }
                     _ => panic!(
                         "Value not of reference type found for IFNULL at {}",
-                        current
+                        (current - 1)
                     ),
                 };
             }
@@ -326,7 +326,7 @@ pub fn exec_method(
                 // FIXME Match expression & destructure for recvp
                 let obj = match recvp {
                     runtime::JVMValue::ObjRef { val: v } => v,
-                    _ => panic!("Not an object ref at {}", current),
+                    _ => panic!("Not an object ref at {}", (current - 1)),
                 };
 
                 obj.putField(putf, val);
