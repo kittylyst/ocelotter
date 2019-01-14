@@ -24,6 +24,45 @@ pub const ACC_NATIVE: u16 = 0x0100; // (Method) Declared native; implemented in 
 pub const ACC_ABSTRACT_M: u16 = 0x0400; // (Method) Declared abstract; no implementation is provided.
 pub const ACC_STRICT: u16 = 0x0800; // (Method) Declared strictfp; floating-point mode is FP-strict.
 
+// CPType constants
+pub const UTF8: u8 = 1;
+pub const INTEGER: u8 = 3;
+pub const FLOAT: u8 = 4;
+pub const LONG: u8 = 5;
+pub const DOUBLE: u8 = 6;
+pub const CLASS: u8 = 7;
+pub const STRING: u8 = 8;
+pub const FIELDREF: u8 = 9;
+// public String separator() {
+//     return ".";
+// }
+pub const METHODREF: u8 = 10;
+// public String separator() {
+//     return ".";
+// }
+pub const INTERFACE_METHODREF: u8 = 11;
+pub const NAMEANDTYPE: u8 = 12;
+// public String separator() {
+//     return ":";
+// }
+pub const METHODHANDLE: u8 = 15;
+pub const METHODTYPE: u8 = 16;
+pub const INVOKEDYNAMIC: u8 = 18;
+
+pub enum CPEntry {
+    utf8 {val: String},
+    integer {val: i32},
+    float {val: f32},
+    long {val: i64},
+    double {val: f64},
+    class {idx: u16}, 
+    string {idx: u16}, 
+    fieldref {clz_idx: u16, nt_idx: u16},
+    methodref {clz_idx: u16, nt_idx: u16},
+    interface_methodref {clz_idx: u16, nt_idx: u16},
+    name_and_type {name_idx: u16, type_idx: u16},
+}
+
 pub struct oc_parser {
     clz_iter: IntoIter<u8>,
     filename: String,
@@ -32,9 +71,6 @@ pub struct oc_parser {
     minor: u16,
 
     poolItemCount: u16,
-    // private final static CPType[] table = new CPType[256];
-    current: u16,
-
     flags: u16,
     thisClzIndex: u16,
     superClzIndex: u16,
@@ -53,7 +89,6 @@ impl oc_parser {
             major: 0,
             minor: 0,
             poolItemCount: 0,
-            current: 0,
             flags: 0,
             thisClzIndex: 0,
             superClzIndex: 0,
@@ -61,9 +96,8 @@ impl oc_parser {
     }
 
     pub fn parse(&mut self) -> () {
-        self.current = 0;
         self.parse_header();
-        // self.parseConstantPool();
+        self.parse_constant_pool();
         // self.parseBasicTypeInfo();
         // self.parseFields();
         // self.parseMethods();
@@ -92,5 +126,75 @@ impl oc_parser {
             + self.clz_iter.next().unwrap_or(0x00) as u16;
         self.poolItemCount = ((self.clz_iter.next().unwrap_or(0x00) << 8) as u16)
             + self.clz_iter.next().unwrap_or(0x00) as u16;
+    }
+
+    fn parse_constant_pool(&mut self) -> () {
+        let items: Vec<CPEntry> = Vec::new();
+    //     void parseConstantPool() throws ClassNotFoundException {
+    //         items = new CPEntry[poolItemCount - 1];
+    //         for (short i = 1; i < poolItemCount; i++) {
+    //             int entry = clzBytes[current++] & 0xff;
+    //             CPType tag = table[entry];
+    //             if (tag == null) {
+    //                 throw new ClassNotFoundException("Unrecognised tag byte: " + entry + " encountered at position " + current + ". Stopping the parse.");
+    //             }
+
+    //             CPEntry item = null;
+    // //            System.out.println("Tag seen: "+ tag);
+    //             // Create item based on tag
+    //             switch (tag) {
+    //                 case UTF8: // String prefixed by a uint16 indicating the number of bytes in the encoded string which immediately follows
+    //                     int len = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //                     String str = new String(clzBytes, current, len, Charset.forName("UTF8"));
+    //                     item = CPEntry.of(i, tag, str);
+    //                     current += len;
+    //                     break;
+    //                 case INTEGER: // Integer: a signed 32-bit two's complement number in big-endian format
+    //                     int i2 = ((int) clzBytes[current++] << 24) + ((int) clzBytes[current++] << 16) + ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //                     item = CPEntry.of(i, tag, i2);
+    //                     break;
+    //                 case FLOAT: // Float: a 32-bit single-precision IEEE 754 floating-point number
+    //                     int i3 = ((int) clzBytes[current++] << 24) + ((int) clzBytes[current++] << 16) + ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //                     float f = Float.intBitsToFloat(i3);
+    //                     item = CPEntry.of(i, tag, f);
+    //                     break;
+    //                 case LONG: // Long: a signed 64-bit two's complement number in big-endian format (takes two slots in the constant pool table)
+    //                     int i4 = ((int) clzBytes[current++] << 24) + ((int) clzBytes[current++] << 16) + ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //                     int i5 = ((int) clzBytes[current++] << 24) + ((int) clzBytes[current++] << 16) + ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //                     long l = ((long) i4 << 32) + (long) i5;
+    //                     item = CPEntry.of(i, tag, l);
+    //                     break;
+    //                 case DOUBLE: // Double: a 64-bit double-precision IEEE 754 floating-point number (takes two slots in the constant pool table)
+    //                     i4 = ((int) clzBytes[current++] << 24) + ((int) clzBytes[current++] << 16) + ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //                     i5 = ((int) clzBytes[current++] << 24) + ((int) clzBytes[current++] << 16) + ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //                     l = ((long) i4 << 32) + (long) i5;
+    //                     item = CPEntry.of(i, tag, Double.longBitsToDouble(l));
+    //                     break;
+    //                 case CLASS: // Class reference: an uint16 within the constant pool to a UTF-8 string containing the fully qualified class name
+    //                     int ref = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //                     item = CPEntry.of(i, tag, new Ref(ref));
+    //                     break;
+    //                 case STRING: // String reference: an uint16 within the constant pool to a UTF-8 string
+    //                     int ref2 = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //                     item = CPEntry.of(i, tag, new Ref(ref2));
+    //                     break;
+    //                 case FIELDREF: // Field reference: two uint16 within the pool, 1st pointing to a Class reference, 2nd to a Name and Type descriptor
+    //                 case METHODREF: // Method reference: two uint16s within the pool, 1st pointing to a Class reference, 2nd to a Name and Type descriptor
+    //                 case INTERFACE_METHODREF: // Interface method reference: 2 uint16 within the pool, 1st pointing to a Class reference, 2nd to a Name and Type descriptor
+    //                     int cpIndex = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //                     int nameAndTypeIndex = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //                     item = CPEntry.of(i, tag, new Ref(cpIndex), new Ref(nameAndTypeIndex));
+    //                     break;
+    //                 case NAMEANDTYPE: // Name and type descriptor: 2 uint16 to UTF-8 strings, 1st representing a name (identifier), 2nd a specially encoded type descriptor
+    //                     int nameRef = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //                     int typeRef = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //                     item = CPEntry.of(i, tag, new Ref(nameRef), new Ref(typeRef));
+    //                     break;
+    //                 default:
+    //                     throw new ClassNotFoundException("Reached impossible Constant Pool Tag.");
+    //             }
+    //             items[i - 1] = item;
+    //         }
+    //     }
     }
 }
