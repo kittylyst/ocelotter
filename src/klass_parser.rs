@@ -1,4 +1,4 @@
-use std::fmt;
+use std::slice::Iter;
 
 pub const ACC_PUBLIC: u16 = 0x0001; // Declared public; may be accessed from outside its package.
 pub const ACC_PRIVATE: u16 = 0x0002; // Declared private; usable only within the defining class.
@@ -24,11 +24,11 @@ pub const ACC_ABSTRACT_M: u16 = 0x0400; // (Method) Declared abstract; no implem
 pub const ACC_STRICT: u16 = 0x0800; // (Method) Declared strictfp; floating-point mode is FP-strict.
 
 pub struct oc_parser {
-    clzBytes: Vec<u8>,
+    clz_iter: Iter<u8>,
     filename: String,
 
-    major: u8,
-    minor: u8,
+    major: u16,
+    minor: u16,
 
     poolItemCount: u16,
     // private final static CPType[] table = new CPType[256];
@@ -47,7 +47,7 @@ pub struct oc_parser {
 impl oc_parser {
     pub fn new(buf: Vec<u8>, fname: String) -> oc_parser {
         oc_parser {
-            clzBytes: buf,
+            clz_iter: buf.iter(),
             filename: fname,
             major: 0,
             minor: 0,
@@ -69,5 +69,27 @@ impl oc_parser {
         //        self.parseAttributes();
     }
 
-    fn parse_header(&mut self) -> () {}
+    fn get_byte(&mut self, pos: usize) -> u8 {
+        0
+    }
+
+    fn parse_header(&mut self) -> () {
+        if self.clz_iter.next().unwrap_or(0x00) != 0xca
+            || self.clz_iter.next().unwrap_or(0x00) != 0xfe
+            || self.clz_iter.next().unwrap_or(0x00) != 0xba
+            || self.clz_iter.next().unwrap_or(0x00) != 0xbe
+        {
+            panic!(
+                "Input file {} does not have correct magic number",
+                self.filename
+            );
+        }
+
+        self.minor = ((self.clz_iter.next().unwrap_or(0x00) << 8) as u16)
+            + self.clz_iter.next().unwrap_or(0x00) as u16;
+        self.major = ((self.clz_iter.next().unwrap_or(0x00) << 8) as u16)
+            + self.clz_iter.next().unwrap_or(0x00) as u16;
+        self.poolItemCount = ((self.clz_iter.next().unwrap_or(0x00) << 8) as u16)
+            + self.clz_iter.next().unwrap_or(0x00) as u16;
+    }
 }
