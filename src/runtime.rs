@@ -78,12 +78,14 @@ impl fmt::Display for JVMObj {
 
 pub struct OCKlass {
     name: String,
+    super_name: String,
 }
 
 impl OCKlass {
-    pub fn of(klass_name: String) -> OCKlass {
+    pub fn of(klass_name: String, super_klass: String) -> OCKlass {
         OCKlass {
             name: klass_name,
+            super_name: super_klass,
         }
     }
 
@@ -92,6 +94,10 @@ impl OCKlass {
 
     pub fn get_name(&mut self) -> String {
         self.name.to_owned()
+    }
+
+    pub fn get_super_name(&mut self) -> String {
+        self.super_name.to_owned()
     }
 }
 
@@ -107,6 +113,7 @@ impl OCField {
     pub fn getKlass(&self) -> OCKlass {
         return OCKlass {
             name: "DUMMY_CLASS".to_string(),
+            super_name: "DUMMY_SUPER".to_string(),
         };
     }
 }
@@ -333,6 +340,7 @@ impl ClassRepository {
     pub fn lookupKlass(&self, klass_name: &String, idx: u16) -> OCKlass {
         OCKlass {
             name: "DUMMY_CLASS".to_string(),
+            super_name: "DUMMY_SUPER".to_string(),
         }
     }
 }

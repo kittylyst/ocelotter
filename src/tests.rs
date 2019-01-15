@@ -247,4 +247,5 @@ fn test_read_header() {
     assert_eq!(17, parser.get_pool_size());
     let mut k = parser.klass();
     assert_eq!("Foo", k.get_name());
+    assert_eq!("java/lang/Object", k.get_super_name());
 }

@@ -1,7 +1,7 @@
+use super::*;
 use byteorder::{BigEndian, ByteOrder};
 use std::io::Read;
 use std::str;
-use super::*;
 
 pub const ACC_PUBLIC: u16 = 0x0001; // Declared public; may be accessed from outside its package.
 pub const ACC_PRIVATE: u16 = 0x0002; // Declared private; usable only within the defining class.
@@ -104,16 +104,41 @@ impl oc_parser {
     }
 
     pub fn klass(&mut self) -> runtime::OCKlass {
-        // Lookup the name in the CP - this should probably become a helper method
-        // Note that CP indices are 1-indexed
-        let klass_name = match self.cp_items[(self.cp_index_this - 1) as usize] {
-            cp_entry::class{idx: icl} => match &self.cp_items[(icl - 1) as usize] {
-                cp_entry::utf8{val: s} => s,
-                _ => panic!("Class index {} does not point at utf8 string in constant pool", icl)
+        runtime::OCKlass::of(self.klass_name().to_string(), self.super_name().to_string())
+    }
+
+    fn klass_name(&mut self) -> &String {
+        // Lookup the name in the CP - note that CP indices are 1-indexed
+        match self.cp_items[(self.cp_index_this - 1) as usize] {
+            cp_entry::class { idx: icl } => match &self.cp_items[(icl - 1) as usize] {
+                cp_entry::utf8 { val: s } => s,
+                _ => panic!(
+                    "Class index {} does not point at utf8 string in constant pool",
+                    icl
+                ),
             },
-            _ => panic!("Self-index {} does not point at class element in constant pool", self.cp_index_this)
-        };
-        runtime::OCKlass::of(klass_name.to_string())
+            _ => panic!(
+                "Self-index {} does not point at class element in constant pool",
+                self.cp_index_this
+            ),
+        }
+    }
+
+    fn super_name(&mut self) -> &String {
+        // Lookup the superclass name in the CP - note that CP indices are 1-indexed
+        match self.cp_items[(self.cp_index_super - 1) as usize] {
+            cp_entry::class { idx: scl } => match &self.cp_items[(scl - 1) as usize] {
+                cp_entry::utf8 { val: s } => s,
+                _ => panic!(
+                    "Superclass index {} does not point at utf8 string in constant pool",
+                    scl
+                ),
+            },
+            _ => panic!(
+                "Super-index {} does not point at class element in constant pool",
+                self.cp_index_this
+            ),
+        }
     }
 
     pub fn parse(&mut self) -> () {
@@ -309,16 +334,22 @@ impl oc_parser {
     }
 
     fn parse_basic_type_info(&mut self) -> () {
-        self.flags = ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
-        self.cp_index_this = ((self.clz_read[self.current + 2] as u16) << 8) + self.clz_read[self.current + 3] as u16;
-        self.cp_index_super = ((self.clz_read[self.current + 4] as u16) << 8) + self.clz_read[self.current + 5] as u16;
-        let count = ((self.clz_read[self.current + 6] as u16) << 8) + self.clz_read[self.current + 7] as u16;
+        self.flags =
+            ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
+        self.cp_index_this = ((self.clz_read[self.current + 2] as u16) << 8)
+            + self.clz_read[self.current + 3] as u16;
+        self.cp_index_super = ((self.clz_read[self.current + 4] as u16) << 8)
+            + self.clz_read[self.current + 5] as u16;
+        let count = ((self.clz_read[self.current + 6] as u16) << 8)
+            + self.clz_read[self.current + 7] as u16;
         self.current += 8;
 
         for i in 0..count {
-            self.interfaces.push(((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16);
+            self.interfaces.push(
+                ((self.clz_read[self.current] as u16) << 8)
+                    + self.clz_read[self.current + 1] as u16,
+            );
             self.current += 2;
         }
-
     }
 }
