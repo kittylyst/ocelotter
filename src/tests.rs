@@ -245,4 +245,6 @@ fn test_read_header() {
     let mut parser = klass_parser::oc_parser::new(bytes, "Foo.class".to_string());
     parser.parse();
     assert_eq!(17, parser.get_pool_size());
+    let mut k = parser.klass();
+    assert_eq!("Foo", k.get_name());
 }

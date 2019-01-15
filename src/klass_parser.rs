@@ -104,8 +104,16 @@ impl oc_parser {
     }
 
     pub fn klass(&mut self) -> runtime::OCKlass {
-        // FIXME Lookup the name in the CP
-        runtime::OCKlass::of("DUMMY_CLASS".to_string())
+        // Lookup the name in the CP - this should probably become a helper method
+        // Note that CP indices are 1-indexed
+        let klass_name = match self.cp_items[(self.cp_index_this - 1) as usize] {
+            cp_entry::class{idx: icl} => match &self.cp_items[(icl - 1) as usize] {
+                cp_entry::utf8{val: s} => s,
+                _ => panic!("Class index {} does not point at utf8 string in constant pool", icl)
+            },
+            _ => panic!("Self-index {} does not point at class element in constant pool", self.cp_index_this)
+        };
+        runtime::OCKlass::of(klass_name.to_string())
     }
 
     pub fn parse(&mut self) -> () {
@@ -174,7 +182,7 @@ impl oc_parser {
                     let b4 = self.clz_read[self.current + 3];
                     self.current += 4;
 
-                    let mut buf = &[b1, b2, b3, b4];
+                    let buf = &[b1, b2, b3, b4];
                     cp_entry::integer {
                         val: BigEndian::read_i32(buf),
                     }
@@ -186,7 +194,7 @@ impl oc_parser {
                     let b4 = self.clz_read[self.current + 3];
                     self.current += 4;
 
-                    let mut buf = &[b1, b2, b3, b4];
+                    let buf = &[b1, b2, b3, b4];
                     cp_entry::float {
                         val: BigEndian::read_f32(buf),
                     }
@@ -202,7 +210,7 @@ impl oc_parser {
                     let b8 = self.clz_read[self.current + 7];
                     self.current += 8;
 
-                    let mut buf = &[b1, b2, b3, b4, b5, b6, b7, b8];
+                    let buf = &[b1, b2, b3, b4, b5, b6, b7, b8];
                     cp_entry::long {
                         val: BigEndian::read_i64(buf),
                     }
@@ -218,7 +226,7 @@ impl oc_parser {
                     let b8 = self.clz_read[self.current + 7];
                     self.current += 8;
 
-                    let mut buf = &[b1, b2, b3, b4, b5, b6, b7, b8];
+                    let buf = &[b1, b2, b3, b4, b5, b6, b7, b8];
                     cp_entry::double {
                         val: BigEndian::read_f64(buf),
                     }
