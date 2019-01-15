@@ -113,10 +113,6 @@ impl oc_parser {
     }
 
     // Impl methods
-    fn get_byte(&mut self, pos: usize) -> u8 {
-        0
-    }
-
     fn parse_header(&mut self) -> () {
         if self.clz_read[0] != 0xca
             || self.clz_read[1] != 0xfe
@@ -136,11 +132,14 @@ impl oc_parser {
 
     fn parse_constant_pool(&mut self) -> () {
         self.current = 10;
+        // println!("Pool size: {}", self.get_pool_size());
         for i in 1..self.poolItemCount {
             let tag = self.clz_read[self.current];
+            // println!("Seen: {}", tag);
             self.current += 1;
             let item = match tag {
-                utf8 => {
+                UTF8 => {
+                    // println!("Parsing a utf8");
                     let b1 = self.clz_read[self.current];
                     self.current += 1;
                     let b2 = self.clz_read[self.current];
@@ -148,8 +147,9 @@ impl oc_parser {
                     let len = ((b1 as u16) << 8) + b2 as u16;
 
                     let mut buf = vec![];
-                    let mut chunk = self.clz_read.take(len as u64);
+                    let mut chunk = self.clz_read[self.current ..].take(len as u64);
                     chunk.read_to_end(&mut buf);
+                    self.current += len as usize;
 
                     let str_c = match str::from_utf8(&buf) {
                         Ok(v) => v,
@@ -157,16 +157,17 @@ impl oc_parser {
                     }
                     .to_owned();
                     cp_entry::utf8 { val: str_c }
-                }
+                },
                 // FIXME
-                integer => cp_entry::integer { val: 0i32 },
+                INTEGER => cp_entry::integer { val: 0i32 },
                 // FIXME
-                float => cp_entry::float { val: 0.0f32 },
+                FLOAT => cp_entry::float { val: 0.0f32 },
                 // FIXME
-                long => cp_entry::long { val: 0i64 },
+                LONG => cp_entry::long { val: 0i64 },
                 // FIXME
-                double => cp_entry::double { val: 0.0f64 },
-                class => {
+                DOUBLE => cp_entry::double { val: 0.0f64 },
+                CLASS => {
+                    // println!("Parsing a class");
                     let b1 = self.clz_read[self.current];
                     self.current += 1;
                     let b2 = self.clz_read[self.current];
@@ -175,12 +176,13 @@ impl oc_parser {
                     cp_entry::class {
                         idx: ((b1 as u16) << 8) + b2 as u16,
                     }
-                }
+                },
                 // FIXME
-                string => cp_entry::long { val: 0i64 },
+                STRING => cp_entry::long { val: 0i64 },
                 // FIXME
-                fieldref => cp_entry::long { val: 0i64 },
-                methodref => {
+                FIELDREF => cp_entry::long { val: 0i64 },
+                METHODREF => {
+                    // println!("Parsing a methodref");
                     let b1 = self.clz_read[self.current];
                     self.current += 1;
                     let b2 = self.clz_read[self.current];
@@ -196,8 +198,9 @@ impl oc_parser {
                     }
                 }
                 // FIXME
-                interface_methodref => cp_entry::long { val: 0i64 },
-                name_and_type => {
+                INTERFACE_METHODREF => cp_entry::long { val: 0i64 },
+                NAMEANDTYPE => {
+                    // println!("Parsing a name_and_type");
                     let b1 = self.clz_read[self.current];
                     self.current += 1;
                     let b2 = self.clz_read[self.current];
@@ -211,7 +214,7 @@ impl oc_parser {
                         name_idx: ((b1 as u16) << 8) + b2 as u16,
                         type_idx: ((b3 as u16) << 8) + b4 as u16,
                     }
-                }
+                },
                 _ => panic!("Unsupported Constant Pool type {} at {}", tag, self.current),
             };
             self.items.push(item);
