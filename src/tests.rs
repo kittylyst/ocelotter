@@ -1,7 +1,7 @@
 use super::*;
 use std::fs::File;
-use std::path::Path;
 use std::io::Read;
+use std::path::Path;
 
 fn execute_method(buf: &Vec<u8>) -> runtime::JVMValue {
     let lvt = runtime::LocalVariableTable {};
@@ -240,7 +240,7 @@ fn file_to_bytes(path: &Path) -> Result<Vec<u8>, std::io::Error> {
 fn test_read_header() {
     let bytes = match file_to_bytes(Path::new("./resources/test/Foo.class")) {
         Ok(buf) => buf,
-        _ => panic!("Error reading Foo") 
+        _ => panic!("Error reading Foo"),
     };
     let mut parser = klass_parser::oc_parser::new(bytes, "Foo.class".to_string());
     parser.parse();
