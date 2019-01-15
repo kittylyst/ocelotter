@@ -67,14 +67,38 @@ impl cp_entry {
     }
 }
 
+pub struct cp_attr {}
+
 pub struct cp_field {
     class_name: String,
     flags: u16,
     name_idx: u16,
     desc_idx: u16,
     name: String,
-    // protected CPAttr[] attrs;
+    attrs: Vec<cp_attr>,
     // private JVMType type;
+}
+
+impl cp_field {
+    fn new(
+        klass_name: &String,
+        field_name: String,
+        field_flags: u16,
+        name: u16,
+        desc: u16,
+    ) -> cp_field {
+        cp_field {
+            class_name: klass_name.to_string(),
+            // FIXME
+            flags: field_flags,
+            name_idx: name,
+            desc_idx: desc,
+            name: field_name,
+            attrs: Vec::new(),
+        }
+    }
+
+    fn set_attr(&self, index: u16, attr: cp_attr) -> () {}
 }
 
 pub struct oc_parser {
@@ -118,7 +142,7 @@ impl oc_parser {
         runtime::OCKlass::of(self.klass_name().to_string(), self.super_name().to_string())
     }
 
-    fn klass_name(&mut self) -> &String {
+    fn klass_name(&self) -> &String {
         // Lookup the name in the CP - note that CP indices are 1-indexed
         match self.cp_items[(self.cp_index_this - 1) as usize] {
             cp_entry::class { idx: icl } => match &self.cp_items[(icl - 1) as usize] {
@@ -369,20 +393,35 @@ impl oc_parser {
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         self.current += 2;
 
-        for idx in 0..fCount{
-            
-        }
-        // for (int idx = 0; idx < fCount; idx++) {
-        //     int fFlags = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
-        //     int name_idx = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
-        //     int desc_idx = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
-        //     int attrs_count = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
-        //     f = new CPField(className(), fFlags, name_idx, desc_idx, attrs_count);
+        for idx in 0..fCount {
+            let fFlags = ((self.clz_read[self.current] as u16) << 8)
+                + self.clz_read[self.current + 1] as u16;
+            let name_idx = ((self.clz_read[self.current + 2] as u16) << 8)
+                + self.clz_read[self.current + 3] as u16;
+            let desc_idx = ((self.clz_read[self.current + 4] as u16) << 8)
+                + self.clz_read[self.current + 5] as u16;
+            let attr_count = ((self.clz_read[self.current + 6] as u16) << 8)
+                + self.clz_read[self.current + 7] as u16;
+            self.current += 8;
 
-        //     for (int aidx = 0; aidx < f.getAttrs().length; aidx++) {
-        //         f.setAttr(aidx, parseAttribute(f));
-        //     }
-        //     fields[idx] = f;
-        // }
+            let f_name = match &self.cp_items[(name_idx - 1) as usize] {
+                cp_entry::utf8 { val: s } => s,
+                _ => panic!(
+                    "Name index {} does not point at utf8 string in constant pool",
+                    name_idx
+                ),
+            };
+            // OK, have just thrashed about to get the borrow checker to shut up here... need to revisit
+            let mut k_name = &self.klass_name().to_string();
+            let f = cp_field::new(&k_name, f_name.to_string(), fFlags, name_idx, desc_idx);
+            for aidx in 0..attr_count {
+                f.set_attr(aidx, self.parse_attribute(&f));
+            }
+            self.fields.push(f);
+        }
+    }
+
+    fn parse_attribute(&mut self, field: &cp_field) -> cp_attr {
+        cp_attr {}
     }
 }
