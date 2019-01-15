@@ -141,13 +141,13 @@ impl oc_parser {
                 UTF8 => {
                     // println!("Parsing a utf8");
                     let b1 = self.clz_read[self.current];
-                    self.current += 1;
-                    let b2 = self.clz_read[self.current];
-                    self.current += 1;
+                    let b2 = self.clz_read[self.current + 1];
+                    self.current += 2;
+
                     let len = ((b1 as u16) << 8) + b2 as u16;
 
                     let mut buf = vec![];
-                    let mut chunk = self.clz_read[self.current ..].take(len as u64);
+                    let mut chunk = self.clz_read[self.current..].take(len as u64);
                     chunk.read_to_end(&mut buf);
                     self.current += len as usize;
 
@@ -157,9 +157,22 @@ impl oc_parser {
                     }
                     .to_owned();
                     cp_entry::utf8 { val: str_c }
-                },
-                // FIXME
-                INTEGER => cp_entry::integer { val: 0i32 },
+                }
+                INTEGER => {
+                    let b1 = self.clz_read[self.current];
+                    let b2 = self.clz_read[self.current + 1];
+                    let b3 = self.clz_read[self.current + 2];
+                    let b4 = self.clz_read[self.current + 3];
+                    self.current += 4;
+
+                    // FIXME Check logic for bit twiddling here
+                    cp_entry::integer {
+                        val: ((b1 as i32) << 24)
+                            + ((b2 as i32) << 16)
+                            + ((b3 as i32) << 8)
+                            + b4 as i32,
+                    }
+                }
                 // FIXME
                 FLOAT => cp_entry::float { val: 0.0f32 },
                 // FIXME
@@ -169,52 +182,67 @@ impl oc_parser {
                 CLASS => {
                     // println!("Parsing a class");
                     let b1 = self.clz_read[self.current];
-                    self.current += 1;
-                    let b2 = self.clz_read[self.current];
-                    self.current += 1;
+                    let b2 = self.clz_read[self.current + 1];
+                    self.current += 2;
 
                     cp_entry::class {
                         idx: ((b1 as u16) << 8) + b2 as u16,
                     }
-                },
+                }
                 // FIXME
                 STRING => cp_entry::long { val: 0i64 },
-                // FIXME
-                FIELDREF => cp_entry::long { val: 0i64 },
+                FIELDREF => {
+                    // println!("Parsing a fieldref");
+                    let b1 = self.clz_read[self.current];
+                    let b2 = self.clz_read[self.current + 1];
+                    let b3 = self.clz_read[self.current + 2];
+                    let b4 = self.clz_read[self.current + 3];
+                    self.current += 4;
+
+                    cp_entry::fieldref {
+                        clz_idx: ((b1 as u16) << 8) + b2 as u16,
+                        nt_idx: ((b3 as u16) << 8) + b4 as u16,
+                    }
+                }
                 METHODREF => {
                     // println!("Parsing a methodref");
                     let b1 = self.clz_read[self.current];
-                    self.current += 1;
-                    let b2 = self.clz_read[self.current];
-                    self.current += 1;
-                    let b3 = self.clz_read[self.current];
-                    self.current += 1;
-                    let b4 = self.clz_read[self.current];
-                    self.current += 1;
+                    let b2 = self.clz_read[self.current + 1];
+                    let b3 = self.clz_read[self.current + 2];
+                    let b4 = self.clz_read[self.current + 3];
+                    self.current += 4;
 
                     cp_entry::methodref {
                         clz_idx: ((b1 as u16) << 8) + b2 as u16,
                         nt_idx: ((b3 as u16) << 8) + b4 as u16,
                     }
                 }
-                // FIXME
-                INTERFACE_METHODREF => cp_entry::long { val: 0i64 },
+                INTERFACE_METHODREF => {
+                    // println!("Parsing an interface_methodref");
+                    let b1 = self.clz_read[self.current];
+                    let b2 = self.clz_read[self.current + 1];
+                    let b3 = self.clz_read[self.current + 2];
+                    let b4 = self.clz_read[self.current + 3];
+                    self.current += 4;
+
+                    cp_entry::interface_methodref {
+                        clz_idx: ((b1 as u16) << 8) + b2 as u16,
+                        nt_idx: ((b3 as u16) << 8) + b4 as u16,
+                    }
+                }
                 NAMEANDTYPE => {
                     // println!("Parsing a name_and_type");
                     let b1 = self.clz_read[self.current];
-                    self.current += 1;
-                    let b2 = self.clz_read[self.current];
-                    self.current += 1;
-                    let b3 = self.clz_read[self.current];
-                    self.current += 1;
-                    let b4 = self.clz_read[self.current];
-                    self.current += 1;
+                    let b2 = self.clz_read[self.current + 1];
+                    let b3 = self.clz_read[self.current + 2];
+                    let b4 = self.clz_read[self.current + 3];
+                    self.current += 4;
 
                     cp_entry::name_and_type {
                         name_idx: ((b1 as u16) << 8) + b2 as u16,
                         type_idx: ((b3 as u16) << 8) + b4 as u16,
                     }
-                },
+                }
                 _ => panic!("Unsupported Constant Pool type {} at {}", tag, self.current),
             };
             self.items.push(item);
