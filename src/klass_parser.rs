@@ -1,3 +1,4 @@
+use byteorder::{BigEndian, ByteOrder};
 use std::io::Read;
 use std::str;
 
@@ -165,20 +166,55 @@ impl oc_parser {
                     let b4 = self.clz_read[self.current + 3];
                     self.current += 4;
 
-                    // FIXME Check logic for bit twiddling here
+                    let mut buf = &[b1, b2, b3, b4];
                     cp_entry::integer {
-                        val: ((b1 as i32) << 24)
-                            + ((b2 as i32) << 16)
-                            + ((b3 as i32) << 8)
-                            + b4 as i32,
+                        val: BigEndian::read_i32(buf),
                     }
                 }
-                // FIXME
-                FLOAT => cp_entry::float { val: 0.0f32 },
-                // FIXME
-                LONG => cp_entry::long { val: 0i64 },
-                // FIXME
-                DOUBLE => cp_entry::double { val: 0.0f64 },
+                FLOAT => {
+                    let b1 = self.clz_read[self.current];
+                    let b2 = self.clz_read[self.current + 1];
+                    let b3 = self.clz_read[self.current + 2];
+                    let b4 = self.clz_read[self.current + 3];
+                    self.current += 4;
+
+                    let mut buf = &[b1, b2, b3, b4];
+                    cp_entry::float {
+                        val: BigEndian::read_f32(buf),
+                    }
+                }
+                LONG => {
+                    let b1 = self.clz_read[self.current];
+                    let b2 = self.clz_read[self.current + 1];
+                    let b3 = self.clz_read[self.current + 2];
+                    let b4 = self.clz_read[self.current + 3];
+                    let b5 = self.clz_read[self.current + 4];
+                    let b6 = self.clz_read[self.current + 5];
+                    let b7 = self.clz_read[self.current + 6];
+                    let b8 = self.clz_read[self.current + 7];
+                    self.current += 8;
+
+                    let mut buf = &[b1, b2, b3, b4, b5, b6, b7, b8];
+                    cp_entry::long {
+                        val: BigEndian::read_i64(buf),
+                    }
+                }
+                DOUBLE => {
+                    let b1 = self.clz_read[self.current];
+                    let b2 = self.clz_read[self.current + 1];
+                    let b3 = self.clz_read[self.current + 2];
+                    let b4 = self.clz_read[self.current + 3];
+                    let b5 = self.clz_read[self.current + 4];
+                    let b6 = self.clz_read[self.current + 5];
+                    let b7 = self.clz_read[self.current + 6];
+                    let b8 = self.clz_read[self.current + 7];
+                    self.current += 8;
+
+                    let mut buf = &[b1, b2, b3, b4, b5, b6, b7, b8];
+                    cp_entry::double {
+                        val: BigEndian::read_f64(buf),
+                    }
+                }
                 CLASS => {
                     // println!("Parsing a class");
                     let b1 = self.clz_read[self.current];
@@ -189,8 +225,15 @@ impl oc_parser {
                         idx: ((b1 as u16) << 8) + b2 as u16,
                     }
                 }
-                // FIXME
-                STRING => cp_entry::long { val: 0i64 },
+                STRING => {
+                    let b1 = self.clz_read[self.current];
+                    let b2 = self.clz_read[self.current + 1];
+                    self.current += 2;
+
+                    cp_entry::string {
+                        idx: ((b1 as u16) << 8) + b2 as u16,
+                    }
+                }
                 FIELDREF => {
                     // println!("Parsing a fieldref");
                     let b1 = self.clz_read[self.current];
