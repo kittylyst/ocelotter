@@ -76,14 +76,22 @@ impl fmt::Display for JVMObj {
     }
 }
 
-pub struct OCKlass {}
+pub struct OCKlass {
+    name: String,
+}
 
 impl OCKlass {
+    pub fn of(klass_name: String) -> OCKlass {
+        OCKlass {
+            name: klass_name,
+        }
+    }
+
     // FIXME: Shouldn't this be OCField for consistency
     pub fn setStaticField(&self, f: String, vals: JVMValue) -> () {}
 
-    pub fn getName(&self) -> String {
-        String::from("")
+    pub fn getName(&mut self) -> String {
+        self.name.to_owned()
     }
 }
 
@@ -97,7 +105,9 @@ impl OCField {
     }
 
     pub fn getKlass(&self) -> OCKlass {
-        return OCKlass {};
+        return OCKlass {
+            name: "DUMMY_CLASS".to_string(),
+        };
     }
 }
 
@@ -321,7 +331,9 @@ impl ClassRepository {
     }
 
     pub fn lookupKlass(&self, klass_name: &String, idx: u16) -> OCKlass {
-        OCKlass {}
+        OCKlass {
+            name: "DUMMY_CLASS".to_string(),
+        }
     }
 }
 

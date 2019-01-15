@@ -385,8 +385,7 @@ fn dispatch_invoke(to_be_called: runtime::OCMethod, eval: &runtime::EvaluationSt
 fn parse_class(bytes: Vec<u8>, fname: String) -> runtime::OCKlass {
     let mut parser = klass_parser::oc_parser::new(bytes, fname);
     parser.parse();
-    // parser.klass();
-    runtime::OCKlass {}
+    parser.klass()
 }
 
 #[cfg(test)]
