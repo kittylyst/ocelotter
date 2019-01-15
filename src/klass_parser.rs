@@ -67,6 +67,16 @@ impl cp_entry {
     }
 }
 
+pub struct cp_field {
+    class_name: String,
+    flags: u16,
+    name_idx: u16,
+    desc_idx: u16,
+    name: String,
+    // protected CPAttr[] attrs;
+    // private JVMType type;
+}
+
 pub struct oc_parser {
     clz_read: Vec<u8>,
     filename: String,
@@ -80,7 +90,7 @@ pub struct oc_parser {
     cp_index_super: u16,
     cp_items: Vec<cp_entry>,
     interfaces: Vec<u16>,
-    // private int[] interfaces;
+    fields: Vec<cp_field>,
     // private CPField[] fields;
     // private CPMethod[] methods;
     // private CPAttr[] attributes;
@@ -100,6 +110,7 @@ impl oc_parser {
             cp_index_super: 0,
             cp_items: Vec::new(),
             interfaces: Vec::new(),
+            fields: Vec::new(),
         }
     }
 
@@ -145,7 +156,7 @@ impl oc_parser {
         self.parse_header();
         self.parse_constant_pool();
         self.parse_basic_type_info();
-        // self.parseFields();
+        self.parse_fields();
         // self.parseMethods();
         //        self.parseAttributes();
     }
@@ -351,5 +362,27 @@ impl oc_parser {
             );
             self.current += 2;
         }
+    }
+
+    fn parse_fields(&mut self) -> () {
+        let fCount =
+            ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
+        self.current += 2;
+
+        for idx in 0..fCount{
+            
+        }
+        // for (int idx = 0; idx < fCount; idx++) {
+        //     int fFlags = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+        //     int name_idx = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+        //     int desc_idx = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+        //     int attrs_count = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+        //     f = new CPField(className(), fFlags, name_idx, desc_idx, attrs_count);
+
+        //     for (int aidx = 0; aidx < f.getAttrs().length; aidx++) {
+        //         f.setAttr(aidx, parseAttribute(f));
+        //     }
+        //     fields[idx] = f;
+        // }
     }
 }
