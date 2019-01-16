@@ -115,6 +115,38 @@ pub struct cp_method {
     flags: u16,
     name_idx: u16,
     desc_idx: u16,
+    name: String,
+    attrs: Vec<cp_attr>,
+    code: Vec<u8>,
+}
+
+impl cp_method {
+    fn new(
+        klass_name: &String,
+        field_name: String,
+        field_flags: u16,
+        name: u16,
+        desc: u16,
+    ) -> cp_method {
+        cp_method {
+            class_name: klass_name.to_string(),
+            // FIXME
+            flags: field_flags,
+            name_idx: name,
+            desc_idx: desc,
+            name: field_name,
+            attrs: Vec::new(),
+            code: Vec::new(),
+        }
+    }
+
+    fn set_attr(&self, index: u16, attr: cp_attr) -> () {}
+}
+
+impl fmt::Display for cp_method {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}.{}:{}()", self.class_name, self.name, self.desc_idx)
+    }
 }
 
 pub struct oc_parser {
@@ -131,8 +163,7 @@ pub struct oc_parser {
     cp_items: Vec<cp_entry>,
     interfaces: Vec<u16>,
     fields: Vec<cp_field>,
-    // private CPField[] fields;
-    // private CPMethod[] methods;
+    methods: Vec<cp_method>,
     // private CPAttr[] attributes;
 }
 
@@ -151,6 +182,7 @@ impl oc_parser {
             cp_items: Vec::new(),
             interfaces: Vec::new(),
             fields: Vec::new(),
+            methods: Vec::new(),
         }
     }
 
@@ -235,14 +267,14 @@ impl oc_parser {
 
     fn parse_constant_pool(&mut self) -> () {
         self.current = 10;
-        // println!("Pool size: {}", self.get_pool_size());
+        println!("Pool size: {}", self.get_pool_size());
         for i in 1..self.poolItemCount {
             let tag = self.clz_read[self.current];
             // println!("Seen: {}", tag);
             self.current += 1;
             let item = match tag {
                 UTF8 => {
-                    // println!("Parsing a utf8");
+                    println!("Parsing a utf8");
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
                     self.current += 2;
@@ -259,6 +291,7 @@ impl oc_parser {
                         Err(e) => panic!("{}", e),
                     }
                     .to_owned();
+                    println!("Parsed: {}", str_c);
                     cp_entry::utf8 { val: str_c }
                 }
                 INTEGER => {
@@ -501,7 +534,46 @@ impl oc_parser {
         let end_index = self.current + attr_len as usize;
 
         let s = self.stringref_from_cp(name_idx).as_str();
+        match s {
+            "Code" => {
+                //    u2 max_stack;
+                //    u2 max_locals;
+                //    FIXME: Currently Don't care about stack depth or locals
+                self.current += 4;
+                // //    u4 code_length;
+                // //    u1 code[code_length];
+                let b1 = self.clz_read[self.current];
+                let b2 = self.clz_read[self.current + 1];
+                let b3 = self.clz_read[self.current + 2];
+                let b4 = self.clz_read[self.current + 3];
+                self.current += 4;
 
+                let buf = &[b1, b2, b3, b4];
+                // FIXME: Is this actually u32?
+                let code_len = BigEndian::read_u32(buf);
+
+                let mut bytecode = vec![];
+                let mut chunk = self.clz_read[self.current..].take(code_len as u64);
+                chunk.read_to_end(&mut bytecode);
+            }
+            //    u2 exception_table_length;
+            //    {   u2 start_pc;
+            //        u2 end_pc;
+            //        u2 handler_pc;
+            //        u2 catch_type;
+            //    } exception_table[exception_table_length];
+            //    u2 attributes_count;
+            //    attribute_info attributes[attributes_count];
+            "Exceptions" => panic!("Encountered exception handlers in bytecode - skipping"),
+            _ => panic!("Unsupported attribute {} seen on {}", s, method),
+        }
+
+        if self.current != end_index {
+            panic!(
+                "Inconsistent attribute index seen at {}, expected position {}",
+                self.current, end_index
+            )
+        }
         cp_attr { name_idx: name_idx }
     }
 

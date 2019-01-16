@@ -249,3 +249,17 @@ fn test_read_header() {
     assert_eq!("Foo", k.get_name());
     assert_eq!("java/lang/Object", k.get_super_name());
 }
+
+#[test]
+fn test_read_fields() {
+    let bytes = match file_to_bytes(Path::new("./resources/test/Foo2.class")) {
+        Ok(buf) => buf,
+        _ => panic!("Error reading Foo2"),
+    };
+    let mut parser = klass_parser::oc_parser::new(bytes, "Foo2.class".to_string());
+    parser.parse();
+    // assert_eq!(17, parser.get_pool_size());
+    let mut k = parser.klass();
+    assert_eq!("Foo2", k.get_name());
+    assert_eq!("java/lang/Object", k.get_super_name());
+}
