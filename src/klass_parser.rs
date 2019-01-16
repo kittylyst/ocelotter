@@ -1,5 +1,6 @@
 use super::*;
 use byteorder::{BigEndian, ByteOrder};
+use std::fmt;
 use std::io::Read;
 use std::str;
 
@@ -67,7 +68,9 @@ impl cp_entry {
     }
 }
 
-pub struct cp_attr {}
+pub struct cp_attr {
+    name_idx: u16,
+}
 
 pub struct cp_field {
     class_name: String,
@@ -99,6 +102,19 @@ impl cp_field {
     }
 
     fn set_attr(&self, index: u16, attr: cp_attr) -> () {}
+}
+
+impl fmt::Display for cp_field {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}.{}:{}", self.class_name, self.name, self.desc_idx)
+    }
+}
+
+pub struct cp_method {
+    class_name: String,
+    flags: u16,
+    name_idx: u16,
+    desc_idx: u16,
 }
 
 pub struct oc_parser {
@@ -172,6 +188,16 @@ impl oc_parser {
             _ => panic!(
                 "Super-index {} does not point at class element in constant pool",
                 self.cp_index_this
+            ),
+        }
+    }
+
+    fn stringref_from_cp(&mut self, idx: u16) -> &String {
+        match &self.cp_items[(idx - 1) as usize] {
+            cp_entry::utf8 { val: s } => s,
+            _ => panic!(
+                "Superclass index {} does not point at utf8 string in constant pool",
+                idx
             ),
         }
     }
@@ -411,17 +437,128 @@ impl oc_parser {
                     name_idx
                 ),
             };
-            // OK, have just thrashed about to get the borrow checker to shut up here... need to revisit
+            // NOTE: have just thrashed about to get the borrow checker to shut up here... need to revisit
             let mut k_name = &self.klass_name().to_string();
             let f = cp_field::new(&k_name, f_name.to_string(), fFlags, name_idx, desc_idx);
             for aidx in 0..attr_count {
-                f.set_attr(aidx, self.parse_attribute(&f));
+                f.set_attr(aidx, self.parse_field_attribute(&f));
             }
             self.fields.push(f);
         }
     }
 
-    fn parse_attribute(&mut self, field: &cp_field) -> cp_attr {
-        cp_attr {}
+    fn parse_field_attribute(&mut self, field: &cp_field) -> cp_attr {
+        let name_idx =
+            ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
+        let b1 = self.clz_read[self.current + 2];
+        let b2 = self.clz_read[self.current + 3];
+        let b3 = self.clz_read[self.current + 4];
+        let b4 = self.clz_read[self.current + 5];
+        self.current += 6;
+
+        let buf = &[b1, b2, b3, b4];
+        // Fix me - is this actually u32 (check spec)
+        let attr_len = BigEndian::read_u32(buf);
+        let end_index = self.current + attr_len as usize;
+
+        let s = self.stringref_from_cp(name_idx).as_str();
+
+        // The attributes defined by this spec as appearing in the attributes table of a field_info structure are:
+        //
+        // * ConstantValue (§4.7.2),
+        // * Synthetic (§4.7.8),
+        // * Signature (§4.7.9),
+        // * Deprecated (§4.7.15),
+        // * RuntimeVisibleAnnotations (§4.7.16)
+        // * RuntimeInvisibleAnnotations (§4.7.17).
+        match s {
+            // FIXME: Actually parse this instead of skipping
+            "ConstantValue" => self.current += 2,
+            _ => panic!("Unsupported attribute {} seen on {}", s, field),
+        }
+
+        if self.current != end_index {
+            panic!(
+                "Inconsistent attribute index seen at {}, expected position {}",
+                self.current, end_index
+            )
+        }
+        cp_attr { name_idx: name_idx }
     }
+
+    fn parse_method_attribute(&mut self, method: &cp_method) -> cp_attr {
+        let name_idx =
+            ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
+        let b1 = self.clz_read[self.current + 2];
+        let b2 = self.clz_read[self.current + 3];
+        let b3 = self.clz_read[self.current + 4];
+        let b4 = self.clz_read[self.current + 5];
+        self.current += 6;
+
+        let buf = &[b1, b2, b3, b4];
+        // Fix me - is this actually u32 (check spec)
+        let attr_len = BigEndian::read_u32(buf);
+        let end_index = self.current + attr_len as usize;
+
+        let s = self.stringref_from_cp(name_idx).as_str();
+
+        cp_attr { name_idx: name_idx }
+    }
+
+    //         int nameCPIdx = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //         int attrLen = ((int) clzBytes[current++] << 24) + ((int) clzBytes[current++] << 16) + ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //         int endIndex = current + attrLen;
+
+    //         // Now check to see what type of attribute it is...
+    //         String s = getCPEntry(nameCPIdx).getStr();
+
+    //         // E.g. for fields....
+    //         //
+    // //        The attributes defined by this specification as appearing in the attributes table of a field_info structure are ConstantValue (§4.7.2), Synthetic (§4.7.8), Signature (§4.7.9), Deprecated (§4.7.15), RuntimeVisibleAnnotations (§4.7.16) and RuntimeInvisibleAnnotations (§4.7.17).
+    //         // FIXME
+    //         switch (s) {
+    //             case "ConstantValue":
+    //                 if (b instanceof CPMethod) {
+    //                     CPMethod m = (CPMethod) b;
+    //                     String methDesc = resolveAsString(m.nameIndex) + ":" + resolveAsString(m.descIndex);
+    //                     throw new IllegalArgumentException("Method " + methDesc + " cannot be a constant");
+    //                 }
+    //                 // FIXME
+    //                 current += 2;
+    //                 break;
+    //             case "Code":
+    //                 if (b instanceof CPField) {
+    //                     CPField f = (CPField) b;
+    //                     String fieldDesc = resolveAsString(f.nameIndex) + ":" + resolveAsString(f.descIndex);
+    //                     throw new IllegalArgumentException("Field " + fieldDesc + " cannot contain code");
+    //                 }
+    //                 final CPMethod m = (CPMethod) b;
+    // //    u2 max_stack;
+    // //    u2 max_locals;
+    //                 // Don't care about stack depth or locals
+    //                 current += 4;
+    // //    u4 code_length;
+    // //    u1 code[code_length];
+    //                 int codeLen = ((int) clzBytes[current++] << 24) + ((int) clzBytes[current++] << 16) + ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
+    //                 byte[] bytecode = Arrays.copyOfRange(clzBytes, current, current + codeLen);
+    //                 m.setBytecode(bytecode);
+    // //    u2 exception_table_length;
+    // //    {   u2 start_pc;
+    // //        u2 end_pc;
+    // //        u2 handler_pc;
+    // //        u2 catch_type;
+    // //    } exception_table[exception_table_length];
+    // //    u2 attributes_count;
+    // //    attribute_info attributes[attributes_count];
+    //                 break;
+    //             case "Exceptions":
+    //                 System.err.println("Encountered exception handlers in bytecode - skipping");
+    //                 break;
+    //             default:
+    //                 throw new IllegalArgumentException("Input file has unhandled Attribute type: " + s);
+    //         }
+    //         // Skip to the end
+    //         current = endIndex;
+
+    //         return new CPAttr(nameCPIdx);
 }
