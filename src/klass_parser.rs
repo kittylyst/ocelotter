@@ -270,12 +270,12 @@ impl oc_parser {
     fn parse_constant_pool(&mut self) -> () {
         self.current = 10;
         println!("Pool size: {}", self.get_pool_size());
-        self.cp_items
-            .resize((self.poolItemCount as usize) + 1, cp_entry::integer { val: 0 });
+        self.cp_items.resize(
+            (self.poolItemCount as usize) + 1,
+            cp_entry::integer { val: 0 },
+        );
         let mut current_cp = 1;
-        let mut additional = false;
         while current_cp < self.poolItemCount {
-            additional = false;
             let tag = self.clz_read[self.current];
             println!("Seen: {} at {}", tag, current_cp);
             self.current += 1;
@@ -337,7 +337,7 @@ impl oc_parser {
                     let b8 = self.clz_read[self.current + 7];
                     self.current += 8;
                     // Longs are double width
-                    additional = true;
+                    current_cp += 1;
 
                     let buf = &[b1, b2, b3, b4, b5, b6, b7, b8];
                     cp_entry::long {
@@ -356,7 +356,7 @@ impl oc_parser {
                     let b8 = self.clz_read[self.current + 7];
                     self.current += 8;
                     // Doubles are double width
-                    additional = true;
+                    current_cp += 1;
 
                     let buf = &[b1, b2, b3, b4, b5, b6, b7, b8];
                     cp_entry::double {
@@ -438,10 +438,6 @@ impl oc_parser {
             };
             self.cp_items[current_cp as usize] = item;
             current_cp += 1;
-            if additional {
-                current_cp += 1;
-            }
-        
         }
     }
 
