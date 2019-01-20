@@ -90,7 +90,7 @@ impl OCKlass {
     }
 
     // FIXME: Shouldn't this be OCField for consistency
-    pub fn setStaticField(&self, f: String, vals: JVMValue) -> () {}
+    pub fn set_static_field(&self, f: String, vals: JVMValue) -> () {}
 
     pub fn get_name(&mut self) -> String {
         self.name.to_owned()

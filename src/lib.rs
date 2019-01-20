@@ -338,7 +338,7 @@ pub fn exec_method(
                 let puts: runtime::OCField = repo.lookup_field(&klass_name, cp_lookup);
                 let fKlass: runtime::OCKlass = puts.get_klass();
                 let vals: runtime::JVMValue = eval.pop();
-                fKlass.setStaticField(puts.get_name(), vals);
+                fKlass.set_static_field(puts.get_name(), vals);
             }
             opcode::Opcode::RETURN => break None,
             opcode::Opcode::SIPUSH => {
