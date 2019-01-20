@@ -241,18 +241,18 @@ pub fn exec_method(
             opcode::Opcode::INVOKESPECIAL => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                dispatch_invoke(repo.lookupMethodExact(&klass_name, cp_lookup), &eval);
+                dispatch_invoke(repo.lookup_method_exact(&klass_name, cp_lookup), &eval);
             }
             opcode::Opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                dispatch_invoke(repo.lookupMethodExact(&klass_name, cp_lookup), &eval);
+                dispatch_invoke(repo.lookup_method_exact(&klass_name, cp_lookup), &eval);
             }
             // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
             opcode::Opcode::INVOKEVIRTUAL => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                dispatch_invoke(repo.lookupMethodVirtual(&klass_name, cp_lookup), &eval);
+                dispatch_invoke(repo.lookup_method_virtual(&klass_name, cp_lookup), &eval);
             }
             opcode::Opcode::IOR => eval.ior(),
 
@@ -294,9 +294,9 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let klass: runtime::OCKlass = repo.lookupKlass(&klass_name, cp_lookup);
+                let klass: runtime::OCKlass = repo.lookup_klass(&klass_name, cp_lookup);
                 eval.push(runtime::JVMValue::ObjRef {
-                    val: heap.allocateObj(klass),
+                    val: heap.allocate_obj(klass),
                 });
             }
             opcode::Opcode::NOP => {
@@ -318,7 +318,7 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let putf: runtime::OCField = repo.lookupField(&klass_name, cp_lookup);
+                let putf: runtime::OCField = repo.lookup_field(&klass_name, cp_lookup);
                 let val: runtime::JVMValue = eval.pop();
 
                 let recvp: runtime::JVMValue = eval.pop();
@@ -329,16 +329,16 @@ pub fn exec_method(
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
 
-                obj.putField(putf, val);
+                obj.put_field(putf, val);
             }
             opcode::Opcode::PUTSTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let puts: runtime::OCField = repo.lookupField(&klass_name, cp_lookup);
-                let fKlass: runtime::OCKlass = puts.getKlass();
+                let puts: runtime::OCField = repo.lookup_field(&klass_name, cp_lookup);
+                let fKlass: runtime::OCKlass = puts.get_klass();
                 let vals: runtime::JVMValue = eval.pop();
-                fKlass.setStaticField(puts.getName(), vals);
+                fKlass.setStaticField(puts.get_name(), vals);
             }
             opcode::Opcode::RETURN => break None,
             opcode::Opcode::SIPUSH => {

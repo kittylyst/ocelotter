@@ -52,7 +52,7 @@ pub struct JVMObj {
 }
 
 impl JVMObj {
-    pub fn putField(&self, f: OCField, val: JVMValue) -> () {}
+    pub fn put_field(&self, f: OCField, val: JVMValue) -> () {}
 
     pub fn get_null() -> JVMObj {
         JVMObj {
@@ -106,11 +106,11 @@ pub struct OCMethod {}
 pub struct OCField {}
 
 impl OCField {
-    pub fn getName(&self) -> String {
+    pub fn get_name(&self) -> String {
         String::from("")
     }
 
-    pub fn getKlass(&self) -> OCKlass {
+    pub fn get_klass(&self) -> OCKlass {
         return OCKlass {
             name: "DUMMY_CLASS".to_string(),
             super_name: "DUMMY_SUPER".to_string(),
@@ -275,8 +275,8 @@ impl EvaluationStack {
     pub fn i2d(&self) -> () {}
     pub fn dup(&mut self) -> () {
         let i1 = self.pop();
-        self.push(i1);
-        self.push(i1);
+        self.push(i1.to_owned());
+        self.push(i1.to_owned());
     }
     pub fn dupX1(&mut self) -> () {
         let i1 = self.pop();
@@ -323,21 +323,21 @@ impl ClassRepository {
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookupField(&self, klass_name: &String, idx: u16) -> OCField {
+    pub fn lookup_field(&self, klass_name: &String, idx: u16) -> OCField {
         OCField {}
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookupMethodExact(&self, klass_name: &String, idx: u16) -> OCMethod {
+    pub fn lookup_method_exact(&self, klass_name: &String, idx: u16) -> OCMethod {
         OCMethod {}
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookupMethodVirtual(&self, klass_name: &String, idx: u16) -> OCMethod {
+    pub fn lookup_method_virtual(&self, klass_name: &String, idx: u16) -> OCMethod {
         OCMethod {}
     }
 
-    pub fn lookupKlass(&self, klass_name: &String, idx: u16) -> OCKlass {
+    pub fn lookup_klass(&self, klass_name: &String, idx: u16) -> OCKlass {
         OCKlass {
             name: "DUMMY_CLASS".to_string(),
             super_name: "DUMMY_SUPER".to_string(),
@@ -348,7 +348,7 @@ impl ClassRepository {
 pub struct SimpleLinkedJVMHeap {}
 
 impl SimpleLinkedJVMHeap {
-    pub fn allocateObj(&self, klass: OCKlass) -> JVMObj {
+    pub fn allocate_obj(&self, klass: OCKlass) -> JVMObj {
         // FIXME
         JVMObj::get_null()
     }
