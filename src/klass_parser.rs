@@ -102,7 +102,7 @@ impl cp_field {
         }
     }
 
-    fn set_attr(&self, index: u16, attr: cp_attr) -> () {}
+    fn set_attr(&self, _index: u16, _attr: cp_attr) -> () {}
 }
 
 impl fmt::Display for cp_field {
@@ -141,7 +141,7 @@ impl cp_method {
         }
     }
 
-    fn set_attr(&self, index: u16, attr: cp_attr) -> () {}
+    fn set_attr(&self, _index: u16, _attr: cp_attr) -> () {}
 }
 
 impl fmt::Display for cp_method {
@@ -452,7 +452,7 @@ impl oc_parser {
             + self.clz_read[self.current + 7] as u16;
         self.current += 8;
 
-        for i in 0..count {
+        for _i in 0..count {
             self.interfaces.push(
                 ((self.clz_read[self.current] as u16) << 8)
                     + self.clz_read[self.current + 1] as u16,
@@ -466,7 +466,7 @@ impl oc_parser {
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         self.current += 2;
 
-        for idx in 0..fCount {
+        for _idx in 0..fCount {
             let fFlags = ((self.clz_read[self.current] as u16) << 8)
                 + self.clz_read[self.current + 1] as u16;
             let name_idx = ((self.clz_read[self.current + 2] as u16) << 8)
@@ -485,7 +485,7 @@ impl oc_parser {
                 ),
             };
             // NOTE: have just thrashed about to get the borrow checker to shut up here... need to revisit
-            let mut k_name = &self.klass_name().to_string();
+            let k_name = &self.klass_name().to_string();
             let f = cp_field::new(&k_name, f_name.to_string(), fFlags, name_idx, desc_idx);
             for aidx in 0..attr_count {
                 f.set_attr(aidx, self.parse_field_attribute(&f));
@@ -538,7 +538,7 @@ impl oc_parser {
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         self.current += 2;
 
-        for idx in 0..mcount {
+        for _idx in 0..mcount {
             let mflags = ((self.clz_read[self.current] as u16) << 8)
                 + self.clz_read[self.current + 1] as u16;
             let name_idx = ((self.clz_read[self.current + 2] as u16) << 8)
@@ -557,7 +557,7 @@ impl oc_parser {
                 ),
             };
             // NOTE: have just thrashed about to get the borrow checker to shut up here... need to revisit
-            let mut k_name = &self.klass_name().to_string();
+            let k_name = &self.klass_name().to_string();
             let m = cp_method::new(&k_name, m_name.to_string(), mflags, name_idx, desc_idx);
             for aidx in 0..attr_count {
                 println!("Parsing method attribute {}", aidx);
@@ -580,10 +580,10 @@ impl oc_parser {
         // Fix me - is this actually a u32 (check spec)
         let attr_len = BigEndian::read_u32(buf);
         let end_index = self.current + attr_len as usize;
-        println!("Attr length: {}", attr_len    );
+        println!("Attr length: {}", attr_len);
 
         let s = self.stringref_from_cp(name_idx);
-        let code = match s.as_str() {
+        let _code = match s.as_str() {
             "Code" => {
                 //    u2 max_stack;
                 //    u2 max_locals;

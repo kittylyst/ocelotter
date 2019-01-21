@@ -7,7 +7,7 @@ static repo: runtime::ClassRepository = runtime::ClassRepository {};
 
 pub fn exec_method(
     klass_name: String,
-    desc: String,
+    _desc: String,
     instr: &Vec<u8>,
     lvt: &runtime::LocalVariableTable,
 ) -> Option<runtime::JVMValue> {
@@ -369,7 +369,7 @@ pub fn exec_method(
     }
 }
 
-fn dispatch_invoke(to_be_called: runtime::OCMethod, eval: &runtime::EvaluationStack) -> () {
+fn dispatch_invoke(_to_be_called: runtime::OCMethod, _eval: &runtime::EvaluationStack) -> () {
     // Setup call
 
     // Invoke

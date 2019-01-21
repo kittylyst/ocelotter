@@ -52,7 +52,7 @@ pub struct JVMObj {
 }
 
 impl JVMObj {
-    pub fn put_field(&self, f: OCField, val: JVMValue) -> () {}
+    pub fn put_field(&self, _f: OCField, _val: JVMValue) -> () {}
 
     pub fn get_null() -> JVMObj {
         JVMObj {
@@ -90,7 +90,7 @@ impl OCKlass {
     }
 
     // FIXME: Shouldn't this be OCField for consistency
-    pub fn set_static_field(&self, f: String, vals: JVMValue) -> () {}
+    pub fn set_static_field(&self, _f: String, _vals: JVMValue) -> () {}
 
     pub fn get_name(&mut self) -> String {
         self.name.to_owned()
@@ -290,29 +290,29 @@ impl EvaluationStack {
 pub struct LocalVariableTable {}
 
 impl LocalVariableTable {
-    pub fn iload(&self, idx: u8) -> JVMValue {
+    pub fn iload(&self, _idx: u8) -> JVMValue {
         // FIXME Type checks...
         JVMValue::Int { val: 1 }
     }
 
-    pub fn store(&self, idx: u8, val: JVMValue) -> () {
+    pub fn store(&self, _idx: u8, _val: JVMValue) -> () {
         // FIXME Load from LVT
     }
 
-    pub fn iinc(&self, idx: u8, incr: u8) -> () {}
+    pub fn iinc(&self, _idx: u8, _incr: u8) -> () {}
 
-    pub fn dload(&self, idx: u8) -> crate::runtime::JVMValue {
+    pub fn dload(&self, _idx: u8) -> crate::runtime::JVMValue {
         JVMValue::Double { val: 0.001 }
     }
 
-    pub fn aload(&self, idx: u8) -> crate::runtime::JVMValue {
+    pub fn aload(&self, _idx: u8) -> crate::runtime::JVMValue {
         // FIXME Load from LVT
         JVMValue::ObjRef {
             val: JVMObj::get_null(),
         }
     }
 
-    pub fn astore(&self, idx: u8, val: JVMValue) -> () {}
+    pub fn astore(&self, _idx: u8, _val: JVMValue) -> () {}
 }
 
 pub struct ClassRepository {}
@@ -323,21 +323,21 @@ impl ClassRepository {
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookup_field(&self, klass_name: &String, idx: u16) -> OCField {
+    pub fn lookup_field(&self, _klass_name: &String, _idx: u16) -> OCField {
         OCField {}
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookup_method_exact(&self, klass_name: &String, idx: u16) -> OCMethod {
+    pub fn lookup_method_exact(&self, _klass_name: &String, _idx: u16) -> OCMethod {
         OCMethod {}
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookup_method_virtual(&self, klass_name: &String, idx: u16) -> OCMethod {
+    pub fn lookup_method_virtual(&self, _klass_name: &String, _idx: u16) -> OCMethod {
         OCMethod {}
     }
 
-    pub fn lookup_klass(&self, klass_name: &String, idx: u16) -> OCKlass {
+    pub fn lookup_klass(&self, _klass_name: &String, _idx: u16) -> OCKlass {
         OCKlass {
             name: "DUMMY_CLASS".to_string(),
             super_name: "DUMMY_SUPER".to_string(),
@@ -348,7 +348,7 @@ impl ClassRepository {
 pub struct SimpleLinkedJVMHeap {}
 
 impl SimpleLinkedJVMHeap {
-    pub fn allocate_obj(&self, klass: OCKlass) -> JVMObj {
+    pub fn allocate_obj(&self, _klass: OCKlass) -> JVMObj {
         // FIXME
         JVMObj::get_null()
     }
