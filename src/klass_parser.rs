@@ -143,6 +143,10 @@ impl cp_method {
     }
 
     fn set_attr(&self, _index: u16, _attr: cp_attr) -> () {}
+
+    fn as_ot(&self) -> runtime::ot_method {
+        runtime::ot_method {}
+    }
 }
 
 impl fmt::Display for cp_method {
@@ -189,7 +193,17 @@ impl oc_parser {
     }
 
     pub fn klass(&mut self) -> runtime::ot_klass {
-        runtime::ot_klass::of(self.klass_name().to_string(), self.super_name().to_string())
+        let mut methods: Vec<runtime::ot_method> = Vec::new();
+
+        for cpm in &self.methods {
+            methods.push(cpm.as_ot());
+        }
+
+        runtime::ot_klass::of(
+            self.klass_name().to_string(),
+            self.super_name().to_string(),
+            &methods,
+        )
     }
 
     fn klass_name(&self) -> &String {

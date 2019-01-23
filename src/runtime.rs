@@ -79,13 +79,15 @@ impl fmt::Display for JVMObj {
 pub struct ot_klass {
     name: String,
     super_name: String,
+    methods: Vec<ot_method>,
 }
 
 impl ot_klass {
-    pub fn of(klass_name: String, super_klass: String) -> ot_klass {
+    pub fn of(klass_name: String, super_klass: String, methods: &Vec<ot_method>) -> ot_klass {
         ot_klass {
             name: klass_name,
             super_name: super_klass,
+            methods: methods.to_vec(),
         }
     }
 
@@ -101,6 +103,7 @@ impl ot_klass {
     }
 }
 
+#[derive(Clone)]
 pub struct ot_method {}
 
 pub struct ot_field {}
@@ -114,6 +117,7 @@ impl ot_field {
         return ot_klass {
             name: "DUMMY_CLASS".to_string(),
             super_name: "DUMMY_SUPER".to_string(),
+            methods: Vec::new(),
         };
     }
 }
@@ -341,6 +345,7 @@ impl shared_klass_repo {
         ot_klass {
             name: "DUMMY_CLASS".to_string(),
             super_name: "DUMMY_SUPER".to_string(),
+            methods: Vec::new(),
         }
     }
 }
