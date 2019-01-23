@@ -52,7 +52,7 @@ pub struct JVMObj {
 }
 
 impl JVMObj {
-    pub fn put_field(&self, _f: OCField, _val: JVMValue) -> () {}
+    pub fn put_field(&self, _f: ot_field, _val: JVMValue) -> () {}
 
     pub fn get_null() -> JVMObj {
         JVMObj {
@@ -89,7 +89,7 @@ impl ot_klass {
         }
     }
 
-    // FIXME: Shouldn't this be OCField for consistency
+    // FIXME: Shouldn't this be ot_field for consistency
     pub fn set_static_field(&self, _f: String, _vals: JVMValue) -> () {}
 
     pub fn get_name(&mut self) -> String {
@@ -101,11 +101,11 @@ impl ot_klass {
     }
 }
 
-pub struct OCMethod {}
+pub struct ot_method {}
 
-pub struct OCField {}
+pub struct ot_field {}
 
-impl OCField {
+impl ot_field {
     pub fn get_name(&self) -> String {
         String::from("")
     }
@@ -118,13 +118,13 @@ impl OCField {
     }
 }
 
-pub struct EvaluationStack {
+pub struct interp_eval_stack {
     stack: Vec<JVMValue>,
 }
 
-impl EvaluationStack {
-    pub fn new() -> EvaluationStack {
-        EvaluationStack { stack: Vec::new() }
+impl interp_eval_stack {
+    pub fn new() -> interp_eval_stack {
+        interp_eval_stack { stack: Vec::new() }
     }
 
     pub fn push(&mut self, val: JVMValue) -> () {
@@ -323,18 +323,18 @@ impl ClassRepository {
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookup_field(&self, _klass_name: &String, _idx: u16) -> OCField {
-        OCField {}
+    pub fn lookup_field(&self, _klass_name: &String, _idx: u16) -> ot_field {
+        ot_field {}
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookup_method_exact(&self, _klass_name: &String, _idx: u16) -> OCMethod {
-        OCMethod {}
+    pub fn lookup_method_exact(&self, _klass_name: &String, _idx: u16) -> ot_method {
+        ot_method {}
     }
 
     // FIXME: Indexes should be u16
-    pub fn lookup_method_virtual(&self, _klass_name: &String, _idx: u16) -> OCMethod {
-        OCMethod {}
+    pub fn lookup_method_virtual(&self, _klass_name: &String, _idx: u16) -> ot_method {
+        ot_method {}
     }
 
     pub fn lookup_klass(&self, _klass_name: &String, _idx: u16) -> ot_klass {

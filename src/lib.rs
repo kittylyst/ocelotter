@@ -14,7 +14,7 @@ pub fn exec_method(
     lvt: &runtime::LocalVariableTable,
 ) -> Option<runtime::JVMValue> {
     let mut current = 0;
-    let mut eval = runtime::EvaluationStack::new();
+    let mut eval = runtime::interp_eval_stack::new();
 
     loop {
         let opt_ins = instr.get(current);
@@ -88,7 +88,7 @@ pub fn exec_method(
 
             // GETFIELD => {
             //     let cp_lookup = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     runtime::OCField field = repo.lookupField(klass_name, (short) cp_lookup);
+            //     runtime::ot_field field = repo.lookupField(klass_name, (short) cp_lookup);
             //     runtime::JVMValue receiver = eval.pop();
             //     // VERIFY: Should check to make sure receiver is an Opcode::A
             //     runtime::JVMObj obj = heap.findObject(receiver.value);
@@ -96,7 +96,7 @@ pub fn exec_method(
             // },
             // GETSTATIC => {
             //     let cp_lookup = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     runtime::OCField f = repo.lookupField(klass_name, (short) cp_lookup);
+            //     runtime::ot_field f = repo.lookupField(klass_name, (short) cp_lookup);
             //     runtime::ot_klass fgKlass = f.getKlass();
             //     eval.push(fgKlass.getStaticField(f));
             // },
@@ -320,7 +320,7 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let putf: runtime::OCField = repo.lookup_field(&klass_name, cp_lookup);
+                let putf: runtime::ot_field = repo.lookup_field(&klass_name, cp_lookup);
                 let val: runtime::JVMValue = eval.pop();
 
                 let recvp: runtime::JVMValue = eval.pop();
@@ -337,7 +337,7 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let puts: runtime::OCField = repo.lookup_field(&klass_name, cp_lookup);
+                let puts: runtime::ot_field = repo.lookup_field(&klass_name, cp_lookup);
                 let fKlass: runtime::ot_klass = puts.get_klass();
                 let vals: runtime::JVMValue = eval.pop();
                 fKlass.set_static_field(puts.get_name(), vals);
@@ -371,7 +371,7 @@ pub fn exec_method(
     }
 }
 
-fn dispatch_invoke(_to_be_called: runtime::OCMethod, _eval: &runtime::EvaluationStack) -> () {
+fn dispatch_invoke(_to_be_called: runtime::ot_method, _eval: &runtime::interp_eval_stack) -> () {
     // Setup call
 
     // Invoke
