@@ -69,6 +69,7 @@ impl cp_entry {
     }
 }
 
+#[derive(Clone)]
 pub struct cp_attr {
     name_idx: u16,
 }
@@ -187,8 +188,8 @@ impl oc_parser {
         }
     }
 
-    pub fn klass(&mut self) -> runtime::OCKlass {
-        runtime::OCKlass::of(self.klass_name().to_string(), self.super_name().to_string())
+    pub fn klass(&mut self) -> runtime::ot_klass {
+        runtime::ot_klass::of(self.klass_name().to_string(), self.super_name().to_string())
     }
 
     fn klass_name(&self) -> &String {
@@ -558,16 +559,17 @@ impl oc_parser {
             };
             // NOTE: have just thrashed about to get the borrow checker to shut up here... need to revisit
             let k_name = &self.klass_name().to_string();
-            let m = cp_method::new(&k_name, m_name.to_string(), mflags, name_idx, desc_idx);
+            let mut m = cp_method::new(&k_name, m_name.to_string(), mflags, name_idx, desc_idx);
             for aidx in 0..attr_count {
                 println!("Parsing method attribute {}", aidx);
-                m.set_attr(aidx, self.parse_method_attribute(&m));
+                let att = self.parse_method_attribute(&mut m);
+                m.set_attr(aidx, att.clone());
             }
             self.methods.push(m);
         }
     }
 
-    fn parse_method_attribute(&mut self, method: &cp_method) -> cp_attr {
+    fn parse_method_attribute(&mut self, method: &mut cp_method) -> cp_attr {
         let name_idx =
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         let b1 = self.clz_read[self.current + 2];
@@ -577,13 +579,13 @@ impl oc_parser {
         self.current += 6;
 
         let buf = &[b1, b2, b3, b4];
-        // Fix me - is this actually a u32 (check spec)
+        // FIXME - is this actually a u32 (check spec)
         let attr_len = BigEndian::read_u32(buf);
         let end_index = self.current + attr_len as usize;
         println!("Attr length: {}", attr_len);
 
         let s = self.stringref_from_cp(name_idx);
-        let _code = match s.as_str() {
+        match s.as_str() {
             "Code" => {
                 //    u2 max_stack;
                 //    u2 max_locals;
@@ -605,7 +607,7 @@ impl oc_parser {
                 let mut chunk = self.clz_read[self.current..].take(code_len as u64);
                 chunk.read_to_end(&mut bytecode);
                 self.current += code_len as usize;
-                bytecode
+                method.code = bytecode;
             }
             //    u2 exception_table_length;
             //    {   u2 start_pc;

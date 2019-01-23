@@ -76,14 +76,14 @@ impl fmt::Display for JVMObj {
     }
 }
 
-pub struct OCKlass {
+pub struct ot_klass {
     name: String,
     super_name: String,
 }
 
-impl OCKlass {
-    pub fn of(klass_name: String, super_klass: String) -> OCKlass {
-        OCKlass {
+impl ot_klass {
+    pub fn of(klass_name: String, super_klass: String) -> ot_klass {
+        ot_klass {
             name: klass_name,
             super_name: super_klass,
         }
@@ -110,8 +110,8 @@ impl OCField {
         String::from("")
     }
 
-    pub fn get_klass(&self) -> OCKlass {
-        return OCKlass {
+    pub fn get_klass(&self) -> ot_klass {
+        return ot_klass {
             name: "DUMMY_CLASS".to_string(),
             super_name: "DUMMY_SUPER".to_string(),
         };
@@ -337,8 +337,8 @@ impl ClassRepository {
         OCMethod {}
     }
 
-    pub fn lookup_klass(&self, _klass_name: &String, _idx: u16) -> OCKlass {
-        OCKlass {
+    pub fn lookup_klass(&self, _klass_name: &String, _idx: u16) -> ot_klass {
+        ot_klass {
             name: "DUMMY_CLASS".to_string(),
             super_name: "DUMMY_SUPER".to_string(),
         }
@@ -348,7 +348,7 @@ impl ClassRepository {
 pub struct SimpleLinkedJVMHeap {}
 
 impl SimpleLinkedJVMHeap {
-    pub fn allocate_obj(&self, _klass: OCKlass) -> JVMObj {
+    pub fn allocate_obj(&self, _klass: ot_klass) -> JVMObj {
         // FIXME
         JVMObj::get_null()
     }

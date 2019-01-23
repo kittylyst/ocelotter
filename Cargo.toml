@@ -6,3 +6,6 @@ edition = "2018"
 
 [dependencies]
 byteorder = "1.2.7"
+
+[profile.release]
+lto = true

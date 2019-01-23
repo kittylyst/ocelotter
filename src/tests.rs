@@ -262,4 +262,5 @@ fn test_read_fields() {
     let mut k = parser.klass();
     assert_eq!("Foo2", k.get_name());
     assert_eq!("java/lang/Object", k.get_super_name());
+    // k.get_methods().size()
 }
