@@ -4,7 +4,7 @@ use std::io::Read;
 use std::path::Path;
 
 fn execute_method(buf: &Vec<u8>) -> runtime::JVMValue {
-    let lvt = runtime::LocalVariableTable {};
+    let lvt = runtime::interp_local_vars {};
     let opt_ret = exec_method("DUMMY".to_string(), "DUMMY_DESC".to_string(), &buf, &lvt);
     match opt_ret {
         Some(value) => value,

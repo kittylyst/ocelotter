@@ -287,9 +287,9 @@ impl interp_eval_stack {
     }
 }
 
-pub struct LocalVariableTable {}
+pub struct interp_local_vars {}
 
-impl LocalVariableTable {
+impl interp_local_vars {
     pub fn iload(&self, _idx: u8) -> JVMValue {
         // FIXME Type checks...
         JVMValue::Int { val: 1 }
@@ -315,11 +315,11 @@ impl LocalVariableTable {
     pub fn astore(&self, _idx: u8, _val: JVMValue) -> () {}
 }
 
-pub struct ClassRepository {}
+pub struct shared_klass_repo {}
 
-impl ClassRepository {
-    pub fn new() -> ClassRepository {
-        ClassRepository {}
+impl shared_klass_repo {
+    pub fn new() -> shared_klass_repo {
+        shared_klass_repo {}
     }
 
     // FIXME: Indexes should be u16
@@ -345,9 +345,9 @@ impl ClassRepository {
     }
 }
 
-pub struct SimpleLinkedJVMHeap {}
+pub struct shared_simple_heap {}
 
-impl SimpleLinkedJVMHeap {
+impl shared_simple_heap {
     pub fn allocate_obj(&self, _klass: ot_klass) -> JVMObj {
         // FIXME
         JVMObj::get_null()

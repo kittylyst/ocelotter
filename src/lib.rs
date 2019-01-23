@@ -4,14 +4,14 @@ mod runtime;
 
 use opcode::*;
 
-static heap: runtime::SimpleLinkedJVMHeap = runtime::SimpleLinkedJVMHeap {};
-static repo: runtime::ClassRepository = runtime::ClassRepository {};
+static heap: runtime::shared_simple_heap = runtime::shared_simple_heap {};
+static repo: runtime::shared_klass_repo = runtime::shared_klass_repo {};
 
 pub fn exec_method(
     klass_name: String,
     _desc: String,
     instr: &Vec<u8>,
-    lvt: &runtime::LocalVariableTable,
+    lvt: &runtime::interp_local_vars,
 ) -> Option<runtime::JVMValue> {
     let mut current = 0;
     let mut eval = runtime::interp_eval_stack::new();
