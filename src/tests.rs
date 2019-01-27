@@ -251,7 +251,7 @@ fn test_read_header() {
 }
 
 #[test]
-fn test_read_fields() {
+fn test_read_simple_class() {
     let bytes = match file_to_bytes(Path::new("./resources/test/Foo2.class")) {
         Ok(buf) => buf,
         _ => panic!("Error reading Foo2"),
@@ -262,5 +262,5 @@ fn test_read_fields() {
     let mut k = parser.klass();
     assert_eq!("Foo2", k.get_name());
     assert_eq!("java/lang/Object", k.get_super_name());
-    // k.get_methods().size()
+    assert_eq!(2, k.get_methods().len());
 }

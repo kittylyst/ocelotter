@@ -145,7 +145,9 @@ impl cp_method {
     fn set_attr(&self, _index: u16, _attr: cp_attr) -> () {}
 
     fn as_ot(&self) -> runtime::ot_method {
-        runtime::ot_method {}
+        let name = &self.name;
+        let code = &self.code;
+        runtime::ot_method::of(name.to_string(), code.to_vec())
     }
 }
 

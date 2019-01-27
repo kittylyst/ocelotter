@@ -101,10 +101,26 @@ impl ot_klass {
     pub fn get_super_name(&mut self) -> String {
         self.super_name.to_owned()
     }
+
+    pub fn get_methods(&mut self) -> Vec<ot_method> {
+        self.methods.clone()
+    }
 }
 
 #[derive(Clone)]
-pub struct ot_method {}
+pub struct ot_method {
+    desc: String,
+    code: Vec<u8>,
+}
+
+impl ot_method {
+    pub fn of(desc : String, code: Vec<u8>) -> ot_method {
+        ot_method {
+            desc: desc,
+            code: code,
+        }
+    }
+}
 
 pub struct ot_field {}
 
@@ -333,12 +349,12 @@ impl shared_klass_repo {
 
     // FIXME: Indexes should be u16
     pub fn lookup_method_exact(&self, _klass_name: &String, _idx: u16) -> ot_method {
-        ot_method {}
+        ot_method::of("DUMMY_METH".to_string(), Vec::new())
     }
 
     // FIXME: Indexes should be u16
     pub fn lookup_method_virtual(&self, _klass_name: &String, _idx: u16) -> ot_method {
-        ot_method {}
+        ot_method::of("DUMMY_METH".to_string(), Vec::new())
     }
 
     pub fn lookup_klass(&self, _klass_name: &String, _idx: u16) -> ot_klass {
