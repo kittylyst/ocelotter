@@ -1,4 +1,6 @@
 use super::*;
+use crate::klass_parser::ACC_PUBLIC;
+use crate::klass_parser::ACC_STATIC;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -263,4 +265,30 @@ fn test_read_simple_class() {
     assert_eq!("Foo2", k.get_name());
     assert_eq!("java/lang/Object", k.get_super_name());
     assert_eq!(2, k.get_methods().len());
+}
+
+#[test]
+#[ignore]
+fn test_invoke_simple() {
+    let bytes = match file_to_bytes(Path::new("./resources/test/SampleInvoke.class")) {
+        Ok(buf) => buf,
+        _ => panic!("Error reading SampleInvoke"),
+    };
+    let mut parser = klass_parser::oc_parser::new(bytes, "SampleInvoke.class".to_string());
+    parser.parse();
+    assert_eq!(21, parser.get_pool_size());
+    let mut k = parser.klass();
+    assert_eq!("SampleInvoke", k.get_name());
+    assert_eq!("java/lang/Object", k.get_super_name());
+    assert_eq!(4, k.get_methods().len());
+
+    repo.add_klass(k.clone());
+    let meth = k.get_method_by_name_and_desc("foo:()I".to_string());
+    // "Flags should be public, static"
+    assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+    let res = exec_method2(meth);
+    // FIXME Match expression for testing result
+
+    // assertEquals("Return type should be int", JVMType.I, res.type);
+    // assertEquals("Return value should be 9", 9, (int) res.value);
 }

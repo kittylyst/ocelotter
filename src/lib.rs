@@ -7,6 +7,16 @@ use opcode::*;
 static heap: runtime::shared_simple_heap = runtime::shared_simple_heap {};
 static repo: runtime::shared_klass_repo = runtime::shared_klass_repo {};
 
+pub fn exec_method2(mut meth: runtime::ot_method) -> Option<runtime::JVMValue> {
+    let vars = runtime::interp_local_vars {};
+    exec_method(
+        meth.get_klass_name(),
+        "DUMMY_DESC".to_string(),
+        &meth.get_code(),
+        &vars,
+    )
+}
+
 pub fn exec_method(
     klass_name: String,
     _desc: String,

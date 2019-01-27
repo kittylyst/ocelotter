@@ -147,7 +147,8 @@ impl cp_method {
     fn as_ot(&self) -> runtime::ot_method {
         let name = &self.name;
         let code = &self.code;
-        runtime::ot_method::of(name.to_string(), code.to_vec())
+        let class_name = &self.class_name;
+        runtime::ot_method::of(name.to_string(), class_name.to_string(), code.to_vec())
     }
 }
 
