@@ -26,6 +26,7 @@ pub fn exec_method(
     let mut current = 0;
     let mut eval = runtime::interp_eval_stack::new();
 
+    dbg!(instr);
     loop {
         let opt_ins = instr.get(current);
         let ins: u8 = match opt_ins {
@@ -347,10 +348,9 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let puts: runtime::ot_field = repo.lookup_field(&klass_name, cp_lookup);
-                let fKlass: runtime::ot_klass = puts.get_klass();
-                let vals: runtime::JVMValue = eval.pop();
-                fKlass.set_static_field(puts.get_name(), vals);
+                let puts = repo.lookup_field(&klass_name, cp_lookup);
+                let f_klass = puts.get_klass();
+                f_klass.set_static_field(puts.get_name(), eval.pop());
             }
             Opcode::RETURN => break None,
             Opcode::SIPUSH => {
@@ -359,8 +359,8 @@ pub fn exec_method(
                 current += 2;
             }
             Opcode::SWAP => {
-                let val1: runtime::JVMValue = eval.pop();
-                let val2: runtime::JVMValue = eval.pop();
+                let val1 = eval.pop();
+                let val2 = eval.pop();
                 eval.push(val1);
                 eval.push(val2);
             }

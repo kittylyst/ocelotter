@@ -87,12 +87,23 @@ pub struct ot_klass {
 
 impl ot_klass {
     pub fn of(klass_name: String, super_klass: String, methods: &Vec<ot_method>) -> ot_klass {
+        let mut lookup = HashMap::new();
+        let mut i = 0;
+        while i < methods.len() {
+            let mut meth = match methods.get(i).clone() {
+                Some(val) => val.clone(),
+                None => panic!("Error: method {} not found on {}", i, klass_name),
+            };
+            lookup.insert(meth.get_desc().clone(), i);
+            i = i + 1;
+        }
+        dbg!(lookup.clone());
         ot_klass {
             name: klass_name,
             super_name: super_klass,
             methods: methods.to_vec(),
             // FIXME DUMMY
-            name_desc_lookup: HashMap::new(),
+            name_desc_lookup: lookup,
         }
     }
 
@@ -112,24 +123,34 @@ impl ot_klass {
     }
 
     pub fn get_method_by_name_and_desc(&self, name_desc: String) -> ot_method {
-        // FIXME
-        self.methods[0].clone()
+        let opt_idx = self.name_desc_lookup.get(&name_desc);
+        let idx: usize = match opt_idx {
+            Some(value) => value.clone(),
+            None => panic!("Error: method {} not found on {}", name_desc, self.name),
+        };
+        let opt_meth = self.methods.get(idx).clone();
+        match opt_meth {
+            Some(val) => val.clone(),
+            None => panic!("Error: method {} not found on {}", name_desc, self.name),
+        }
     }
 }
 
 #[derive(Clone)]
 pub struct ot_method {
     klass_name: String,
-    desc: String,
+    name_desc: String,
     code: Vec<u8>,
+    flags: u16,
 }
 
 impl ot_method {
-    pub fn of(desc: String, klass_name: String, code: Vec<u8>) -> ot_method {
+    pub fn of(name_desc: String, klass_name: String, flags: u16, code: Vec<u8>) -> ot_method {
         ot_method {
             klass_name: klass_name,
-            desc: desc,
+            name_desc: name_desc,
             code: code,
+            flags: flags,
         }
     }
 
@@ -141,9 +162,12 @@ impl ot_method {
         self.klass_name.clone()
     }
 
+    pub fn get_desc(&mut self) -> String {
+        self.name_desc.clone()
+    }
+
     pub fn get_flags(&self) -> u16 {
-        // FIXME DUMMY
-        0
+        self.flags
     }
 }
 
@@ -379,6 +403,7 @@ impl shared_klass_repo {
         ot_method::of(
             "DUMMY_METH".to_string(),
             "DUMMY_CLASS".to_string(),
+            0,
             Vec::new(),
         )
     }
@@ -388,6 +413,7 @@ impl shared_klass_repo {
         ot_method::of(
             "DUMMY_METH".to_string(),
             "DUMMY_CLASS".to_string(),
+            0,
             Vec::new(),
         )
     }

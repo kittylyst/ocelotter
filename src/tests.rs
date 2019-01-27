@@ -268,7 +268,6 @@ fn test_read_simple_class() {
 }
 
 #[test]
-#[ignore]
 fn test_invoke_simple() {
     let bytes = match file_to_bytes(Path::new("./resources/test/SampleInvoke.class")) {
         Ok(buf) => buf,
@@ -283,11 +282,19 @@ fn test_invoke_simple() {
     assert_eq!(4, k.get_methods().len());
 
     repo.add_klass(k.clone());
-    let meth = k.get_method_by_name_and_desc("foo:()I".to_string());
-    // "Flags should be public, static"
+    let meth = k.get_method_by_name_and_desc("bar:()I".to_string());
     assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
-    let res = exec_method2(meth);
-    // FIXME Match expression for testing result
+
+    let opt_ret = exec_method2(meth);
+    let ret = match opt_ret {
+        Some(value) => value,
+        None => panic!("Error executing bar:()I - no value returned"),
+    };
+    let ret2 = match ret {
+        runtime::JVMValue::Int { val: i } => i,
+        _ => panic!("Error executing bar:()I - non-int value returned"),
+    };
+    assert_eq!(7, ret2);
 
     // assertEquals("Return type should be int", JVMType.I, res.type);
     // assertEquals("Return value should be 9", 9, (int) res.value);

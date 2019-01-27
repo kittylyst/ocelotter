@@ -118,27 +118,30 @@ pub struct cp_method {
     name_idx: u16,
     desc_idx: u16,
     name: String,
+    desc: String,
     attrs: Vec<cp_attr>,
     code: Vec<u8>,
 }
 
 impl cp_method {
-    fn new(
+    fn of(
         klass_name: &String,
-        field_name: String,
-        field_flags: u16,
-        name: u16,
-        desc: u16,
+        name: String,
+        desc: String,
+        flags: u16,
+        name_idx: u16,
+        desc_idx: u16,
     ) -> cp_method {
         cp_method {
             class_name: klass_name.to_string(),
-            // FIXME
-            flags: field_flags,
-            name_idx: name,
-            desc_idx: desc,
-            name: field_name,
+            flags: flags,
+            name: name,
+            desc: desc,
             attrs: Vec::new(),
             code: Vec::new(),
+            // FIXME
+            name_idx: desc_idx,
+            desc_idx: desc_idx,
         }
     }
 
@@ -148,7 +151,9 @@ impl cp_method {
         let name = &self.name;
         let code = &self.code;
         let class_name = &self.class_name;
-        runtime::ot_method::of(name.to_string(), class_name.to_string(), code.to_vec())
+        let name_desc = name.to_string() + ":" + &self.desc.to_string();
+
+        runtime::ot_method::of(name_desc, class_name.to_string(), self.flags, code.to_vec())
     }
 }
 
@@ -287,7 +292,8 @@ impl oc_parser {
 
     fn parse_constant_pool(&mut self) -> () {
         self.current = 10;
-        println!("Pool size: {}", self.get_pool_size());
+        dbg!("Pool size:");
+        dbg!(self.get_pool_size());
         self.cp_items.resize(
             (self.poolItemCount as usize) + 1,
             cp_entry::integer { val: 0 },
@@ -295,11 +301,12 @@ impl oc_parser {
         let mut current_cp = 1;
         while current_cp < self.poolItemCount {
             let tag = self.clz_read[self.current];
-            println!("Seen: {} at {}", tag, current_cp);
+            dbg!(tag);
+            dbg!(current_cp);
             self.current += 1;
             let item = match tag {
                 UTF8 => {
-                    println!("Parsing a utf8 at {}", current_cp);
+                    dbg!("Parsing a utf8");
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
                     self.current += 2;
@@ -316,7 +323,7 @@ impl oc_parser {
                         Err(e) => panic!("{}", e),
                     }
                     .to_owned();
-                    println!("Parsed: {}", str_c);
+                    dbg!(str_c.clone());
                     cp_entry::utf8 { val: str_c }
                 }
                 INTEGER => {
@@ -574,11 +581,26 @@ impl oc_parser {
                     name_idx
                 ),
             };
+            let m_desc = match &self.cp_items[desc_idx as usize] {
+                cp_entry::utf8 { val: s } => s,
+                _ => panic!(
+                    "Desc index {} does not point at utf8 string in constant pool",
+                    desc_idx
+                ),
+            };
+
             // NOTE: have just thrashed about to get the borrow checker to shut up here... need to revisit
             let k_name = &self.klass_name().to_string();
-            let mut m = cp_method::new(&k_name, m_name.to_string(), mflags, name_idx, desc_idx);
+            let mut m = cp_method::of(
+                &k_name,
+                m_name.to_string(),
+                m_desc.to_string(),
+                mflags,
+                name_idx,
+                desc_idx,
+            );
             for aidx in 0..attr_count {
-                println!("Parsing method attribute {}", aidx);
+                dbg!(aidx);
                 let att = self.parse_method_attribute(&mut m);
                 m.set_attr(aidx, att.clone());
             }
@@ -599,7 +621,7 @@ impl oc_parser {
         // FIXME - is this actually a u32 (check spec)
         let attr_len = BigEndian::read_u32(buf);
         let end_index = self.current + attr_len as usize;
-        println!("Attr length: {}", attr_len);
+        dbg!(attr_len);
 
         let s = self.stringref_from_cp(name_idx);
         match s.as_str() {
