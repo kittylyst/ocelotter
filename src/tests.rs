@@ -1,6 +1,6 @@
 use super::*;
-use crate::klass_parser::ACC_PUBLIC;
-use crate::klass_parser::ACC_STATIC;
+use crate::runtime::ACC_PUBLIC;
+use crate::runtime::ACC_STATIC;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -282,20 +282,47 @@ fn test_invoke_simple() {
     assert_eq!(4, k.get_methods().len());
 
     repo.add_klass(k.clone());
-    let meth = k.get_method_by_name_and_desc("bar:()I".to_string());
-    assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-    let opt_ret = exec_method2(meth);
-    let ret = match opt_ret {
-        Some(value) => value,
-        None => panic!("Error executing bar:()I - no value returned"),
-    };
-    let ret2 = match ret {
-        runtime::JVMValue::Int { val: i } => i,
-        _ => panic!("Error executing bar:()I - non-int value returned"),
-    };
-    assert_eq!(7, ret2);
+    {
+        let meth = k.get_method_by_name_and_desc("bar:()I".to_string());
+        assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-    // assertEquals("Return type should be int", JVMType.I, res.type);
-    // assertEquals("Return value should be 9", 9, (int) res.value);
+        let opt_ret = exec_method2(meth);
+        let ret = match opt_ret {
+            Some(value) => value,
+            None => panic!("Error executing bar:()I - no value returned"),
+        };
+        let ret2 = match ret {
+            runtime::JVMValue::Int { val: i } => i,
+            _ => panic!("Error executing bar:()I - non-int value returned"),
+        };
+        assert_eq!(7, ret2);
+    }
+
+    // {
+    // // public static int foo();
+    // // Code:
+    // //    0: iconst_2
+    // //    1: istore_0
+    // //    2: iload_0
+    // //    3: invokestatic  #2                  // Method bar:()I
+    // //    6: iadd
+    // //    7: istore_0
+    // //    8: iload_0
+    // //    9: ireturn
+
+    //     let meth = k.get_method_by_name_and_desc("foo:()I".to_string());
+    //     assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+
+    //     let opt_ret = exec_method2(meth);
+    //     let ret = match opt_ret {
+    //         Some(value) => value,
+    //         None => panic!("Error executing foo:()I - no value returned"),
+    //     };
+    //     let ret2 = match ret {
+    //         runtime::JVMValue::Int { val: i } => i,
+    //         _ => panic!("Error executing foo:()I - non-int value returned"),
+    //     };
+    //     assert_eq!(7, ret2);
+    // }
 }
