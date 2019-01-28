@@ -1,7 +1,6 @@
 use super::*;
 use crate::runtime::*;
 use byteorder::{BigEndian, ByteOrder};
-use std::fmt;
 use std::io::Read;
 use std::str;
 
@@ -47,44 +46,6 @@ impl cp_entry {
     }
 }
 
-pub struct cp_field {
-    class_name: String,
-    flags: u16,
-    name_idx: u16,
-    desc_idx: u16,
-    name: String,
-    attrs: Vec<cp_attr>,
-    // private JVMType type;
-}
-
-impl cp_field {
-    fn new(
-        klass_name: &String,
-        field_name: String,
-        field_flags: u16,
-        name: u16,
-        desc: u16,
-    ) -> cp_field {
-        cp_field {
-            class_name: klass_name.to_string(),
-            // FIXME
-            flags: field_flags,
-            name_idx: name,
-            desc_idx: desc,
-            name: field_name,
-            attrs: Vec::new(),
-        }
-    }
-
-    fn set_attr(&self, _index: u16, _attr: cp_attr) -> () {}
-}
-
-impl fmt::Display for cp_field {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}.{}:{}", self.class_name, self.name, self.desc_idx)
-    }
-}
-
 pub struct oc_parser {
     clz_read: Vec<u8>,
     filename: String,
@@ -98,7 +59,7 @@ pub struct oc_parser {
     cp_index_super: u16,
     cp_items: Vec<cp_entry>,
     interfaces: Vec<u16>,
-    fields: Vec<cp_field>,
+    fields: Vec<ot_field>,
     methods: Vec<ot_method>,
     // private CPAttr[] attributes;
 }
@@ -426,8 +387,14 @@ impl oc_parser {
                 ),
             };
             // NOTE: have just thrashed about to get the borrow checker to shut up here... need to revisit
-            let k_name = &self.klass_name().to_string();
-            let f = cp_field::new(&k_name, f_name.to_string(), fFlags, name_idx, desc_idx);
+            let k_name = &self.klass_name();
+            let f = ot_field::of(
+                k_name.to_string(),
+                f_name.to_string(),
+                fFlags,
+                name_idx,
+                desc_idx,
+            );
             for aidx in 0..attr_count {
                 f.set_attr(aidx, self.parse_field_attribute(&f));
             }
@@ -435,7 +402,7 @@ impl oc_parser {
         }
     }
 
-    fn parse_field_attribute(&mut self, field: &cp_field) -> cp_attr {
+    fn parse_field_attribute(&mut self, field: &ot_field) -> cp_attr {
         let name_idx =
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         let b1 = self.clz_read[self.current + 2];

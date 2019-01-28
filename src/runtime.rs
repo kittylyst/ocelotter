@@ -233,9 +233,36 @@ impl fmt::Display for ot_method {
     }
 }
 
-pub struct ot_field {}
+pub struct ot_field {
+    class_name: String,
+    flags: u16,
+    name_idx: u16,
+    desc_idx: u16,
+    name: String,
+    attrs: Vec<cp_attr>,
+}
 
 impl ot_field {
+    pub fn of(
+        klass_name: String,
+        field_name: String,
+        field_flags: u16,
+        name: u16,
+        desc: u16,
+    ) -> ot_field {
+        ot_field {
+            class_name: klass_name.to_string(),
+            // FIXME
+            flags: field_flags,
+            name_idx: name,
+            desc_idx: desc,
+            name: field_name,
+            attrs: Vec::new(),
+        }
+    }
+
+    pub fn set_attr(&self, _index: u16, _attr: cp_attr) -> () {}
+
     pub fn get_name(&self) -> String {
         String::from("")
     }
@@ -248,6 +275,12 @@ impl ot_field {
             methods: Vec::new(),
             name_desc_lookup: HashMap::new(),
         };
+    }
+}
+
+impl fmt::Display for ot_field {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}.{}:{}", self.class_name, self.name, self.desc_idx)
     }
 }
 
@@ -455,9 +488,15 @@ impl shared_klass_repo {
         shared_klass_repo {}
     }
 
-    // FIXME: Indexes should be u16
     pub fn lookup_field(&self, _klass_name: &String, _idx: u16) -> ot_field {
-        ot_field {}
+        // FIXME DUMMY
+        ot_field::of(
+            "DUMMY_KLASS".to_string(),
+            "DUMMY_FIELD".to_string(),
+            0,
+            1,
+            2,
+        )
     }
 
     pub fn lookup_method_exact(&self, klass_name: &String, idx: u16) -> ot_method {
@@ -472,7 +511,6 @@ impl shared_klass_repo {
         )
     }
 
-    // FIXME: Indexes should be u16
     pub fn lookup_method_virtual(&self, _klass_name: &String, _idx: u16) -> ot_method {
         // FIXME DUMMY
         ot_method::of(
