@@ -159,21 +159,55 @@ impl ot_klass {
 }
 
 #[derive(Clone)]
+pub struct cp_attr {
+    name_idx: u16,
+}
+
+impl cp_attr {
+    pub fn of(name_idx: u16) -> cp_attr {
+        cp_attr { name_idx: name_idx }
+    }
+}
+
+#[derive(Clone)]
 pub struct ot_method {
     klass_name: String,
-    name_desc: String,
-    code: Vec<u8>,
     flags: u16,
+    name: String,
+    name_desc: String,
+    name_idx: u16,
+    desc_idx: u16,
+    code: Vec<u8>,
+    attrs: Vec<cp_attr>,
 }
 
 impl ot_method {
-    pub fn of(name_desc: String, klass_name: String, flags: u16, code: Vec<u8>) -> ot_method {
+    pub fn of(
+        klass_name: String,
+        name: String,
+        desc: String,
+        flags: u16,
+        name_idx: u16,
+        desc_idx: u16,
+    ) -> ot_method {
+        let name_and_desc = name.clone() + ":" + &desc.clone();
         ot_method {
-            klass_name: klass_name,
-            name_desc: name_desc,
-            code: code,
+            klass_name: klass_name.to_string(),
             flags: flags,
+            name: name.clone(),
+            name_desc: name_and_desc,
+            attrs: Vec::new(),
+            code: Vec::new(),
+            // FIXME
+            name_idx: desc_idx,
+            desc_idx: desc_idx,
         }
+    }
+
+    pub fn set_attr(&self, _index: u16, _attr: cp_attr) -> () {}
+
+    pub fn set_code(&mut self, code: Vec<u8>) -> () {
+        self.code = code;
     }
 
     pub fn get_code(&self) -> Vec<u8> {
@@ -190,6 +224,12 @@ impl ot_method {
 
     pub fn get_flags(&self) -> u16 {
         self.flags
+    }
+}
+
+impl fmt::Display for ot_method {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}.{}", self.klass_name, self.name_desc)
     }
 }
 
@@ -408,9 +448,7 @@ impl interp_local_vars {
     pub fn astore(&self, _idx: u8, _val: JVMValue) -> () {}
 }
 
-pub struct shared_klass_repo {
-
-}
+pub struct shared_klass_repo {}
 
 impl shared_klass_repo {
     pub fn new() -> shared_klass_repo {
@@ -423,24 +461,27 @@ impl shared_klass_repo {
     }
 
     pub fn lookup_method_exact(&self, klass_name: &String, idx: u16) -> ot_method {
-        
-
-        // FIXME
+        // FIXME DUMMY
         ot_method::of(
+            "DUMMY_KLASS".to_string(),
             "DUMMY_METH".to_string(),
-            "DUMMY_CLASS".to_string(),
+            "DUMMY_DESC".to_string(),
             0,
-            Vec::new(),
+            1,
+            2,
         )
     }
 
     // FIXME: Indexes should be u16
     pub fn lookup_method_virtual(&self, _klass_name: &String, _idx: u16) -> ot_method {
+        // FIXME DUMMY
         ot_method::of(
+            "DUMMY_KLASS".to_string(),
             "DUMMY_METH".to_string(),
-            "DUMMY_CLASS".to_string(),
+            "DUMMY_DESC".to_string(),
             0,
-            Vec::new(),
+            1,
+            2,
         )
     }
 

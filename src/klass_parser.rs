@@ -1,4 +1,5 @@
 use super::*;
+use crate::runtime::*;
 use byteorder::{BigEndian, ByteOrder};
 use std::fmt;
 use std::io::Read;
@@ -46,11 +47,6 @@ impl cp_entry {
     }
 }
 
-#[derive(Clone)]
-pub struct cp_attr {
-    name_idx: u16,
-}
-
 pub struct cp_field {
     class_name: String,
     flags: u16,
@@ -89,57 +85,6 @@ impl fmt::Display for cp_field {
     }
 }
 
-pub struct cp_method {
-    class_name: String,
-    flags: u16,
-    name_idx: u16,
-    desc_idx: u16,
-    name: String,
-    desc: String,
-    attrs: Vec<cp_attr>,
-    code: Vec<u8>,
-}
-
-impl cp_method {
-    fn of(
-        klass_name: &String,
-        name: String,
-        desc: String,
-        flags: u16,
-        name_idx: u16,
-        desc_idx: u16,
-    ) -> cp_method {
-        cp_method {
-            class_name: klass_name.to_string(),
-            flags: flags,
-            name: name,
-            desc: desc,
-            attrs: Vec::new(),
-            code: Vec::new(),
-            // FIXME
-            name_idx: desc_idx,
-            desc_idx: desc_idx,
-        }
-    }
-
-    fn set_attr(&self, _index: u16, _attr: cp_attr) -> () {}
-
-    fn as_ot(&self) -> runtime::ot_method {
-        let name = &self.name;
-        let code = &self.code;
-        let class_name = &self.class_name;
-        let name_desc = name.to_string() + ":" + &self.desc.to_string();
-
-        runtime::ot_method::of(name_desc, class_name.to_string(), self.flags, code.to_vec())
-    }
-}
-
-impl fmt::Display for cp_method {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}.{}:{}()", self.class_name, self.name, self.desc_idx)
-    }
-}
-
 pub struct oc_parser {
     clz_read: Vec<u8>,
     filename: String,
@@ -154,7 +99,7 @@ pub struct oc_parser {
     cp_items: Vec<cp_entry>,
     interfaces: Vec<u16>,
     fields: Vec<cp_field>,
-    methods: Vec<cp_method>,
+    methods: Vec<ot_method>,
     // private CPAttr[] attributes;
 }
 
@@ -178,16 +123,10 @@ impl oc_parser {
     }
 
     pub fn klass(&mut self) -> runtime::ot_klass {
-        let mut methods: Vec<runtime::ot_method> = Vec::new();
-
-        for cpm in &self.methods {
-            methods.push(cpm.as_ot());
-        }
-
         runtime::ot_klass::of(
             self.klass_name().to_string(),
             self.super_name().to_string(),
-            &methods,
+            &self.methods,
         )
     }
 
@@ -532,7 +471,7 @@ impl oc_parser {
                 self.current, end_index
             )
         }
-        cp_attr { name_idx: name_idx }
+        cp_attr::of(name_idx)
     }
 
     fn parse_methods(&mut self) -> () {
@@ -567,9 +506,9 @@ impl oc_parser {
             };
 
             // NOTE: have just thrashed about to get the borrow checker to shut up here... need to revisit
-            let k_name = &self.klass_name().to_string();
-            let mut m = cp_method::of(
-                &k_name,
+            let k_name = &self.klass_name();
+            let mut m = ot_method::of(
+                k_name.to_string(),
                 m_name.to_string(),
                 m_desc.to_string(),
                 mflags,
@@ -585,7 +524,7 @@ impl oc_parser {
         }
     }
 
-    fn parse_method_attribute(&mut self, method: &mut cp_method) -> cp_attr {
+    fn parse_method_attribute(&mut self, method: &mut ot_method) -> cp_attr {
         let name_idx =
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         let b1 = self.clz_read[self.current + 2];
@@ -623,7 +562,7 @@ impl oc_parser {
                 let mut chunk = self.clz_read[self.current..].take(code_len as u64);
                 chunk.read_to_end(&mut bytecode);
                 self.current += code_len as usize;
-                method.code = bytecode;
+                method.set_code(bytecode);
             }
             //    u2 exception_table_length;
             //    {   u2 start_pc;
@@ -645,7 +584,7 @@ impl oc_parser {
         //         self.current, end_index
         //     )
         // }
-        cp_attr { name_idx: name_idx }
+        cp_attr::of(name_idx)
     }
 
     //         int nameCPIdx = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
