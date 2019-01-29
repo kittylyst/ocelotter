@@ -5,20 +5,20 @@ use std::io::Read;
 use std::str;
 
 // CPType constants
-pub const UTF8: u8 = 1;
-pub const INTEGER: u8 = 3;
-pub const FLOAT: u8 = 4;
-pub const LONG: u8 = 5;
-pub const DOUBLE: u8 = 6;
-pub const CLASS: u8 = 7;
-pub const STRING: u8 = 8;
-pub const FIELDREF: u8 = 9;
-pub const METHODREF: u8 = 10;
-pub const INTERFACE_METHODREF: u8 = 11;
-pub const NAMEANDTYPE: u8 = 12;
-pub const METHODHANDLE: u8 = 15;
-pub const METHODTYPE: u8 = 16;
-pub const INVOKEDYNAMIC: u8 = 18;
+pub const CP_UTF8: u8 = 1;
+pub const CP_INTEGER: u8 = 3;
+pub const CP_FLOAT: u8 = 4;
+pub const CP_LONG: u8 = 5;
+pub const CP_DOUBLE: u8 = 6;
+pub const CP_CLASS: u8 = 7;
+pub const CP_STRING: u8 = 8;
+pub const CP_FIELDREF: u8 = 9;
+pub const CP_METHODREF: u8 = 10;
+pub const CP_INTERFACE_METHODREF: u8 = 11;
+pub const CP_NAMEANDTYPE: u8 = 12;
+pub const CP_METHODHANDLE: u8 = 15;
+pub const CP_METHODTYPE: u8 = 16;
+pub const CP_INVOKEDYNAMIC: u8 = 18;
 
 #[derive(Clone)]
 pub enum cp_entry {
@@ -38,9 +38,9 @@ pub enum cp_entry {
 impl cp_entry {
     pub fn separator(cp_type: u8) -> String {
         match cp_type {
-            FIELDREF => ".".to_string(),
-            METHODREF => ".".to_string(),
-            NAMEANDTYPE => ":".to_string(),
+            CP_FIELDREF => ".".to_string(),
+            CP_METHODREF => ".".to_string(),
+            CP_NAMEANDTYPE => ":".to_string(),
             _ => "".to_string(),
         }
     }
@@ -182,7 +182,7 @@ impl oc_parser {
             dbg!(current_cp);
             self.current += 1;
             let item = match tag {
-                UTF8 => {
+                CP_UTF8 => {
                     dbg!("Parsing a utf8");
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
@@ -203,7 +203,7 @@ impl oc_parser {
                     dbg!(str_c.clone());
                     cp_entry::utf8 { val: str_c }
                 }
-                INTEGER => {
+                CP_INTEGER => {
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
                     let b3 = self.clz_read[self.current + 2];
@@ -215,7 +215,7 @@ impl oc_parser {
                         val: BigEndian::read_i32(buf),
                     }
                 }
-                FLOAT => {
+                CP_FLOAT => {
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
                     let b3 = self.clz_read[self.current + 2];
@@ -228,7 +228,7 @@ impl oc_parser {
                     }
                 }
 
-                LONG => {
+                CP_LONG => {
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
                     let b3 = self.clz_read[self.current + 2];
@@ -247,7 +247,7 @@ impl oc_parser {
                     }
                 }
 
-                DOUBLE => {
+                CP_DOUBLE => {
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
                     let b3 = self.clz_read[self.current + 2];
@@ -265,7 +265,7 @@ impl oc_parser {
                         val: BigEndian::read_f64(buf),
                     }
                 }
-                CLASS => {
+                CP_CLASS => {
                     // println!("Parsing a class");
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
@@ -275,7 +275,7 @@ impl oc_parser {
                         idx: ((b1 as u16) << 8) + b2 as u16,
                     }
                 }
-                STRING => {
+                CP_STRING => {
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
                     self.current += 2;
@@ -284,7 +284,7 @@ impl oc_parser {
                         idx: ((b1 as u16) << 8) + b2 as u16,
                     }
                 }
-                FIELDREF => {
+                CP_FIELDREF => {
                     // println!("Parsing a fieldref");
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
@@ -297,7 +297,7 @@ impl oc_parser {
                         nt_idx: ((b3 as u16) << 8) + b4 as u16,
                     }
                 }
-                METHODREF => {
+                CP_METHODREF => {
                     // println!("Parsing a methodref");
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
@@ -310,7 +310,7 @@ impl oc_parser {
                         nt_idx: ((b3 as u16) << 8) + b4 as u16,
                     }
                 }
-                INTERFACE_METHODREF => {
+                CP_INTERFACE_METHODREF => {
                     // println!("Parsing an interface_methodref");
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
@@ -323,7 +323,7 @@ impl oc_parser {
                         nt_idx: ((b3 as u16) << 8) + b4 as u16,
                     }
                 }
-                NAMEANDTYPE => {
+                CP_NAMEANDTYPE => {
                     // println!("Parsing a name_and_type");
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];

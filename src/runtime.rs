@@ -24,79 +24,45 @@ pub const ACC_NATIVE: u16 = 0x0100; // (Method) Declared native; implemented in 
 pub const ACC_ABSTRACT_M: u16 = 0x0400; // (Method) Declared abstract; no implementation is provided.
 pub const ACC_STRICT: u16 = 0x0800; // (Method) Declared strictfp; floating-point mode is FP-strict.
 
-#[derive(Copy, Clone)]
-pub enum JVMValue {
-    Boolean { val: bool },
-    Byte { val: i8 },
-    Short { val: i16 },
-    Int { val: i32 },
-    Long { val: i64 },
-    Float { val: f32 },
-    Double { val: f64 },
-    Char { val: char },
-    ObjRef { val: JVMObj },
+// CPType constants
+pub const CP_UTF8: u8 = 1;
+pub const CP_INTEGER: u8 = 3;
+pub const CP_FLOAT: u8 = 4;
+pub const CP_LONG: u8 = 5;
+pub const CP_DOUBLE: u8 = 6;
+pub const CP_CLASS: u8 = 7;
+pub const CP_STRING: u8 = 8;
+pub const CP_FIELDREF: u8 = 9;
+pub const CP_METHODREF: u8 = 10;
+pub const CP_INTERFACE_METHODREF: u8 = 11;
+pub const CP_NAMEANDTYPE: u8 = 12;
+pub const CP_METHODHANDLE: u8 = 15;
+pub const CP_METHODTYPE: u8 = 16;
+pub const CP_INVOKEDYNAMIC: u8 = 18;
+
+#[derive(Clone)]
+pub enum cp_entry {
+    utf8 { val: String },
+    integer { val: i32 },
+    float { val: f32 },
+    long { val: i64 },
+    double { val: f64 },
+    class { idx: u16 },
+    string { idx: u16 },
+    fieldref { clz_idx: u16, nt_idx: u16 },
+    methodref { clz_idx: u16, nt_idx: u16 },
+    interface_methodref { clz_idx: u16, nt_idx: u16 },
+    name_and_type { name_idx: u16, type_idx: u16 },
 }
 
-impl JVMValue {
-    fn name(&self) -> char {
-        match *self {
-            JVMValue::Boolean { val: _ } => 'Z',
-            JVMValue::Byte { val: _ } => 'B',
-            JVMValue::Short { val: _ } => 'S',
-            JVMValue::Int { val: _ } => 'I',
-            JVMValue::Long { val: _ } => 'J',
-            JVMValue::Float { val: _ } => 'F',
-            JVMValue::Double { val: _ } => 'D',
-            JVMValue::Char { val: _ } => 'C',
-            JVMValue::ObjRef { val: _ } => 'A',
+impl cp_entry {
+    pub fn separator(cp_type: u8) -> String {
+        match cp_type {
+            CP_FIELDREF => ".".to_string(),
+            CP_METHODREF => ".".to_string(),
+            CP_NAMEANDTYPE => ":".to_string(),
+            _ => "".to_string(),
         }
-    }
-}
-
-impl fmt::Display for JVMValue {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            JVMValue::Boolean { val: v } => write!(f, "{}", v),
-            JVMValue::Byte { val: v } => write!(f, "{}", v),
-            JVMValue::Short { val: v } => write!(f, "{}", v),
-            JVMValue::Int { val: v } => write!(f, "{}", v),
-            JVMValue::Long { val: v } => write!(f, "{}", v),
-            JVMValue::Float { val: v } => write!(f, "{}", v),
-            JVMValue::Double { val: v } => write!(f, "{}", v),
-            JVMValue::Char { val: v } => write!(f, "{}", v),
-            JVMValue::ObjRef { val: v } => write!(f, "{}", v),
-        }
-    }
-}
-
-#[derive(Copy, Clone)]
-pub struct JVMObj {
-    mark: u64,
-    klassid: u32, // FIXME: This should become a pointer at some point
-}
-
-impl JVMObj {
-    pub fn put_field(&self, _f: ot_field, _val: JVMValue) -> () {}
-
-    pub fn get_null() -> JVMObj {
-        JVMObj {
-            mark: 0u64,
-            klassid: 0u32,
-        }
-    }
-
-    pub fn is_null(&self) -> bool {
-        if self.mark == 0u64 && self.klassid == 0u32 {
-            true
-        } else {
-            false
-        }
-    }
-}
-
-impl fmt::Display for JVMObj {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "MarK: {} ; Klass: {}", self.mark, self.klassid)
     }
 }
 
@@ -281,6 +247,82 @@ impl ot_field {
 impl fmt::Display for ot_field {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}.{}:{}", self.class_name, self.name, self.desc_idx)
+    }
+}
+
+#[derive(Copy, Clone)]
+pub enum JVMValue {
+    Boolean { val: bool },
+    Byte { val: i8 },
+    Short { val: i16 },
+    Int { val: i32 },
+    Long { val: i64 },
+    Float { val: f32 },
+    Double { val: f64 },
+    Char { val: char },
+    ObjRef { val: JVMObj },
+}
+
+impl JVMValue {
+    fn name(&self) -> char {
+        match *self {
+            JVMValue::Boolean { val: _ } => 'Z',
+            JVMValue::Byte { val: _ } => 'B',
+            JVMValue::Short { val: _ } => 'S',
+            JVMValue::Int { val: _ } => 'I',
+            JVMValue::Long { val: _ } => 'J',
+            JVMValue::Float { val: _ } => 'F',
+            JVMValue::Double { val: _ } => 'D',
+            JVMValue::Char { val: _ } => 'C',
+            JVMValue::ObjRef { val: _ } => 'A',
+        }
+    }
+}
+
+impl fmt::Display for JVMValue {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            JVMValue::Boolean { val: v } => write!(f, "{}", v),
+            JVMValue::Byte { val: v } => write!(f, "{}", v),
+            JVMValue::Short { val: v } => write!(f, "{}", v),
+            JVMValue::Int { val: v } => write!(f, "{}", v),
+            JVMValue::Long { val: v } => write!(f, "{}", v),
+            JVMValue::Float { val: v } => write!(f, "{}", v),
+            JVMValue::Double { val: v } => write!(f, "{}", v),
+            JVMValue::Char { val: v } => write!(f, "{}", v),
+            JVMValue::ObjRef { val: v } => write!(f, "{}", v),
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct JVMObj {
+    mark: u64,
+    klassid: u32, // FIXME: This should become a pointer at some point
+}
+
+impl JVMObj {
+    pub fn put_field(&self, _f: ot_field, _val: JVMValue) -> () {}
+
+    pub fn get_null() -> JVMObj {
+        JVMObj {
+            mark: 0u64,
+            klassid: 0u32,
+        }
+    }
+
+    pub fn is_null(&self) -> bool {
+        if self.mark == 0u64 && self.klassid == 0u32 {
+            true
+        } else {
+            false
+        }
+    }
+}
+
+impl fmt::Display for JVMObj {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "MarK: {} ; Klass: {}", self.mark, self.klassid)
     }
 }
 
