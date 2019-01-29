@@ -8,13 +8,7 @@ use std::path::Path;
 fn execute_method(buf: &Vec<u8>) -> runtime::jvm_value {
     let lvt = runtime::interp_local_vars {};
     let mut context = runtime::vm_context::of();
-    let opt_ret = exec_method(
-        &mut context,
-        "DUMMY".to_string(),
-        "DUMMY_DESC".to_string(),
-        &buf,
-        &lvt,
-    );
+    let opt_ret = exec_method(&mut context, "DUMMY".to_string(), &buf, &lvt);
     match opt_ret {
         Some(value) => value,
         None => runtime::jvm_value::ObjRef {

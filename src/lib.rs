@@ -10,29 +10,21 @@ pub fn exec_method2(
     meth: runtime::ot_method,
 ) -> Option<runtime::jvm_value> {
     let vars = runtime::interp_local_vars {};
-    exec_method(
-        context,
-        meth.get_klass_name(),
-        "DUMMY_DESC".to_string(),
-        &meth.get_code(),
-        &vars,
-    )
+    exec_method(context, meth.get_klass_name(), &meth.get_code(), &vars)
 }
 
 pub fn exec_method(
     context: &mut runtime::vm_context,
     klass_name: String,
-    _desc: String,
     instr: &Vec<u8>,
     lvt: &runtime::interp_local_vars,
 ) -> Option<runtime::jvm_value> {
     let mut current = 0;
     let mut eval = runtime::interp_eval_stack::new();
-    let repo = context.get_repo();
-    let current_klass = repo.lookup_klass(klass_name.clone());
 
-    dbg!(instr);
+    // dbg!(instr);
     loop {
+        let repo = context.get_repo().clone();
         let my_klass_name = klass_name.clone();
         let opt_ins = instr.get(current);
         let ins: u8 = match opt_ins {
@@ -267,22 +259,36 @@ pub fn exec_method(
             Opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
+                let current_klass = repo.lookup_klass(klass_name.clone()).clone();
                 dbg!(current_klass.clone());
-                let fq_name_desc = match current_klass.lookup_cp(cp_lookup) {
-                    runtime::cp_entry::methodref { clz_idx, nt_idx } => ".xxxx:()V", // FIXME
+                let (klz_idx, name_type_idx) = match current_klass.lookup_cp(cp_lookup) {
+                    runtime::cp_entry::methodref { clz_idx, nt_idx } => (clz_idx, nt_idx),
                     _ => panic!(
                         "Non-methodref found in {} at CP index {}",
                         current_klass.get_name(),
                         cp_lookup
                     ),
                 };
-                let (dispatch_klass_name, local_name_desc) =
-                    runtime::split_name_desc(fq_name_desc.to_string());
+                let klass_name_idx = match current_klass.lookup_cp(klz_idx) {
+                    runtime::cp_entry::class { idx: utf_idx } => utf_idx,
+                    _ => panic!(
+                        "Non-class found in {} at CP index {}",
+                        current_klass.get_name(),
+                        klz_idx
+                    ),
+                };
+                let dispatch_klass_name = match current_klass.lookup_cp(klass_name_idx) {
+                    runtime::cp_entry::utf8 { val: s } => s,
+                    _ => panic!(
+                        "Non-string found in {} at CP index {}",
+                        current_klass.get_name(),
+                        klass_name_idx
+                    ),
+                };
+                let fq_name_desc = "FIXME".to_string();
 
                 dispatch_invoke(
-                    context
-                        .get_repo()
-                        .lookup_method_exact(&dispatch_klass_name, local_name_desc),
+                    repo.lookup_method_exact(&dispatch_klass_name, fq_name_desc),
                     &eval,
                 );
             }
@@ -331,8 +337,8 @@ pub fn exec_method(
             Opcode::NEW => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                // FIXME Should lookup CP_CLASS like this: current_klass.lookup_cp(cp_lookup)
-                // Then match ...
+                let current_klass = repo.lookup_klass(klass_name.clone()).clone();
+
                 let klass_name = match current_klass.lookup_cp(cp_lookup) {
                     runtime::cp_entry::class { idx } => "DUMMY_CLASS".to_string(), // FIXME
                     _ => panic!(
@@ -342,9 +348,12 @@ pub fn exec_method(
                     ),
                 };
 
-                let klass: runtime::ot_klass = context.get_repo().lookup_klass(klass_name);
+                let klass = repo.lookup_klass(klass_name);
+                // let heap = context.get_heap();
                 eval.push(runtime::jvm_value::ObjRef {
-                    val: context.get_heap().allocate_obj(klass),
+                    // FIXME
+                    // val: runtime::ot_obj::get_null(),
+                    val: context.allocate_obj(klass),
                 });
             }
             Opcode::NOP => {
@@ -366,9 +375,7 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let putf: runtime::ot_field = context
-                    .get_repo()
-                    .lookup_field(my_klass_name.clone(), cp_lookup);
+                let putf: runtime::ot_field = repo.lookup_field(my_klass_name.clone(), cp_lookup);
                 let val: runtime::jvm_value = eval.pop();
 
                 let recvp: runtime::jvm_value = eval.pop();
@@ -385,9 +392,7 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let puts = context
-                    .get_repo()
-                    .lookup_field(my_klass_name.clone(), cp_lookup);
+                let puts = repo.lookup_field(my_klass_name.clone(), cp_lookup);
                 let f_klass = puts.get_klass();
                 f_klass.set_static_field(puts.get_name(), eval.pop());
             }

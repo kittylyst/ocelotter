@@ -139,6 +139,7 @@ impl ot_klass {
         self.methods.clone()
     }
 
+    // NOTE: This is fully-qualified
     pub fn get_method_by_name_and_desc(&self, name_desc: String) -> ot_method {
         dbg!(&self.name_desc_lookup);
         let opt_idx = self.name_desc_lookup.get(&name_desc);
@@ -155,7 +156,7 @@ impl ot_klass {
 
     pub fn lookup_cp(&self, cp_idx: u16) -> cp_entry {
         let idx = cp_idx as usize;
-        dbg!(&self.cp_entries);
+        // dbg!(&self.cp_entries);
         match self.cp_entries.get(idx).clone() {
             Some(val) => val.clone(),
             None => panic!(
@@ -163,6 +164,41 @@ impl ot_klass {
                 self.name, cp_idx
             ),
         }
+    }
+
+    pub fn cp_as_string(&self, i: u16) -> String {
+        match self.lookup_cp(i) {
+            cp_entry::utf8 { val: s } => s,
+            cp_entry::methodref { clz_idx, nt_idx } => "clz.n_t".to_string(),
+            _ => panic!("Non-methodref found in {} at CP index {}", self.name, i),
+        }
+
+        // switch (top.getType()) {
+        //     case UTF8:
+        //         return top.getStr();
+        //     case INTEGER:
+        //         return "" + top.getNum().intValue();
+        //     case FLOAT:
+        //         return "" + top.getNum().floatValue();
+        //     case LONG:
+        //         return "" + top.getNum().longValue();
+        //     case DOUBLE:
+        //         return "" + top.getNum().doubleValue();
+        //     case CLASS:
+        //     case STRING:
+        //         other = items[top.getRef().getOther() - 1];
+        //         // Verification - could check type is STRING here
+        //         return other.getStr();
+        //     case FIELDREF:
+        //     case METHODREF:
+        //     case INTERFACE_METHODREF:
+        //     case NAMEANDTYPE:
+        //         left = top.getRef().getOther();
+        //         right = top.getRef2().getOther();
+        //         return resolveAsString(left) + top.getType().separator() + resolveAsString(right);
+        //     default:
+        //         throw new RuntimeException("Reached impossible Constant Pool Tag: " + top);
+        // }
     }
 }
 
@@ -363,28 +399,6 @@ impl ot_obj {
 impl fmt::Display for ot_obj {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "MarK: {} ; Klass: {}", self.mark, self.klassid)
-    }
-}
-
-pub struct vm_context {
-    heap: shared_simple_heap,
-    repo: shared_klass_repo,
-}
-
-impl vm_context {
-    pub fn of() -> vm_context {
-        vm_context {
-            heap: shared_simple_heap {},
-            repo: shared_klass_repo::new(),
-        }
-    }
-
-    pub fn get_repo(&mut self) -> &mut shared_klass_repo {
-        &mut self.repo
-    }
-
-    pub fn get_heap(&mut self) -> &mut shared_simple_heap {
-        &mut self.heap
     }
 }
 
@@ -589,6 +603,33 @@ impl interp_local_vars {
 
 //////////// SHARED RUNTIME STRUCTURES
 
+pub struct vm_context {
+    heap: shared_simple_heap,
+    repo: shared_klass_repo,
+}
+
+impl vm_context {
+    pub fn of() -> vm_context {
+        vm_context {
+            heap: shared_simple_heap {},
+            repo: shared_klass_repo::new(),
+        }
+    }
+
+    pub fn get_repo(&mut self) -> &mut shared_klass_repo {
+        &mut self.repo
+    }
+
+    pub fn get_heap(&mut self) -> &mut shared_simple_heap {
+        &mut self.heap
+    }
+
+    pub fn allocate_obj(&mut self, klass: &ot_klass) -> ot_obj {
+        self.heap.allocate_obj(klass)
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct shared_klass_repo {
     klass_lookup: HashMap<String, ot_klass>,
 }
@@ -611,16 +652,21 @@ impl shared_klass_repo {
         )
     }
 
-    pub fn lookup_method_exact(&self, klass_name: &String, method_name_desc: String) -> ot_method {
-        // FIXME DUMMY
-        ot_method::of(
-            "DUMMY_KLASS".to_string(),
-            "DUMMY_METH".to_string(),
-            "DUMMY_DESC".to_string(),
-            0,
-            1,
-            2,
-        )
+    pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> ot_method {
+        match self.klass_lookup.get(klass_name) {
+            Some(k) => k.get_method_by_name_and_desc(fq_name_desc),
+            None => panic!("No klass called {} found in repo", klass_name),
+        }
+
+        // // FIXME DUMMY
+        // ot_method::of(
+        //     "DUMMY_KLASS".to_string(),
+        //     "DUMMY_METH".to_string(),
+        //     "DUMMY_DESC".to_string(),
+        //     0,
+        //     1,
+        //     2,
+        // )
     }
 
     pub fn lookup_method_virtual(&self, _klass_name: &String, _idx: u16) -> ot_method {
@@ -636,16 +682,21 @@ impl shared_klass_repo {
     }
 
     // FIXME SIG
-    pub fn lookup_klass(&self, klass_name: String) -> ot_klass {
-        // FIXME DUMMY
-        ot_klass {
-            name: klass_name.to_string(),
-            super_name: "DUMMY_SUPER".to_string(),
-            flags: 0,
-            cp_entries: Vec::new(),
-            methods: Vec::new(),
-            name_desc_lookup: HashMap::new(),
+    pub fn lookup_klass(&self, klass_name: String) -> &ot_klass {
+        match self.klass_lookup.get(&klass_name) {
+            Some(value) => value,
+            None => panic!("Error looking up {} - no value returned", klass_name),
         }
+
+        // // FIXME DUMMY
+        // ot_klass {
+        //     name: klass_name.to_string(),
+        //     super_name: "DUMMY_SUPER".to_string(),
+        //     flags: 0,
+        //     cp_entries: Vec::new(),
+        //     methods: Vec::new(),
+        //     name_desc_lookup: HashMap::new(),
+        // }
     }
 
     pub fn add_klass(&mut self, k: ot_klass) -> () {
@@ -656,7 +707,7 @@ impl shared_klass_repo {
 pub struct shared_simple_heap {}
 
 impl shared_simple_heap {
-    pub fn allocate_obj(&self, _klass: ot_klass) -> ot_obj {
+    pub fn allocate_obj(&self, klass: &ot_klass) -> ot_obj {
         // FIXME
         ot_obj::get_null()
     }
