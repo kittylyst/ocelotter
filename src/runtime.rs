@@ -69,13 +69,13 @@ impl cp_entry {
 }
 
 #[derive(Clone, Debug)]
-pub struct cp_attr {
+pub struct CpAttr {
     name_idx: u16,
 }
 
-impl cp_attr {
-    pub fn of(name_idx: u16) -> cp_attr {
-        cp_attr { name_idx: name_idx }
+impl CpAttr {
+    pub fn of(name_idx: u16) -> CpAttr {
+        CpAttr { name_idx: name_idx }
     }
 }
 
@@ -86,23 +86,23 @@ pub fn split_name_desc(name_desc: String) -> (String, String) {
 //////////// RUNTIME KLASS AND RELATED HANDLING
 
 #[derive(Clone, Debug)]
-pub struct ot_klass {
+pub struct OtKlass {
     name: String,
     super_name: String,
     flags: u16,
     cp_entries: Vec<cp_entry>,
-    methods: Vec<ot_method>,
+    methods: Vec<OtMethod>,
     name_desc_lookup: HashMap<String, usize>,
 }
 
-impl ot_klass {
+impl OtKlass {
     pub fn of(
         klass_name: String,
         super_klass: String,
         flags: u16,
         cp_entries: &Vec<cp_entry>,
-        methods: &Vec<ot_method>,
-    ) -> ot_klass {
+        methods: &Vec<OtMethod>,
+    ) -> OtKlass {
         let mut lookup = HashMap::new();
         let mut i = 0;
         while i < methods.len() {
@@ -114,7 +114,7 @@ impl ot_klass {
             i = i + 1;
         }
         dbg!(lookup.clone());
-        ot_klass {
+        OtKlass {
             name: klass_name,
             super_name: super_klass,
             flags: flags,
@@ -124,8 +124,8 @@ impl ot_klass {
         }
     }
 
-    // FIXME: Shouldn't this be ot_field for consistency
-    pub fn set_static_field(&self, _f: String, _vals: jvm_value) -> () {}
+    // FIXME: Shouldn't this be OtField for consistency
+    pub fn set_static_field(&self, _f: String, _vals: JvmValue) -> () {}
 
     pub fn get_name(&self) -> String {
         self.name.to_owned()
@@ -135,12 +135,12 @@ impl ot_klass {
         self.super_name.to_owned()
     }
 
-    pub fn get_methods(&self) -> Vec<ot_method> {
+    pub fn get_methods(&self) -> Vec<OtMethod> {
         self.methods.clone()
     }
 
     // NOTE: This is fully-qualified
-    pub fn get_method_by_name_and_desc(&self, name_desc: String) -> ot_method {
+    pub fn get_method_by_name_and_desc(&self, name_desc: String) -> OtMethod {
         dbg!(&self.name_desc_lookup);
         let opt_idx = self.name_desc_lookup.get(&name_desc);
         let idx: usize = match opt_idx {
@@ -186,7 +186,7 @@ impl ot_klass {
 }
 
 #[derive(Clone, Debug)]
-pub struct ot_method {
+pub struct OtMethod {
     klass_name: String,
     flags: u16,
     name: String,
@@ -194,10 +194,10 @@ pub struct ot_method {
     name_idx: u16,
     desc_idx: u16,
     code: Vec<u8>,
-    attrs: Vec<cp_attr>,
+    attrs: Vec<CpAttr>,
 }
 
-impl ot_method {
+impl OtMethod {
     pub fn of(
         klass_name: String,
         name: String,
@@ -205,9 +205,9 @@ impl ot_method {
         flags: u16,
         name_idx: u16,
         desc_idx: u16,
-    ) -> ot_method {
+    ) -> OtMethod {
         let name_and_desc = name.clone() + ":" + &desc.clone();
-        ot_method {
+        OtMethod {
             klass_name: klass_name.to_string(),
             flags: flags,
             name: name.clone(),
@@ -220,7 +220,7 @@ impl ot_method {
         }
     }
 
-    pub fn set_attr(&self, _index: u16, _attr: cp_attr) -> () {}
+    pub fn set_attr(&self, _index: u16, _attr: CpAttr) -> () {}
 
     pub fn set_code(&mut self, code: Vec<u8>) -> () {
         self.code = code;
@@ -247,31 +247,31 @@ impl ot_method {
     }
 }
 
-impl fmt::Display for ot_method {
+impl fmt::Display for OtMethod {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}.{}", self.klass_name, self.name_desc)
     }
 }
 
 #[derive(Debug)]
-pub struct ot_field {
+pub struct OtField {
     class_name: String,
     flags: u16,
     name_idx: u16,
     desc_idx: u16,
     name: String,
-    attrs: Vec<cp_attr>,
+    attrs: Vec<CpAttr>,
 }
 
-impl ot_field {
+impl OtField {
     pub fn of(
         klass_name: String,
         field_name: String,
         field_flags: u16,
         name: u16,
         desc: u16,
-    ) -> ot_field {
-        ot_field {
+    ) -> OtField {
+        OtField {
             class_name: klass_name.to_string(),
             // FIXME
             flags: field_flags,
@@ -282,15 +282,15 @@ impl ot_field {
         }
     }
 
-    pub fn set_attr(&self, _index: u16, _attr: cp_attr) -> () {}
+    pub fn set_attr(&self, _index: u16, _attr: CpAttr) -> () {}
 
     pub fn get_name(&self) -> String {
         String::from("")
     }
 
-    pub fn get_klass(&self) -> ot_klass {
+    pub fn get_klass(&self) -> OtKlass {
         // FIXME DUMMY
-        return ot_klass {
+        return OtKlass {
             name: "DUMMY_CLASS".to_string(),
             super_name: "DUMMY_SUPER0".to_string(),
             flags: 0,
@@ -301,7 +301,7 @@ impl ot_field {
     }
 }
 
-impl fmt::Display for ot_field {
+impl fmt::Display for OtField {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}.{}:{}", self.class_name, self.name, self.desc_idx)
     }
@@ -310,7 +310,7 @@ impl fmt::Display for ot_field {
 //////////// RUNTIME VALUES
 
 #[derive(Copy, Clone)]
-pub enum jvm_value {
+pub enum JvmValue {
     Boolean { val: bool },
     Byte { val: i8 },
     Short { val: i16 },
@@ -319,52 +319,52 @@ pub enum jvm_value {
     Float { val: f32 },
     Double { val: f64 },
     Char { val: char },
-    ObjRef { val: ot_obj },
+    ObjRef { val: OtObj },
 }
 
-impl jvm_value {
+impl JvmValue {
     fn name(&self) -> char {
         match *self {
-            jvm_value::Boolean { val: _ } => 'Z',
-            jvm_value::Byte { val: _ } => 'B',
-            jvm_value::Short { val: _ } => 'S',
-            jvm_value::Int { val: _ } => 'I',
-            jvm_value::Long { val: _ } => 'J',
-            jvm_value::Float { val: _ } => 'F',
-            jvm_value::Double { val: _ } => 'D',
-            jvm_value::Char { val: _ } => 'C',
-            jvm_value::ObjRef { val: _ } => 'A',
+            JvmValue::Boolean { val: _ } => 'Z',
+            JvmValue::Byte { val: _ } => 'B',
+            JvmValue::Short { val: _ } => 'S',
+            JvmValue::Int { val: _ } => 'I',
+            JvmValue::Long { val: _ } => 'J',
+            JvmValue::Float { val: _ } => 'F',
+            JvmValue::Double { val: _ } => 'D',
+            JvmValue::Char { val: _ } => 'C',
+            JvmValue::ObjRef { val: _ } => 'A',
         }
     }
 }
 
-impl fmt::Display for jvm_value {
+impl fmt::Display for JvmValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            jvm_value::Boolean { val: v } => write!(f, "{}", v),
-            jvm_value::Byte { val: v } => write!(f, "{}", v),
-            jvm_value::Short { val: v } => write!(f, "{}", v),
-            jvm_value::Int { val: v } => write!(f, "{}", v),
-            jvm_value::Long { val: v } => write!(f, "{}", v),
-            jvm_value::Float { val: v } => write!(f, "{}", v),
-            jvm_value::Double { val: v } => write!(f, "{}", v),
-            jvm_value::Char { val: v } => write!(f, "{}", v),
-            jvm_value::ObjRef { val: v } => write!(f, "{}", v),
+            JvmValue::Boolean { val: v } => write!(f, "{}", v),
+            JvmValue::Byte { val: v } => write!(f, "{}", v),
+            JvmValue::Short { val: v } => write!(f, "{}", v),
+            JvmValue::Int { val: v } => write!(f, "{}", v),
+            JvmValue::Long { val: v } => write!(f, "{}", v),
+            JvmValue::Float { val: v } => write!(f, "{}", v),
+            JvmValue::Double { val: v } => write!(f, "{}", v),
+            JvmValue::Char { val: v } => write!(f, "{}", v),
+            JvmValue::ObjRef { val: v } => write!(f, "{}", v),
         }
     }
 }
 
 #[derive(Copy, Clone)]
-pub struct ot_obj {
+pub struct OtObj {
     mark: u64,
     klassid: u32, // FIXME: This should become a pointer at some point
 }
 
-impl ot_obj {
-    pub fn put_field(&self, _f: ot_field, _val: jvm_value) -> () {}
+impl OtObj {
+    pub fn put_field(&self, _f: OtField, _val: JvmValue) -> () {}
 
-    pub fn get_null() -> ot_obj {
-        ot_obj {
+    pub fn get_null() -> OtObj {
+        OtObj {
             mark: 0u64,
             klassid: 0u32,
         }
@@ -379,7 +379,7 @@ impl ot_obj {
     }
 }
 
-impl fmt::Display for ot_obj {
+impl fmt::Display for OtObj {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "MarK: {} ; Klass: {}", self.mark, self.klassid)
     }
@@ -387,21 +387,21 @@ impl fmt::Display for ot_obj {
 
 //////////// RUNTIME STACKS AND LOCAL VARS
 
-pub struct interp_eval_stack {
-    stack: Vec<jvm_value>,
+pub struct InterpEvalStack {
+    stack: Vec<JvmValue>,
 }
 
-impl interp_eval_stack {
-    pub fn of() -> interp_eval_stack {
-        interp_eval_stack { stack: Vec::new() }
+impl InterpEvalStack {
+    pub fn of() -> InterpEvalStack {
+        InterpEvalStack { stack: Vec::new() }
     }
 
-    pub fn push(&mut self, val: jvm_value) -> () {
+    pub fn push(&mut self, val: JvmValue) -> () {
         let s = &mut self.stack;
         s.push(val);
     }
 
-    pub fn pop(&mut self) -> jvm_value {
+    pub fn pop(&mut self) -> JvmValue {
         let s = &mut self.stack;
         match s.pop() {
             Some(value) => value,
@@ -410,135 +410,135 @@ impl interp_eval_stack {
     }
 
     pub fn aconst_null(&mut self) -> () {
-        self.push(jvm_value::ObjRef {
-            val: ot_obj::get_null(),
+        self.push(JvmValue::ObjRef {
+            val: OtObj::get_null(),
         });
     }
 
     pub fn iconst(&mut self, v: i32) -> () {
-        self.push(jvm_value::Int { val: v });
+        self.push(JvmValue::Int { val: v });
     }
 
     pub fn iadd(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            jvm_value::Int { val: i } => i,
+            JvmValue::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
-            jvm_value::Int { val: i } => i,
+            JvmValue::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
 
-        self.push(jvm_value::Int { val: i1 + i2 });
+        self.push(JvmValue::Int { val: i1 + i2 });
     }
 
     pub fn isub(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            jvm_value::Int { val: i } => i,
+            JvmValue::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
-            jvm_value::Int { val: i } => i,
+            JvmValue::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
 
-        self.push(jvm_value::Int { val: i1 - i2 });
+        self.push(JvmValue::Int { val: i1 - i2 });
     }
     pub fn imul(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            jvm_value::Int { val: i } => i,
+            JvmValue::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
-            jvm_value::Int { val: i } => i,
+            JvmValue::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
 
-        self.push(jvm_value::Int { val: i1 * i2 });
+        self.push(JvmValue::Int { val: i1 * i2 });
     }
 
     pub fn irem(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            jvm_value::Int { val: i } => i,
+            JvmValue::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
-            jvm_value::Int { val: i } => i,
+            JvmValue::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
 
-        self.push(jvm_value::Int { val: i2 % i1 });
+        self.push(JvmValue::Int { val: i2 % i1 });
     }
     pub fn ixor(&self) -> () {}
     pub fn idiv(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            jvm_value::Int { val: i } => i,
+            JvmValue::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
-            jvm_value::Int { val: i } => i,
+            JvmValue::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
 
-        self.push(jvm_value::Int { val: i2 / i1 });
+        self.push(JvmValue::Int { val: i2 / i1 });
     }
     pub fn iand(&self) -> () {}
     pub fn ineg(&mut self) -> () {
         let i1 = match self.pop() {
-            jvm_value::Int { val: i } => i,
+            JvmValue::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
-        self.push(jvm_value::Int { val: -i1 });
+        self.push(JvmValue::Int { val: -i1 });
     }
     pub fn ior(&self) -> () {}
 
     pub fn dadd(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            jvm_value::Double { val: i } => i,
+            JvmValue::Double { val: i } => i,
             _ => panic!("Unexpected, non-double value encountered"),
         };
         let i2 = match self.pop() {
-            jvm_value::Double { val: i } => i,
+            JvmValue::Double { val: i } => i,
             _ => panic!("Unexpected, non-double value encountered"),
         };
 
-        self.push(jvm_value::Double { val: i1 + i2 });
+        self.push(JvmValue::Double { val: i1 + i2 });
     }
     pub fn dsub(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            jvm_value::Double { val: i } => i,
+            JvmValue::Double { val: i } => i,
             _ => panic!("Unexpected, non-double value encountered"),
         };
         let i2 = match self.pop() {
-            jvm_value::Double { val: i } => i,
+            JvmValue::Double { val: i } => i,
             _ => panic!("Unexpected, non-double value encountered"),
         };
 
-        self.push(jvm_value::Double { val: i1 - i2 });
+        self.push(JvmValue::Double { val: i1 - i2 });
     }
     pub fn dmul(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            jvm_value::Double { val: i } => i,
+            JvmValue::Double { val: i } => i,
             _ => panic!("Unexpected, non-double value encountered"),
         };
         let i2 = match self.pop() {
-            jvm_value::Double { val: i } => i,
+            JvmValue::Double { val: i } => i,
             _ => panic!("Unexpected, non-double value encountered"),
         };
 
-        self.push(jvm_value::Double { val: i1 * i2 });
+        self.push(JvmValue::Double { val: i1 * i2 });
     }
 
     pub fn dconst(&mut self, v: f64) -> () {
-        self.push(jvm_value::Double { val: v });
+        self.push(JvmValue::Double { val: v });
     }
 
     pub fn i2d(&self) -> () {}
@@ -556,29 +556,29 @@ impl interp_eval_stack {
     }
 }
 
-pub struct interp_local_vars {
-    lvt: [jvm_value; 256],
+pub struct InterpLocalVars {
+    lvt: [JvmValue; 256],
 }
 
-impl interp_local_vars {
-    pub fn of() -> interp_local_vars {
-        interp_local_vars {
-            lvt: [jvm_value::Int { val: 0 }; 256],
+impl InterpLocalVars {
+    pub fn of() -> InterpLocalVars {
+        InterpLocalVars {
+            lvt: [JvmValue::Int { val: 0 }; 256],
         }
     }
 
-    pub fn load(&self, idx: u8) -> jvm_value {
+    pub fn load(&self, idx: u8) -> JvmValue {
         self.lvt[idx as usize]
     }
 
-    pub fn store(&mut self, idx: u8, val: jvm_value) -> () {
+    pub fn store(&mut self, idx: u8, val: JvmValue) -> () {
         self.lvt[idx as usize] = val
     }
 
     pub fn iinc(&mut self, idx: u8, incr: u8) -> () {
         match self.lvt[idx as usize] {
-            jvm_value::Int { val: v } => {
-                self.lvt[idx as usize] = jvm_value::Int { val: v + 1 };
+            JvmValue::Int { val: v } => {
+                self.lvt[idx as usize] = JvmValue::Int { val: v + 1 };
             }
             _ => panic!("Non-integer value encountered in IINC of local var {}", idx),
         }
@@ -587,47 +587,47 @@ impl interp_local_vars {
 
 //////////// SHARED RUNTIME STRUCTURES
 
-pub struct vm_context {
-    heap: shared_simple_heap,
-    repo: shared_klass_repo,
+pub struct VmContext {
+    heap: SharedSimpleHeap,
+    repo: SharedKlassRepo,
 }
 
-impl vm_context {
-    pub fn of() -> vm_context {
-        vm_context {
-            heap: shared_simple_heap {},
-            repo: shared_klass_repo::new(),
+impl VmContext {
+    pub fn of() -> VmContext {
+        VmContext {
+            heap: SharedSimpleHeap {},
+            repo: SharedKlassRepo::new(),
         }
     }
 
-    pub fn get_repo(&mut self) -> &mut shared_klass_repo {
+    pub fn get_repo(&mut self) -> &mut SharedKlassRepo {
         &mut self.repo
     }
 
-    pub fn get_heap(&mut self) -> &mut shared_simple_heap {
+    pub fn get_heap(&mut self) -> &mut SharedSimpleHeap {
         &mut self.heap
     }
 
-    pub fn allocate_obj(&mut self, klass: &ot_klass) -> ot_obj {
+    pub fn allocate_obj(&mut self, klass: &OtKlass) -> OtObj {
         self.heap.allocate_obj(klass)
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct shared_klass_repo {
-    klass_lookup: HashMap<String, ot_klass>,
+pub struct SharedKlassRepo {
+    klass_lookup: HashMap<String, OtKlass>,
 }
 
-impl shared_klass_repo {
-    pub fn new() -> shared_klass_repo {
-        shared_klass_repo {
+impl SharedKlassRepo {
+    pub fn new() -> SharedKlassRepo {
+        SharedKlassRepo {
             klass_lookup: HashMap::new(),
         }
     }
 
-    pub fn lookup_field(&self, _klass_name: String, _idx: u16) -> ot_field {
+    pub fn lookup_field(&self, _klass_name: String, _idx: u16) -> OtField {
         // FIXME DUMMY
-        ot_field::of(
+        OtField::of(
             "DUMMY_KLASS".to_string(),
             "DUMMY_FIELD".to_string(),
             0,
@@ -636,16 +636,16 @@ impl shared_klass_repo {
         )
     }
 
-    pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> ot_method {
+    pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {
         match self.klass_lookup.get(klass_name) {
             Some(k) => k.get_method_by_name_and_desc(fq_name_desc),
             None => panic!("No klass called {} found in repo", klass_name),
         }
     }
 
-    pub fn lookup_method_virtual(&self, _klass_name: &String, _idx: u16) -> ot_method {
+    pub fn lookup_method_virtual(&self, _klass_name: &String, _idx: u16) -> OtMethod {
         // FIXME DUMMY
-        ot_method::of(
+        OtMethod::of(
             "DUMMY_KLASS".to_string(),
             "DUMMY_METH".to_string(),
             "DUMMY_DESC".to_string(),
@@ -656,14 +656,14 @@ impl shared_klass_repo {
     }
 
     // FIXME SIG
-    pub fn lookup_klass(&self, klass_name: String) -> &ot_klass {
+    pub fn lookup_klass(&self, klass_name: String) -> &OtKlass {
         match self.klass_lookup.get(&klass_name) {
             Some(value) => value,
             None => panic!("Error looking up {} - no value returned", klass_name),
         }
 
         // // FIXME DUMMY
-        // ot_klass {
+        // OtKlass {
         //     name: klass_name.to_string(),
         //     super_name: "DUMMY_SUPER".to_string(),
         //     flags: 0,
@@ -673,16 +673,16 @@ impl shared_klass_repo {
         // }
     }
 
-    pub fn add_klass(&mut self, k: ot_klass) -> () {
+    pub fn add_klass(&mut self, k: OtKlass) -> () {
         self.klass_lookup.insert(k.get_name().clone(), k.clone());
     }
 }
 
-pub struct shared_simple_heap {}
+pub struct SharedSimpleHeap {}
 
-impl shared_simple_heap {
-    pub fn allocate_obj(&self, klass: &ot_klass) -> ot_obj {
+impl SharedSimpleHeap {
+    pub fn allocate_obj(&self, klass: &OtKlass) -> OtObj {
         // FIXME
-        ot_obj::get_null()
+        OtObj::get_null()
     }
 }

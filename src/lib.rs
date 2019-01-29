@@ -6,21 +6,21 @@ use opcode::*;
 // use runtime::*;
 
 pub fn exec_method2(
-    context: &mut runtime::vm_context,
-    meth: runtime::ot_method,
-) -> Option<runtime::jvm_value> {
-    let mut vars = runtime::interp_local_vars::of();
+    context: &mut runtime::VmContext,
+    meth: runtime::OtMethod,
+) -> Option<runtime::JvmValue> {
+    let mut vars = runtime::InterpLocalVars::of();
     exec_method(context, meth.get_klass_name(), &meth.get_code(), &mut vars)
 }
 
 pub fn exec_method(
-    context: &mut runtime::vm_context,
+    context: &mut runtime::VmContext,
     klass_name: String,
     instr: &Vec<u8>,
-    lvt: &mut runtime::interp_local_vars,
-) -> Option<runtime::jvm_value> {
+    lvt: &mut runtime::InterpLocalVars,
+) -> Option<runtime::JvmValue> {
     let mut current = 0;
-    let mut eval = runtime::interp_eval_stack::of();
+    let mut eval = runtime::InterpEvalStack::of();
 
     // dbg!(instr);
     loop {
@@ -97,16 +97,16 @@ pub fn exec_method(
 
             // GETFIELD => {
             //     let cp_lookup = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     runtime::ot_field field = context.get_repo().lookupField(klass_name, (short) cp_lookup);
-            //     runtime::jvm_value receiver = eval.pop();
+            //     runtime::OtField field = context.get_repo().lookupField(klass_name, (short) cp_lookup);
+            //     runtime::JvmValue receiver = eval.pop();
             //     // VERIFY: Should check to make sure receiver is an Opcode::A
-            //     runtime::ot_obj obj = heap.findObject(receiver.value);
+            //     runtime::OtObj obj = heap.findObject(receiver.value);
             //     eval.push(obj.getField(field));
             // },
             // GETSTATIC => {
             //     let cp_lookup = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     runtime::ot_field f = context.get_repo().lookupField(klass_name, (short) cp_lookup);
-            //     runtime::ot_klass fgKlass = f.getKlass();
+            //     runtime::OtField f = context.get_repo().lookupField(klass_name, (short) cp_lookup);
+            //     runtime::OtKlass fgKlass = f.getKlass();
             //     eval.push(fgKlass.getStaticField(f));
             // },
             Opcode::GOTO => {
@@ -138,11 +138,11 @@ pub fn exec_method(
             // Opcode::IF_ICMPEQ => {
             //     let jumpTo = (instr[current] as usize) << 8 + instr[current + 1] as usize;
             //     let v1 = match eval.pop() {
-            //         runtime::jvm_value::ObjRef { val: v } => v,
+            //         runtime::JvmValue::ObjRef { val: v } => v,
             //         _ => println!("Value not of reference type found for IFNULL"),
             //     };
             //     let v2 = match eval.pop() {
-            //         runtime::jvm_value::ObjRef { val: v } => v,
+            //         runtime::JvmValue::ObjRef { val: v } => v,
             //         _ => println!("Value not of reference type found for IFNULL"),
             //     };
             //     if v1 == v2 {
@@ -195,7 +195,7 @@ pub fn exec_method(
                 let jumpTo = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
 
                 match eval.pop() {
-                    runtime::jvm_value::ObjRef { val: v } => {
+                    runtime::JvmValue::ObjRef { val: v } => {
                         if !v.is_null() {
                             current += jumpTo;
                         } else {
@@ -212,7 +212,7 @@ pub fn exec_method(
                 let jumpTo = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
 
                 match eval.pop() {
-                    runtime::jvm_value::ObjRef { val: v } => {
+                    runtime::JvmValue::ObjRef { val: v } => {
                         if v.is_null() {
                             // println!("Ins[curr]: {} and {}", instr[current], instr[current + 1]);
                             // println!("Attempting to jump by: {} from {}", jumpTo, current);
@@ -323,9 +323,9 @@ pub fn exec_method(
 
                 let klass = repo.lookup_klass(klass_name);
                 // let heap = context.get_heap();
-                eval.push(runtime::jvm_value::ObjRef {
+                eval.push(runtime::JvmValue::ObjRef {
                     // FIXME
-                    // val: runtime::ot_obj::get_null(),
+                    // val: runtime::OtObj::get_null(),
                     val: context.allocate_obj(klass),
                 });
             }
@@ -337,7 +337,7 @@ pub fn exec_method(
                 eval.pop();
             }
             Opcode::POP2 => {
-                let _discard: runtime::jvm_value = eval.pop();
+                let _discard: runtime::JvmValue = eval.pop();
                 // FIXME Change to type match
                 // if (discard.type == JVMType.J || discard.type == JVMType.D) {
 
@@ -348,14 +348,14 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let putf: runtime::ot_field = repo.lookup_field(my_klass_name.clone(), cp_lookup);
-                let val: runtime::jvm_value = eval.pop();
+                let putf: runtime::OtField = repo.lookup_field(my_klass_name.clone(), cp_lookup);
+                let val: runtime::JvmValue = eval.pop();
 
-                let recvp: runtime::jvm_value = eval.pop();
+                let recvp: runtime::JvmValue = eval.pop();
                 // VERIFY: Should check to make sure receiver is an A
                 // FIXME Match expression & destructure for recvp
                 let obj = match recvp {
-                    runtime::jvm_value::ObjRef { val: v } => v,
+                    runtime::JvmValue::ObjRef { val: v } => v,
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
 
@@ -382,12 +382,12 @@ pub fn exec_method(
                 eval.push(val2);
             }
             // Disallowed opcodes
-            Opcode::BREAKPOINT => break Some(runtime::jvm_value::Boolean { val: false }),
-            Opcode::IMPDEP1 => break Some(runtime::jvm_value::Boolean { val: false }),
-            Opcode::IMPDEP2 => break Some(runtime::jvm_value::Boolean { val: false }),
-            Opcode::JSR => break Some(runtime::jvm_value::Boolean { val: false }),
-            Opcode::JSR_W => break Some(runtime::jvm_value::Boolean { val: false }),
-            Opcode::RET => break Some(runtime::jvm_value::Boolean { val: false }),
+            Opcode::BREAKPOINT => break Some(runtime::JvmValue::Boolean { val: false }),
+            Opcode::IMPDEP1 => break Some(runtime::JvmValue::Boolean { val: false }),
+            Opcode::IMPDEP2 => break Some(runtime::JvmValue::Boolean { val: false }),
+            Opcode::JSR => break Some(runtime::JvmValue::Boolean { val: false }),
+            Opcode::JSR_W => break Some(runtime::JvmValue::Boolean { val: false }),
+            Opcode::RET => break Some(runtime::JvmValue::Boolean { val: false }),
 
             _ => panic!(
                 "Illegal opcode byte: {} encountered at position {}. Stopping.",
@@ -399,10 +399,10 @@ pub fn exec_method(
 }
 
 fn dispatch_invoke(
-    context: &mut runtime::vm_context,
-    current_klass: runtime::ot_klass,
+    context: &mut runtime::VmContext,
+    current_klass: runtime::OtKlass,
     cp_lookup: u16,
-    eval: &mut runtime::interp_eval_stack,
+    eval: &mut runtime::InterpEvalStack,
     to_read: u8,
 ) -> () {
     let fq_name_desc = current_klass.cp_as_string(cp_lookup);
@@ -425,7 +425,7 @@ fn dispatch_invoke(
     }
 }
 
-fn parse_class(bytes: Vec<u8>, fname: String) -> runtime::ot_klass {
+fn parse_class(bytes: Vec<u8>, fname: String) -> runtime::OtKlass {
     let mut parser = klass_parser::oc_parser::new(bytes, fname);
     parser.parse();
     parser.klass()

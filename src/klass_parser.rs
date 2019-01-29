@@ -17,8 +17,8 @@ pub struct oc_parser {
     cp_index_super: u16,
     cp_entries: Vec<cp_entry>,
     interfaces: Vec<u16>,
-    fields: Vec<ot_field>,
-    methods: Vec<ot_method>,
+    fields: Vec<OtField>,
+    methods: Vec<OtMethod>,
     // private CPAttr[] attributes;
 }
 
@@ -41,8 +41,8 @@ impl oc_parser {
         }
     }
 
-    pub fn klass(&mut self) -> runtime::ot_klass {
-        runtime::ot_klass::of(
+    pub fn klass(&mut self) -> runtime::OtKlass {
+        runtime::OtKlass::of(
             self.klass_name().to_string(),
             self.super_name().to_string(),
             self.flags,
@@ -348,7 +348,7 @@ impl oc_parser {
             };
             // NOTE: have just thrashed about to get the borrow checker to shut up here... need to revisit
             let k_name = &self.klass_name();
-            let f = ot_field::of(
+            let f = OtField::of(
                 k_name.to_string(),
                 f_name.to_string(),
                 fFlags,
@@ -362,7 +362,7 @@ impl oc_parser {
         }
     }
 
-    fn parse_field_attribute(&mut self, field: &ot_field) -> cp_attr {
+    fn parse_field_attribute(&mut self, field: &OtField) -> CpAttr {
         let name_idx =
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         let b1 = self.clz_read[self.current + 2];
@@ -398,7 +398,7 @@ impl oc_parser {
                 self.current, end_index
             )
         }
-        cp_attr::of(name_idx)
+        CpAttr::of(name_idx)
     }
 
     fn parse_methods(&mut self) -> () {
@@ -434,7 +434,7 @@ impl oc_parser {
 
             // NOTE: have just thrashed about to get the borrow checker to shut up here... need to revisit
             let k_name = &self.klass_name();
-            let mut m = ot_method::of(
+            let mut m = OtMethod::of(
                 k_name.to_string(),
                 m_name.to_string(),
                 m_desc.to_string(),
@@ -451,7 +451,7 @@ impl oc_parser {
         }
     }
 
-    fn parse_method_attribute(&mut self, method: &mut ot_method) -> cp_attr {
+    fn parse_method_attribute(&mut self, method: &mut OtMethod) -> CpAttr {
         let name_idx =
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         let b1 = self.clz_read[self.current + 2];
@@ -511,7 +511,7 @@ impl oc_parser {
         //         self.current, end_index
         //     )
         // }
-        cp_attr::of(name_idx)
+        CpAttr::of(name_idx)
     }
 
     //         int nameCPIdx = ((int) clzBytes[current++] << 8) + (int) clzBytes[current++];
