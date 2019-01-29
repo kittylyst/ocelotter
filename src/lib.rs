@@ -264,7 +264,6 @@ pub fn exec_method(
                 current += 2;
                 let current_klass = repo.lookup_klass(klass_name.clone()).clone();
                 dbg!(current_klass.clone());
-                // FIXME DOES NOT HANDLE CALL ARGS YET
                 dispatch_invoke(context, current_klass, cp_lookup, &mut eval, 1);
             }
             Opcode::INVOKESTATIC => {
@@ -272,7 +271,6 @@ pub fn exec_method(
                 current += 2;
                 let current_klass = repo.lookup_klass(klass_name.clone()).clone();
                 dbg!(current_klass.clone());
-                // FIXME DOES NOT HANDLE CALL ARGS YET
                 dispatch_invoke(context, current_klass, cp_lookup, &mut eval, 0);
             }
             // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
@@ -313,6 +311,7 @@ pub fn exec_method(
             Opcode::MONITORENTER => {
                 eval.pop();
             }
+            // FIXME TEMP
             Opcode::MONITOREXIT => {
                 eval.pop();
             }
@@ -331,12 +330,8 @@ pub fn exec_method(
                     ),
                 };
 
-                let klass = repo.lookup_klass(klass_name);
-                // let heap = context.get_heap();
                 eval.push(runtime::JvmValue::ObjRef {
-                    // FIXME
-                    // val: runtime::OtObj::get_null(),
-                    val: context.allocate_obj(klass),
+                    val: context.allocate_obj(&current_klass),
                 });
             }
             Opcode::NOP => {
@@ -412,23 +407,37 @@ fn massage_to_jvm_int_and_equate(v1: runtime::JvmValue, v2: runtime::JvmValue) -
     match v1 {
         runtime::JvmValue::Boolean { val: b } => match v2 {
             runtime::JvmValue::Boolean { val: b1 } => b == b1,
-            _ => panic!("Value not of reference type found for IF_ICMPEQ"),
+            _ => panic!("Values found to have differing type for IF_ICMP*"),
         },
-        // Byte { val: i8 },
-        // Short { val: i16 },
+        runtime::JvmValue::Byte { val: b } => match v2 {
+            runtime::JvmValue::Byte { val: b1 } => b == b1,
+            _ => panic!("Values found to have differing type for IF_ICMP*"),
+        },
+        runtime::JvmValue::Short { val: s } => match v2 {
+            runtime::JvmValue::Short { val: s1 } => s == s1,
+            _ => panic!("Values found to have differing type for IF_ICMP*"),
+        },
         runtime::JvmValue::Int { val: i } => match v2 {
             runtime::JvmValue::Int { val: i1 } => i == i1,
-            _ => panic!("Value not of reference type found for IF_ICMPEQ"),
+            _ => panic!("Values found to have differing type for IF_ICMP*"),
         },
-
-        // Long { val: i64 },
-        // Float { val: f32 },
-        // Double { val: f64 },
-        // Char { val: char },
-        runtime::JvmValue::ObjRef { val: v } => {
-            panic!("Value should not be reference type for IF_ICMPEQ")
-        }
-        _ => panic!("Value not implemented for IF_ICMPEQ"),
+        runtime::JvmValue::Long { val: i } => match v2 {
+            runtime::JvmValue::Long { val: i1 } => i == i1,
+            _ => panic!("Values found to have differing type for IF_ICMP*"),
+        },
+        runtime::JvmValue::Float { val: i } => match v2 {
+            runtime::JvmValue::Float { val: i1 } => i == i1,
+            _ => panic!("Values found to have differing type for IF_ICMP*"),
+        },
+        runtime::JvmValue::Double { val: i } => match v2 {
+            runtime::JvmValue::Double { val: i1 } => i == i1,
+            _ => panic!("Values found to have differing type for IF_ICMP*"),
+        },
+        runtime::JvmValue::Char { val: i } => match v2 {
+            runtime::JvmValue::Char { val: i1 } => i == i1,
+            _ => panic!("Values found to have differing type for IF_ICMP*"),
+        },
+        runtime::JvmValue::ObjRef { val: v } => panic!("Values found to have differing type for IF_ICMP*"),
     }
 }
 
@@ -437,7 +446,7 @@ fn dispatch_invoke(
     current_klass: runtime::OtKlass,
     cp_lookup: u16,
     eval: &mut runtime::InterpEvalStack,
-    to_read: u8,
+    additional_args: u8,
 ) -> () {
     let fq_name_desc = current_klass.cp_as_string(cp_lookup);
     let klz_idx = match current_klass.lookup_cp(cp_lookup) {
@@ -453,7 +462,11 @@ fn dispatch_invoke(
     let callee = repo.lookup_method_exact(&dispatch_klass_name, fq_name_desc);
 
     // FIXME - General setup requires call args
-    match exec_method2(context, callee) {
+    let mut vars = runtime::InterpLocalVars::of();
+    if additional_args > 0 {
+        vars.store(0, eval.pop());
+    }
+    match exec_method(context, callee.get_klass_name(), &callee.get_code(), &mut vars) {
         Some(val) => eval.push(val),
         None => (),
     }

@@ -643,7 +643,8 @@ impl SharedKlassRepo {
         }
     }
 
-    pub fn lookup_method_virtual(&self, _klass_name: &String, _idx: u16) -> OtMethod {
+    pub fn lookup_method_virtual(&self, klass_name: &String, _idx: u16) -> OtMethod {
+        let klass = self.klass_lookup.get(klass_name);
         // FIXME DUMMY
         OtMethod::of(
             "DUMMY_KLASS".to_string(),
@@ -661,16 +662,6 @@ impl SharedKlassRepo {
             Some(value) => value,
             None => panic!("Error looking up {} - no value returned", klass_name),
         }
-
-        // // FIXME DUMMY
-        // OtKlass {
-        //     name: klass_name.to_string(),
-        //     super_name: "DUMMY_SUPER".to_string(),
-        //     flags: 0,
-        //     cp_entries: Vec::new(),
-        //     methods: Vec::new(),
-        //     name_desc_lookup: HashMap::new(),
-        // }
     }
 
     pub fn add_klass(&mut self, k: OtKlass) -> () {
