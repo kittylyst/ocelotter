@@ -42,7 +42,7 @@ pub const CP_METHODHANDLE: u8 = 15;
 pub const CP_METHODTYPE: u8 = 16;
 pub const CP_INVOKEDYNAMIC: u8 = 18;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum cp_entry {
     utf8 { val: String },
     integer { val: i32 },
@@ -110,7 +110,7 @@ impl ot_klass {
                 Some(val) => val.clone(),
                 None => panic!("Error: method {} not found on {}", i, klass_name),
             };
-            lookup.insert(meth.get_desc().clone(), i);
+            lookup.insert(meth.get_fq_name_desc().clone(), i);
             i = i + 1;
         }
         dbg!(lookup.clone());
@@ -140,6 +140,7 @@ impl ot_klass {
     }
 
     pub fn get_method_by_name_and_desc(&self, name_desc: String) -> ot_method {
+        dbg!(&self.name_desc_lookup);
         let opt_idx = self.name_desc_lookup.get(&name_desc);
         let idx: usize = match opt_idx {
             Some(value) => value.clone(),
@@ -154,6 +155,7 @@ impl ot_klass {
 
     pub fn lookup_cp(&self, cp_idx: u16) -> cp_entry {
         let idx = cp_idx as usize;
+        dbg!(&self.cp_entries);
         match self.cp_entries.get(idx).clone() {
             Some(val) => val.clone(),
             None => panic!(
@@ -209,12 +211,16 @@ impl ot_method {
         self.code.clone()
     }
 
-    pub fn get_klass_name(&mut self) -> String {
+    pub fn get_klass_name(&self) -> String {
         self.klass_name.clone()
     }
 
-    pub fn get_desc(&mut self) -> String {
+    pub fn get_desc(&self) -> String {
         self.name_desc.clone()
+    }
+
+    pub fn get_fq_name_desc(&self) -> String {
+        self.klass_name.clone() + "." + &self.name_desc.clone()
     }
 
     pub fn get_flags(&self) -> u16 {

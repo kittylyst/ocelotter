@@ -284,17 +284,17 @@ fn test_invoke_simple() {
     repo.add_klass(k.clone());
 
     {
-        let meth = k.get_method_by_name_and_desc("bar:()I".to_string());
+        let meth = k.get_method_by_name_and_desc("SampleInvoke.bar:()I".to_string());
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let opt_ret = exec_method2(meth);
         let ret = match opt_ret {
             Some(value) => value,
-            None => panic!("Error executing bar:()I - no value returned"),
+            None => panic!("Error executing SampleInvoke.bar:()I - no value returned"),
         };
         let ret2 = match ret {
             runtime::jvm_value::Int { val: i } => i,
-            _ => panic!("Error executing bar:()I - non-int value returned"),
+            _ => panic!("Error executing SampleInvoke.bar:()I - non-int value returned"),
         };
         assert_eq!(7, ret2);
     }
@@ -311,17 +311,17 @@ fn test_invoke_simple() {
     // //    8: iload_0
     // //    9: ireturn
 
-    //     let meth = k.get_method_by_name_and_desc("foo:()I".to_string());
+    //     let meth = k.get_method_by_name_and_desc("SampleInvoke.foo:()I".to_string());
     //     assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
     //     let opt_ret = exec_method2(meth);
     //     let ret = match opt_ret {
     //         Some(value) => value,
-    //         None => panic!("Error executing foo:()I - no value returned"),
+    //         None => panic!("Error executing SampleInvoke.foo:()I - no value returned"),
     //     };
     //     let ret2 = match ret {
     //         runtime::jvm_value::Int { val: i } => i,
-    //         _ => panic!("Error executing foo:()I - non-int value returned"),
+    //         _ => panic!("Error executing SampleInvoke.foo:()I - non-int value returned"),
     //     };
     //     assert_eq!(7, ret2);
     // }
