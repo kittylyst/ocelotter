@@ -169,36 +169,19 @@ impl ot_klass {
     pub fn cp_as_string(&self, i: u16) -> String {
         match self.lookup_cp(i) {
             cp_entry::utf8 { val: s } => s,
-            cp_entry::methodref { clz_idx, nt_idx } => "clz.n_t".to_string(),
-            _ => panic!("Non-methodref found in {} at CP index {}", self.name, i),
+            cp_entry::class { idx: utf_idx } => self.cp_as_string(utf_idx),
+            cp_entry::methodref { clz_idx, nt_idx } => {
+                self.cp_as_string(clz_idx) + "." + &self.cp_as_string(nt_idx)
+            }
+            cp_entry::name_and_type {
+                name_idx: nidx,
+                type_idx: tidx,
+            } => self.cp_as_string(nidx) + ":" + &self.cp_as_string(tidx),
+            _ => panic!(
+                "Unimplemented stringify of CP entry found in {} at index {}",
+                self.name, i
+            ),
         }
-
-        // switch (top.getType()) {
-        //     case UTF8:
-        //         return top.getStr();
-        //     case INTEGER:
-        //         return "" + top.getNum().intValue();
-        //     case FLOAT:
-        //         return "" + top.getNum().floatValue();
-        //     case LONG:
-        //         return "" + top.getNum().longValue();
-        //     case DOUBLE:
-        //         return "" + top.getNum().doubleValue();
-        //     case CLASS:
-        //     case STRING:
-        //         other = items[top.getRef().getOther() - 1];
-        //         // Verification - could check type is STRING here
-        //         return other.getStr();
-        //     case FIELDREF:
-        //     case METHODREF:
-        //     case INTERFACE_METHODREF:
-        //     case NAMEANDTYPE:
-        //         left = top.getRef().getOther();
-        //         right = top.getRef2().getOther();
-        //         return resolveAsString(left) + top.getType().separator() + resolveAsString(right);
-        //     default:
-        //         throw new RuntimeException("Reached impossible Constant Pool Tag: " + top);
-        // }
     }
 }
 
@@ -657,16 +640,6 @@ impl shared_klass_repo {
             Some(k) => k.get_method_by_name_and_desc(fq_name_desc),
             None => panic!("No klass called {} found in repo", klass_name),
         }
-
-        // // FIXME DUMMY
-        // ot_method::of(
-        //     "DUMMY_KLASS".to_string(),
-        //     "DUMMY_METH".to_string(),
-        //     "DUMMY_DESC".to_string(),
-        //     0,
-        //     1,
-        //     2,
-        // )
     }
 
     pub fn lookup_method_virtual(&self, _klass_name: &String, _idx: u16) -> ot_method {

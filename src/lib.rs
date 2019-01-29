@@ -261,31 +261,33 @@ pub fn exec_method(
                 current += 2;
                 let current_klass = repo.lookup_klass(klass_name.clone()).clone();
                 dbg!(current_klass.clone());
-                let (klz_idx, name_type_idx) = match current_klass.lookup_cp(cp_lookup) {
-                    runtime::cp_entry::methodref { clz_idx, nt_idx } => (clz_idx, nt_idx),
+                let fq_name_desc = current_klass.cp_as_string(cp_lookup);
+                let klz_idx = match current_klass.lookup_cp(cp_lookup) {
+                    runtime::cp_entry::methodref { clz_idx, nt_idx } => clz_idx,
                     _ => panic!(
                         "Non-methodref found in {} at CP index {}",
                         current_klass.get_name(),
                         cp_lookup
                     ),
                 };
-                let klass_name_idx = match current_klass.lookup_cp(klz_idx) {
-                    runtime::cp_entry::class { idx: utf_idx } => utf_idx,
-                    _ => panic!(
-                        "Non-class found in {} at CP index {}",
-                        current_klass.get_name(),
-                        klz_idx
-                    ),
-                };
-                let dispatch_klass_name = match current_klass.lookup_cp(klass_name_idx) {
-                    runtime::cp_entry::utf8 { val: s } => s,
-                    _ => panic!(
-                        "Non-string found in {} at CP index {}",
-                        current_klass.get_name(),
-                        klass_name_idx
-                    ),
-                };
-                let fq_name_desc = "FIXME".to_string();
+                let dispatch_klass_name = current_klass.cp_as_string(klz_idx);
+
+                // let klass_name_idx = match current_klass.lookup_cp(klz_idx) {
+                //     runtime::cp_entry::class { idx: utf_idx } => utf_idx,
+                //     _ => panic!(
+                //         "Non-class found in {} at CP index {}",
+                //         current_klass.get_name(),
+                //         klz_idx
+                //     ),
+                // };
+                // let dispatch_klass_name = match current_klass.lookup_cp(klass_name_idx) {
+                //     runtime::cp_entry::utf8 { val: s } => s,
+                //     _ => panic!(
+                //         "Non-string found in {} at CP index {}",
+                //         current_klass.get_name(),
+                //         klass_name_idx
+                //     ),
+                // };
 
                 dispatch_invoke(
                     repo.lookup_method_exact(&dispatch_klass_name, fq_name_desc),
