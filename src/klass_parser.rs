@@ -4,48 +4,6 @@ use byteorder::{BigEndian, ByteOrder};
 use std::io::Read;
 use std::str;
 
-// CPType constants
-pub const CP_UTF8: u8 = 1;
-pub const CP_INTEGER: u8 = 3;
-pub const CP_FLOAT: u8 = 4;
-pub const CP_LONG: u8 = 5;
-pub const CP_DOUBLE: u8 = 6;
-pub const CP_CLASS: u8 = 7;
-pub const CP_STRING: u8 = 8;
-pub const CP_FIELDREF: u8 = 9;
-pub const CP_METHODREF: u8 = 10;
-pub const CP_INTERFACE_METHODREF: u8 = 11;
-pub const CP_NAMEANDTYPE: u8 = 12;
-pub const CP_METHODHANDLE: u8 = 15;
-pub const CP_METHODTYPE: u8 = 16;
-pub const CP_INVOKEDYNAMIC: u8 = 18;
-
-#[derive(Clone)]
-pub enum cp_entry {
-    utf8 { val: String },
-    integer { val: i32 },
-    float { val: f32 },
-    long { val: i64 },
-    double { val: f64 },
-    class { idx: u16 },
-    string { idx: u16 },
-    fieldref { clz_idx: u16, nt_idx: u16 },
-    methodref { clz_idx: u16, nt_idx: u16 },
-    interface_methodref { clz_idx: u16, nt_idx: u16 },
-    name_and_type { name_idx: u16, type_idx: u16 },
-}
-
-impl cp_entry {
-    pub fn separator(cp_type: u8) -> String {
-        match cp_type {
-            CP_FIELDREF => ".".to_string(),
-            CP_METHODREF => ".".to_string(),
-            CP_NAMEANDTYPE => ":".to_string(),
-            _ => "".to_string(),
-        }
-    }
-}
-
 pub struct oc_parser {
     clz_read: Vec<u8>,
     filename: String,
@@ -57,6 +15,7 @@ pub struct oc_parser {
     flags: u16,
     cp_index_this: u16,
     cp_index_super: u16,
+    // FIXME: Change to cp_entries
     cp_items: Vec<cp_entry>,
     interfaces: Vec<u16>,
     fields: Vec<ot_field>,
@@ -87,6 +46,8 @@ impl oc_parser {
         runtime::ot_klass::of(
             self.klass_name().to_string(),
             self.super_name().to_string(),
+            self.flags,
+            &self.cp_items,
             &self.methods,
         )
     }

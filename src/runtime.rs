@@ -24,6 +24,8 @@ pub const ACC_NATIVE: u16 = 0x0100; // (Method) Declared native; implemented in 
 pub const ACC_ABSTRACT_M: u16 = 0x0400; // (Method) Declared abstract; no implementation is provided.
 pub const ACC_STRICT: u16 = 0x0800; // (Method) Declared strictfp; floating-point mode is FP-strict.
 
+//////////// CONSTANT POOL HANDLING
+
 // CPType constants
 pub const CP_UTF8: u8 = 1;
 pub const CP_INTEGER: u8 = 3;
@@ -67,15 +69,40 @@ impl cp_entry {
 }
 
 #[derive(Clone)]
+pub struct cp_attr {
+    name_idx: u16,
+}
+
+impl cp_attr {
+    pub fn of(name_idx: u16) -> cp_attr {
+        cp_attr { name_idx: name_idx }
+    }
+}
+
+pub fn split_name_desc(name_desc: String) -> (String, String) {
+    ("a".to_string(), "b".to_string())
+}
+
+//////////// RUNTIME KLASS AND RELATED HANDLING
+
+#[derive(Clone)]
 pub struct ot_klass {
     name: String,
     super_name: String,
+    flags: u16,
+    cp_entries: Vec<cp_entry>,
     methods: Vec<ot_method>,
     name_desc_lookup: HashMap<String, usize>,
 }
 
 impl ot_klass {
-    pub fn of(klass_name: String, super_klass: String, methods: &Vec<ot_method>) -> ot_klass {
+    pub fn of(
+        klass_name: String,
+        super_klass: String,
+        flags: u16,
+        cp_entries: &Vec<cp_entry>,
+        methods: &Vec<ot_method>,
+    ) -> ot_klass {
         let mut lookup = HashMap::new();
         let mut i = 0;
         while i < methods.len() {
@@ -90,6 +117,8 @@ impl ot_klass {
         ot_klass {
             name: klass_name,
             super_name: super_klass,
+            flags: flags,
+            cp_entries: cp_entries.to_vec(),
             methods: methods.to_vec(),
             name_desc_lookup: lookup,
         }
@@ -98,15 +127,15 @@ impl ot_klass {
     // FIXME: Shouldn't this be ot_field for consistency
     pub fn set_static_field(&self, _f: String, _vals: jvm_value) -> () {}
 
-    pub fn get_name(&mut self) -> String {
+    pub fn get_name(&self) -> String {
         self.name.to_owned()
     }
 
-    pub fn get_super_name(&mut self) -> String {
+    pub fn get_super_name(&self) -> String {
         self.super_name.to_owned()
     }
 
-    pub fn get_methods(&mut self) -> Vec<ot_method> {
+    pub fn get_methods(&self) -> Vec<ot_method> {
         self.methods.clone()
     }
 
@@ -122,16 +151,16 @@ impl ot_klass {
             None => panic!("Error: method {} not found on {}", name_desc, self.name),
         }
     }
-}
 
-#[derive(Clone)]
-pub struct cp_attr {
-    name_idx: u16,
-}
-
-impl cp_attr {
-    pub fn of(name_idx: u16) -> cp_attr {
-        cp_attr { name_idx: name_idx }
+    pub fn lookup_cp(&self, cp_idx: u16) -> cp_entry {
+        let idx = cp_idx as usize;
+        match self.cp_entries.get(idx).clone() {
+            Some(val) => val.clone(),
+            None => panic!(
+                "Error: No entry found on {} at CP index {}",
+                self.name, cp_idx
+            ),
+        }
     }
 }
 
@@ -238,6 +267,8 @@ impl ot_field {
         return ot_klass {
             name: "DUMMY_CLASS".to_string(),
             super_name: "DUMMY_SUPER".to_string(),
+            flags: 0,
+            cp_entries: Vec::new(),
             methods: Vec::new(),
             name_desc_lookup: HashMap::new(),
         };
@@ -249,6 +280,8 @@ impl fmt::Display for ot_field {
         write!(f, "{}.{}:{}", self.class_name, self.name, self.desc_idx)
     }
 }
+
+//////////// RUNTIME VALUES
 
 #[derive(Copy, Clone)]
 pub enum jvm_value {
@@ -325,6 +358,8 @@ impl fmt::Display for ot_obj {
         write!(f, "MarK: {} ; Klass: {}", self.mark, self.klassid)
     }
 }
+
+//////////// RUNTIME STACKS AND LOCAL VARS
 
 pub struct interp_eval_stack {
     stack: Vec<jvm_value>,
@@ -523,6 +558,8 @@ impl interp_local_vars {
     pub fn astore(&self, _idx: u8, _val: jvm_value) -> () {}
 }
 
+//////////// SHARED RUNTIME STRUCTURES
+
 pub struct shared_klass_repo {}
 
 impl shared_klass_repo {
@@ -530,7 +567,7 @@ impl shared_klass_repo {
         shared_klass_repo {}
     }
 
-    pub fn lookup_field(&self, _klass_name: &String, _idx: u16) -> ot_field {
+    pub fn lookup_field(&self, _klass_name: String, _idx: u16) -> ot_field {
         // FIXME DUMMY
         ot_field::of(
             "DUMMY_KLASS".to_string(),
@@ -541,7 +578,7 @@ impl shared_klass_repo {
         )
     }
 
-    pub fn lookup_method_exact(&self, klass_name: &String, idx: u16) -> ot_method {
+    pub fn lookup_method_exact(&self, klass_name: &String, method_name_desc: String) -> ot_method {
         // FIXME DUMMY
         ot_method::of(
             "DUMMY_KLASS".to_string(),
@@ -565,11 +602,14 @@ impl shared_klass_repo {
         )
     }
 
-    pub fn lookup_klass(&self, _klass_name: &String, _idx: u16) -> ot_klass {
+    // FIXME SIG
+    pub fn lookup_klass(&self, klass_name: String) -> ot_klass {
         // FIXME DUMMY
         ot_klass {
-            name: "DUMMY_CLASS".to_string(),
+            name: klass_name.to_string(),
             super_name: "DUMMY_SUPER".to_string(),
+            flags: 0,
+            cp_entries: Vec::new(),
             methods: Vec::new(),
             name_desc_lookup: HashMap::new(),
         }
