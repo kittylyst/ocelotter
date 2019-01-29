@@ -271,27 +271,10 @@ pub fn exec_method(
                     ),
                 };
                 let dispatch_klass_name = current_klass.cp_as_string(klz_idx);
-
-                // let klass_name_idx = match current_klass.lookup_cp(klz_idx) {
-                //     runtime::cp_entry::class { idx: utf_idx } => utf_idx,
-                //     _ => panic!(
-                //         "Non-class found in {} at CP index {}",
-                //         current_klass.get_name(),
-                //         klz_idx
-                //     ),
-                // };
-                // let dispatch_klass_name = match current_klass.lookup_cp(klass_name_idx) {
-                //     runtime::cp_entry::utf8 { val: s } => s,
-                //     _ => panic!(
-                //         "Non-string found in {} at CP index {}",
-                //         current_klass.get_name(),
-                //         klass_name_idx
-                //     ),
-                // };
-
                 dispatch_invoke(
+                    context,
                     repo.lookup_method_exact(&dispatch_klass_name, fq_name_desc),
-                    &eval,
+                    &mut eval,
                 );
             }
             // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
@@ -427,17 +410,20 @@ pub fn exec_method(
     }
 }
 
-fn dispatch_invoke(_to_be_called: runtime::ot_method, _eval: &runtime::interp_eval_stack) -> () {
-    // Setup call
+fn dispatch_invoke(
+    context: &mut runtime::vm_context,
+    callee: runtime::ot_method,
+    eval: &mut runtime::interp_eval_stack,
+) -> () {
+    // FIXME - General setup requires call args
+    match exec_method2(context, callee) {
+        Some(val) => eval.push(val),
+        None => (),
+    }
 
-    // Invoke
-
-    // Setup return value
-    // let val : Option<runtime::jvm_value> = execMethod(toBeCalled, withVars);
     // FIXME convert to match expr
     // if (val != null)
     //     eval.push(val);
-
 }
 
 fn parse_class(bytes: Vec<u8>, fname: String) -> runtime::ot_klass {

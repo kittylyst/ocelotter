@@ -326,6 +326,6 @@ fn test_invoke_simple() {
     //         runtime::jvm_value::Int { val: i } => i,
     //         _ => panic!("Error executing SampleInvoke.foo:()I - non-int value returned"),
     //     };
-    //     assert_eq!(7, ret2);
+    //     assert_eq!(9, ret2);
     // }
 }
