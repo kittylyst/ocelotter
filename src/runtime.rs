@@ -562,7 +562,9 @@ pub struct interp_local_vars {
 
 impl interp_local_vars {
     pub fn of() -> interp_local_vars {
-        interp_local_vars { lvt: [jvm_value::Int{val: 0} ; 256] }
+        interp_local_vars {
+            lvt: [jvm_value::Int { val: 0 }; 256],
+        }
     }
 
     pub fn load(&self, idx: u8) -> jvm_value {
@@ -575,9 +577,9 @@ impl interp_local_vars {
 
     pub fn iinc(&mut self, idx: u8, incr: u8) -> () {
         match self.lvt[idx as usize] {
-            jvm_value::Int{ val: v } => {
-                self.lvt[idx as usize] = jvm_value::Int{ val: v + 1 };
-            },
+            jvm_value::Int { val: v } => {
+                self.lvt[idx as usize] = jvm_value::Int { val: v + 1 };
+            }
             _ => panic!("Non-integer value encountered in IINC of local var {}", idx),
         }
     }

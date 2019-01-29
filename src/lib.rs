@@ -249,33 +249,21 @@ pub fn exec_method(
 
             Opcode::INEG => eval.ineg(),
 
-            // FIXME DOES NOT ACTUALLY DO EXACT LOOKUP YET
             Opcode::INVOKESPECIAL => {
-                // let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
-                // current += 2;
-                // let cp_fq_name_desc = current_klass.lookup_cp(cp_lookup);
-                // dispatch_invoke(context.get_repo().lookup_method_exact(dispatch_klass_name, local_name_desc), &eval);
+                let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
+                current += 2;
+                let current_klass = repo.lookup_klass(klass_name.clone()).clone();
+                dbg!(current_klass.clone());
+                // FIXME DOES NOT HANDLE CALL ARGS YET
+                dispatch_invoke(context, current_klass, cp_lookup, &mut eval, 1);
             }
             Opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 let current_klass = repo.lookup_klass(klass_name.clone()).clone();
                 dbg!(current_klass.clone());
-                let fq_name_desc = current_klass.cp_as_string(cp_lookup);
-                let klz_idx = match current_klass.lookup_cp(cp_lookup) {
-                    runtime::cp_entry::methodref { clz_idx, nt_idx } => clz_idx,
-                    _ => panic!(
-                        "Non-methodref found in {} at CP index {}",
-                        current_klass.get_name(),
-                        cp_lookup
-                    ),
-                };
-                let dispatch_klass_name = current_klass.cp_as_string(klz_idx);
-                dispatch_invoke(
-                    context,
-                    repo.lookup_method_exact(&dispatch_klass_name, fq_name_desc),
-                    &mut eval,
-                );
+                // FIXME DOES NOT HANDLE CALL ARGS YET
+                dispatch_invoke(context, current_klass, cp_lookup, &mut eval, 0);
             }
             // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
             Opcode::INVOKEVIRTUAL => {
@@ -412,18 +400,29 @@ pub fn exec_method(
 
 fn dispatch_invoke(
     context: &mut runtime::vm_context,
-    callee: runtime::ot_method,
+    current_klass: runtime::ot_klass,
+    cp_lookup: u16,
     eval: &mut runtime::interp_eval_stack,
+    to_read: u8,
 ) -> () {
+    let fq_name_desc = current_klass.cp_as_string(cp_lookup);
+    let klz_idx = match current_klass.lookup_cp(cp_lookup) {
+        runtime::cp_entry::methodref { clz_idx, nt_idx } => clz_idx,
+        _ => panic!(
+            "Non-methodref found in {} at CP index {}",
+            current_klass.get_name(),
+            cp_lookup
+        ),
+    };
+    let dispatch_klass_name = current_klass.cp_as_string(klz_idx);
+    let repo = context.get_repo().clone();
+    let callee = repo.lookup_method_exact(&dispatch_klass_name, fq_name_desc);
+
     // FIXME - General setup requires call args
     match exec_method2(context, callee) {
         Some(val) => eval.push(val),
         None => (),
     }
-
-    // FIXME convert to match expr
-    // if (val != null)
-    //     eval.push(val);
 }
 
 fn parse_class(bytes: Vec<u8>, fname: String) -> runtime::ot_klass {
