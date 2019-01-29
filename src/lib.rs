@@ -135,25 +135,35 @@ pub fn exec_method(
 
             Opcode::IDIV => eval.idiv(),
 
-            // Opcode::IF_ICMPEQ => {
+            Opcode::IF_ICMPEQ => {
+                let jumpTo = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+                if massage_to_jvm_int_and_equate(eval.pop(), eval.pop()) {
+                    current += jumpTo;
+                } else {
+                    current += 2;
+                }
+            }
+            Opcode::IF_ICMPNE => {
+                let jumpTo = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+                if massage_to_jvm_int_and_equate(eval.pop(), eval.pop()) {
+                    current += 2;
+                } else {
+                    current += jumpTo;
+                }
+            }
+
+            // Opcode::IFEQ => {
             //     let jumpTo = (instr[current] as usize) << 8 + instr[current + 1] as usize;
             //     let v1 = match eval.pop() {
             //         runtime::JvmValue::ObjRef { val: v } => v,
-            //         _ => println!("Value not of reference type found for IFNULL"),
+            //         _ => panic!("Value not of reference type found for IFEQ"),
             //     };
             //     let v2 = match eval.pop() {
             //         runtime::JvmValue::ObjRef { val: v } => v,
-            //         _ => println!("Value not of reference type found for IFNULL"),
+            //         _ => panic!("Value not of reference type found for IFEQ"),
             //     };
             //     if v1 == v2 {
-            //         current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
-            //     }
-            // },
-            // Opcode::IFEQ => {
-            //     v = eval.pop();
-            //     jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     if (v.value == 0L) {
-            //         current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
+            //         current += jumpTo; // - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // }    ,
             // Opcode::IFGE => {
@@ -313,7 +323,7 @@ pub fn exec_method(
                 let current_klass = repo.lookup_klass(klass_name.clone()).clone();
 
                 let klass_name = match current_klass.lookup_cp(cp_lookup) {
-                    runtime::cp_entry::class { idx } => "DUMMY_CLASS".to_string(), // FIXME
+                    runtime::CpEntry::class { idx } => "DUMMY_CLASS".to_string(), // FIXME
                     _ => panic!(
                         "Non-class found in {} at CP index {}",
                         current_klass.get_name(),
@@ -398,6 +408,30 @@ pub fn exec_method(
     }
 }
 
+fn massage_to_jvm_int_and_equate(v1: runtime::JvmValue, v2: runtime::JvmValue) -> bool {
+    match v1 {
+        runtime::JvmValue::Boolean { val: b } => match v2 {
+            runtime::JvmValue::Boolean { val: b1 } => b == b1,
+            _ => panic!("Value not of reference type found for IF_ICMPEQ"),
+        },
+        // Byte { val: i8 },
+        // Short { val: i16 },
+        runtime::JvmValue::Int { val: i } => match v2 {
+            runtime::JvmValue::Int { val: i1 } => i == i1,
+            _ => panic!("Value not of reference type found for IF_ICMPEQ"),
+        },
+
+        // Long { val: i64 },
+        // Float { val: f32 },
+        // Double { val: f64 },
+        // Char { val: char },
+        runtime::JvmValue::ObjRef { val: v } => {
+            panic!("Value should not be reference type for IF_ICMPEQ")
+        }
+        _ => panic!("Value not implemented for IF_ICMPEQ"),
+    }
+}
+
 fn dispatch_invoke(
     context: &mut runtime::VmContext,
     current_klass: runtime::OtKlass,
@@ -407,7 +441,7 @@ fn dispatch_invoke(
 ) -> () {
     let fq_name_desc = current_klass.cp_as_string(cp_lookup);
     let klz_idx = match current_klass.lookup_cp(cp_lookup) {
-        runtime::cp_entry::methodref { clz_idx, nt_idx } => clz_idx,
+        runtime::CpEntry::methodref { clz_idx, nt_idx } => clz_idx,
         _ => panic!(
             "Non-methodref found in {} at CP index {}",
             current_klass.get_name(),

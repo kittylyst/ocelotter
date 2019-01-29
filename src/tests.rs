@@ -209,6 +209,33 @@ fn test_ifnull() {
 }
 
 #[test]
+fn test_ifeq() {
+    let buf = vec![
+        Opcode::ICONST_1,
+        Opcode::ICONST_1,
+        Opcode::IADD,
+        Opcode::ICONST_2,
+        Opcode::IF_ICMPEQ,
+        0,
+        3,
+        Opcode::ICONST_4,
+        // Opcode::GOTO,
+        // 0,
+        // 12,
+        Opcode::ICONST_3,
+        Opcode::IRETURN,
+    ];
+    let ret = match execute_method(&buf) {
+        runtime::JvmValue::Int { val: i } => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0
+        }
+    };
+    assert_eq!(3, ret);
+}
+
+#[test]
 fn test_goto() {
     let buf = vec![
         opcode::Opcode::ICONST_1,
@@ -316,5 +343,36 @@ fn test_invoke_simple() {
             _ => panic!("Error executing SampleInvoke.foo:()I - non-int value returned"),
         };
         assert_eq!(9, ret2);
+    }
+}
+
+#[test]
+fn test_iffer() {
+    let bytes = match file_to_bytes(Path::new("./resources/test/Iffer.class")) {
+        Ok(buf) => buf,
+        _ => panic!("Error reading Iffer"),
+    };
+    let mut parser = klass_parser::oc_parser::new(bytes, "Iffer.class".to_string());
+    parser.parse();
+    let k = parser.klass();
+
+    let mut context = runtime::VmContext::of();
+    let repo = context.get_repo();
+    repo.add_klass(k.clone());
+
+    {
+        let meth = k.get_method_by_name_and_desc("Iffer.baz:()I".to_string());
+        assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+
+        let opt_ret = exec_method2(&mut context, meth);
+        let ret = match opt_ret {
+            Some(value) => value,
+            None => panic!("Error executing Iffer.baz:()I - no value returned"),
+        };
+        let ret2 = match ret {
+            runtime::JvmValue::Int { val: i } => i,
+            _ => panic!("Error executing Iffer.baz:()I - non-int value returned"),
+        };
+        assert_eq!(3, ret2);
     }
 }

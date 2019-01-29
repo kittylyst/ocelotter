@@ -43,7 +43,7 @@ pub const CP_METHODTYPE: u8 = 16;
 pub const CP_INVOKEDYNAMIC: u8 = 18;
 
 #[derive(Clone, Debug)]
-pub enum cp_entry {
+pub enum CpEntry {
     utf8 { val: String },
     integer { val: i32 },
     float { val: f32 },
@@ -57,7 +57,7 @@ pub enum cp_entry {
     name_and_type { name_idx: u16, type_idx: u16 },
 }
 
-impl cp_entry {
+impl CpEntry {
     pub fn separator(cp_type: u8) -> String {
         match cp_type {
             CP_FIELDREF => ".".to_string(),
@@ -90,7 +90,7 @@ pub struct OtKlass {
     name: String,
     super_name: String,
     flags: u16,
-    cp_entries: Vec<cp_entry>,
+    cp_entries: Vec<CpEntry>,
     methods: Vec<OtMethod>,
     name_desc_lookup: HashMap<String, usize>,
 }
@@ -100,7 +100,7 @@ impl OtKlass {
         klass_name: String,
         super_klass: String,
         flags: u16,
-        cp_entries: &Vec<cp_entry>,
+        cp_entries: &Vec<CpEntry>,
         methods: &Vec<OtMethod>,
     ) -> OtKlass {
         let mut lookup = HashMap::new();
@@ -154,7 +154,7 @@ impl OtKlass {
         }
     }
 
-    pub fn lookup_cp(&self, cp_idx: u16) -> cp_entry {
+    pub fn lookup_cp(&self, cp_idx: u16) -> CpEntry {
         let idx = cp_idx as usize;
         // dbg!(&self.cp_entries);
         match self.cp_entries.get(idx).clone() {
@@ -168,12 +168,12 @@ impl OtKlass {
 
     pub fn cp_as_string(&self, i: u16) -> String {
         match self.lookup_cp(i) {
-            cp_entry::utf8 { val: s } => s,
-            cp_entry::class { idx: utf_idx } => self.cp_as_string(utf_idx),
-            cp_entry::methodref { clz_idx, nt_idx } => {
+            CpEntry::utf8 { val: s } => s,
+            CpEntry::class { idx: utf_idx } => self.cp_as_string(utf_idx),
+            CpEntry::methodref { clz_idx, nt_idx } => {
                 self.cp_as_string(clz_idx) + "." + &self.cp_as_string(nt_idx)
             }
-            cp_entry::name_and_type {
+            CpEntry::name_and_type {
                 name_idx: nidx,
                 type_idx: tidx,
             } => self.cp_as_string(nidx) + ":" + &self.cp_as_string(tidx),

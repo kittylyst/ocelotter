@@ -15,7 +15,7 @@ pub struct oc_parser {
     flags: u16,
     cp_index_this: u16,
     cp_index_super: u16,
-    cp_entries: Vec<cp_entry>,
+    cp_entries: Vec<CpEntry>,
     interfaces: Vec<u16>,
     fields: Vec<OtField>,
     methods: Vec<OtMethod>,
@@ -54,8 +54,8 @@ impl oc_parser {
     fn klass_name(&self) -> &String {
         // Lookup the name in the CP - note that CP indices are 1-indexed
         match self.cp_entries[self.cp_index_this as usize] {
-            cp_entry::class { idx: icl } => match &self.cp_entries[icl as usize] {
-                cp_entry::utf8 { val: s } => s,
+            CpEntry::class { idx: icl } => match &self.cp_entries[icl as usize] {
+                CpEntry::utf8 { val: s } => s,
                 _ => panic!(
                     "Class index {} does not point at utf8 string in constant pool",
                     icl
@@ -71,8 +71,8 @@ impl oc_parser {
     fn super_name(&mut self) -> &String {
         // Lookup the superclass name in the CP - note that CP indices are 1-indexed
         match self.cp_entries[self.cp_index_super as usize] {
-            cp_entry::class { idx: scl } => match &self.cp_entries[scl as usize] {
-                cp_entry::utf8 { val: s } => s,
+            CpEntry::class { idx: scl } => match &self.cp_entries[scl as usize] {
+                CpEntry::utf8 { val: s } => s,
                 _ => panic!(
                     "Superclass index {} does not point at utf8 string in constant pool",
                     scl
@@ -87,7 +87,7 @@ impl oc_parser {
 
     fn stringref_from_cp(&mut self, idx: u16) -> &String {
         match &self.cp_entries[idx as usize] {
-            cp_entry::utf8 { val: s } => s,
+            CpEntry::utf8 { val: s } => s,
             _ => panic!(
                 "Superclass index {} does not point at utf8 string in constant pool",
                 idx
@@ -133,7 +133,7 @@ impl oc_parser {
         dbg!(self.get_pool_size());
         self.cp_entries.resize(
             (self.poolItemCount as usize) + 1,
-            cp_entry::integer { val: 0 },
+            CpEntry::integer { val: 0 },
         );
         let mut current_cp = 1;
         while current_cp < self.poolItemCount {
@@ -161,7 +161,7 @@ impl oc_parser {
                     }
                     .to_owned();
                     dbg!(str_c.clone());
-                    cp_entry::utf8 { val: str_c }
+                    CpEntry::utf8 { val: str_c }
                 }
                 CP_INTEGER => {
                     let b1 = self.clz_read[self.current];
@@ -171,7 +171,7 @@ impl oc_parser {
                     self.current += 4;
 
                     let buf = &[b1, b2, b3, b4];
-                    cp_entry::integer {
+                    CpEntry::integer {
                         val: BigEndian::read_i32(buf),
                     }
                 }
@@ -183,7 +183,7 @@ impl oc_parser {
                     self.current += 4;
 
                     let buf = &[b1, b2, b3, b4];
-                    cp_entry::float {
+                    CpEntry::float {
                         val: BigEndian::read_f32(buf),
                     }
                 }
@@ -202,7 +202,7 @@ impl oc_parser {
                     current_cp += 1;
 
                     let buf = &[b1, b2, b3, b4, b5, b6, b7, b8];
-                    cp_entry::long {
+                    CpEntry::long {
                         val: BigEndian::read_i64(buf),
                     }
                 }
@@ -221,7 +221,7 @@ impl oc_parser {
                     current_cp += 1;
 
                     let buf = &[b1, b2, b3, b4, b5, b6, b7, b8];
-                    cp_entry::double {
+                    CpEntry::double {
                         val: BigEndian::read_f64(buf),
                     }
                 }
@@ -231,7 +231,7 @@ impl oc_parser {
                     let b2 = self.clz_read[self.current + 1];
                     self.current += 2;
 
-                    cp_entry::class {
+                    CpEntry::class {
                         idx: ((b1 as u16) << 8) + b2 as u16,
                     }
                 }
@@ -240,7 +240,7 @@ impl oc_parser {
                     let b2 = self.clz_read[self.current + 1];
                     self.current += 2;
 
-                    cp_entry::string {
+                    CpEntry::string {
                         idx: ((b1 as u16) << 8) + b2 as u16,
                     }
                 }
@@ -252,7 +252,7 @@ impl oc_parser {
                     let b4 = self.clz_read[self.current + 3];
                     self.current += 4;
 
-                    cp_entry::fieldref {
+                    CpEntry::fieldref {
                         clz_idx: ((b1 as u16) << 8) + b2 as u16,
                         nt_idx: ((b3 as u16) << 8) + b4 as u16,
                     }
@@ -265,7 +265,7 @@ impl oc_parser {
                     let b4 = self.clz_read[self.current + 3];
                     self.current += 4;
 
-                    cp_entry::methodref {
+                    CpEntry::methodref {
                         clz_idx: ((b1 as u16) << 8) + b2 as u16,
                         nt_idx: ((b3 as u16) << 8) + b4 as u16,
                     }
@@ -278,7 +278,7 @@ impl oc_parser {
                     let b4 = self.clz_read[self.current + 3];
                     self.current += 4;
 
-                    cp_entry::interface_methodref {
+                    CpEntry::interface_methodref {
                         clz_idx: ((b1 as u16) << 8) + b2 as u16,
                         nt_idx: ((b3 as u16) << 8) + b4 as u16,
                     }
@@ -291,7 +291,7 @@ impl oc_parser {
                     let b4 = self.clz_read[self.current + 3];
                     self.current += 4;
 
-                    cp_entry::name_and_type {
+                    CpEntry::name_and_type {
                         name_idx: ((b1 as u16) << 8) + b2 as u16,
                         type_idx: ((b3 as u16) << 8) + b4 as u16,
                     }
@@ -340,7 +340,7 @@ impl oc_parser {
             self.current += 8;
 
             let f_name = match &self.cp_entries[name_idx as usize] {
-                cp_entry::utf8 { val: s } => s,
+                CpEntry::utf8 { val: s } => s,
                 _ => panic!(
                     "Name index {} does not point at utf8 string in constant pool",
                     name_idx
@@ -418,14 +418,14 @@ impl oc_parser {
             self.current += 8;
 
             let m_name = match &self.cp_entries[name_idx as usize] {
-                cp_entry::utf8 { val: s } => s,
+                CpEntry::utf8 { val: s } => s,
                 _ => panic!(
                     "Name index {} does not point at utf8 string in constant pool",
                     name_idx
                 ),
             };
             let m_desc = match &self.cp_entries[desc_idx as usize] {
-                cp_entry::utf8 { val: s } => s,
+                CpEntry::utf8 { val: s } => s,
                 _ => panic!(
                     "Desc index {} does not point at utf8 string in constant pool",
                     desc_idx
