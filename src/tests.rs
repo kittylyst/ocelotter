@@ -7,7 +7,14 @@ use std::path::Path;
 
 fn execute_method(buf: &Vec<u8>) -> runtime::jvm_value {
     let lvt = runtime::interp_local_vars {};
-    let opt_ret = exec_method("DUMMY".to_string(), "DUMMY_DESC".to_string(), &buf, &lvt);
+    let mut context = runtime::vm_context::of();
+    let opt_ret = exec_method(
+        &mut context,
+        "DUMMY".to_string(),
+        "DUMMY_DESC".to_string(),
+        &buf,
+        &lvt,
+    );
     match opt_ret {
         Some(value) => value,
         None => runtime::jvm_value::ObjRef {
@@ -247,7 +254,7 @@ fn test_read_header() {
     let mut parser = klass_parser::oc_parser::new(bytes, "Foo.class".to_string());
     parser.parse();
     assert_eq!(16, parser.get_pool_size());
-    let mut k = parser.klass();
+    let k = parser.klass();
     assert_eq!("Foo", k.get_name());
     assert_eq!("java/lang/Object", k.get_super_name());
 }
@@ -261,7 +268,7 @@ fn test_read_simple_class() {
     let mut parser = klass_parser::oc_parser::new(bytes, "Foo2.class".to_string());
     parser.parse();
     assert_eq!(30, parser.get_pool_size());
-    let mut k = parser.klass();
+    let k = parser.klass();
     assert_eq!("Foo2", k.get_name());
     assert_eq!("java/lang/Object", k.get_super_name());
     assert_eq!(2, k.get_methods().len());
@@ -276,18 +283,20 @@ fn test_invoke_simple() {
     let mut parser = klass_parser::oc_parser::new(bytes, "SampleInvoke.class".to_string());
     parser.parse();
     assert_eq!(21, parser.get_pool_size());
-    let mut k = parser.klass();
+    let k = parser.klass();
     assert_eq!("SampleInvoke", k.get_name());
     assert_eq!("java/lang/Object", k.get_super_name());
     assert_eq!(4, k.get_methods().len());
 
+    let mut context = runtime::vm_context::of();
+    let repo = context.get_repo();
     repo.add_klass(k.clone());
 
     {
         let meth = k.get_method_by_name_and_desc("SampleInvoke.bar:()I".to_string());
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-        let opt_ret = exec_method2(meth);
+        let opt_ret = exec_method2(&mut context, meth);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing SampleInvoke.bar:()I - no value returned"),
@@ -300,21 +309,21 @@ fn test_invoke_simple() {
     }
 
     // {
-    // // public static int foo();
-    // // Code:
-    // //    0: iconst_2
-    // //    1: istore_0
-    // //    2: iload_0
-    // //    3: invokestatic  #2                  // Method bar:()I
-    // //    6: iadd
-    // //    7: istore_0
-    // //    8: iload_0
-    // //    9: ireturn
+    //     // public static int foo();
+    //     // Code:
+    //     //    0: iconst_2
+    //     //    1: istore_0
+    //     //    2: iload_0
+    //     //    3: invokestatic  #2                  // Method bar:()I
+    //     //    6: iadd
+    //     //    7: istore_0
+    //     //    8: iload_0
+    //     //    9: ireturn
 
     //     let meth = k.get_method_by_name_and_desc("SampleInvoke.foo:()I".to_string());
     //     assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-    //     let opt_ret = exec_method2(meth);
+    //     let opt_ret = exec_method2(&mut context, meth);
     //     let ret = match opt_ret {
     //         Some(value) => value,
     //         None => panic!("Error executing SampleInvoke.foo:()I - no value returned"),

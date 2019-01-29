@@ -15,8 +15,7 @@ pub struct oc_parser {
     flags: u16,
     cp_index_this: u16,
     cp_index_super: u16,
-    // FIXME: Change to cp_entries
-    cp_items: Vec<cp_entry>,
+    cp_entries: Vec<cp_entry>,
     interfaces: Vec<u16>,
     fields: Vec<ot_field>,
     methods: Vec<ot_method>,
@@ -35,7 +34,7 @@ impl oc_parser {
             flags: 0,
             cp_index_this: 0,
             cp_index_super: 0,
-            cp_items: Vec::new(),
+            cp_entries: Vec::new(),
             interfaces: Vec::new(),
             fields: Vec::new(),
             methods: Vec::new(),
@@ -47,15 +46,15 @@ impl oc_parser {
             self.klass_name().to_string(),
             self.super_name().to_string(),
             self.flags,
-            &self.cp_items,
+            &self.cp_entries,
             &self.methods,
         )
     }
 
     fn klass_name(&self) -> &String {
         // Lookup the name in the CP - note that CP indices are 1-indexed
-        match self.cp_items[self.cp_index_this as usize] {
-            cp_entry::class { idx: icl } => match &self.cp_items[icl as usize] {
+        match self.cp_entries[self.cp_index_this as usize] {
+            cp_entry::class { idx: icl } => match &self.cp_entries[icl as usize] {
                 cp_entry::utf8 { val: s } => s,
                 _ => panic!(
                     "Class index {} does not point at utf8 string in constant pool",
@@ -71,8 +70,8 @@ impl oc_parser {
 
     fn super_name(&mut self) -> &String {
         // Lookup the superclass name in the CP - note that CP indices are 1-indexed
-        match self.cp_items[self.cp_index_super as usize] {
-            cp_entry::class { idx: scl } => match &self.cp_items[scl as usize] {
+        match self.cp_entries[self.cp_index_super as usize] {
+            cp_entry::class { idx: scl } => match &self.cp_entries[scl as usize] {
                 cp_entry::utf8 { val: s } => s,
                 _ => panic!(
                     "Superclass index {} does not point at utf8 string in constant pool",
@@ -87,7 +86,7 @@ impl oc_parser {
     }
 
     fn stringref_from_cp(&mut self, idx: u16) -> &String {
-        match &self.cp_items[idx as usize] {
+        match &self.cp_entries[idx as usize] {
             cp_entry::utf8 { val: s } => s,
             _ => panic!(
                 "Superclass index {} does not point at utf8 string in constant pool",
@@ -132,7 +131,7 @@ impl oc_parser {
         self.current = 10;
         dbg!("Pool size:");
         dbg!(self.get_pool_size());
-        self.cp_items.resize(
+        self.cp_entries.resize(
             (self.poolItemCount as usize) + 1,
             cp_entry::integer { val: 0 },
         );
@@ -299,7 +298,7 @@ impl oc_parser {
                 }
                 _ => panic!("Unsupported Constant Pool type {} at {}", tag, self.current),
             };
-            self.cp_items[current_cp as usize] = item;
+            self.cp_entries[current_cp as usize] = item;
             current_cp += 1;
         }
     }
@@ -340,7 +339,7 @@ impl oc_parser {
                 + self.clz_read[self.current + 7] as u16;
             self.current += 8;
 
-            let f_name = match &self.cp_items[name_idx as usize] {
+            let f_name = match &self.cp_entries[name_idx as usize] {
                 cp_entry::utf8 { val: s } => s,
                 _ => panic!(
                     "Name index {} does not point at utf8 string in constant pool",
@@ -418,14 +417,14 @@ impl oc_parser {
                 + self.clz_read[self.current + 7] as u16;
             self.current += 8;
 
-            let m_name = match &self.cp_items[name_idx as usize] {
+            let m_name = match &self.cp_entries[name_idx as usize] {
                 cp_entry::utf8 { val: s } => s,
                 _ => panic!(
                     "Name index {} does not point at utf8 string in constant pool",
                     name_idx
                 ),
             };
-            let m_desc = match &self.cp_items[desc_idx as usize] {
+            let m_desc = match &self.cp_entries[desc_idx as usize] {
                 cp_entry::utf8 { val: s } => s,
                 _ => panic!(
                     "Desc index {} does not point at utf8 string in constant pool",

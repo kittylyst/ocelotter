@@ -5,12 +5,13 @@ mod runtime;
 use opcode::*;
 // use runtime::*;
 
-static heap: runtime::shared_simple_heap = runtime::shared_simple_heap {};
-static repo: runtime::shared_klass_repo = runtime::shared_klass_repo {};
-
-pub fn exec_method2(mut meth: runtime::ot_method) -> Option<runtime::jvm_value> {
+pub fn exec_method2(
+    context: &mut runtime::vm_context,
+    meth: runtime::ot_method,
+) -> Option<runtime::jvm_value> {
     let vars = runtime::interp_local_vars {};
     exec_method(
+        context,
         meth.get_klass_name(),
         "DUMMY_DESC".to_string(),
         &meth.get_code(),
@@ -19,6 +20,7 @@ pub fn exec_method2(mut meth: runtime::ot_method) -> Option<runtime::jvm_value> 
 }
 
 pub fn exec_method(
+    context: &mut runtime::vm_context,
     klass_name: String,
     _desc: String,
     instr: &Vec<u8>,
@@ -26,6 +28,7 @@ pub fn exec_method(
 ) -> Option<runtime::jvm_value> {
     let mut current = 0;
     let mut eval = runtime::interp_eval_stack::new();
+    let repo = context.get_repo();
     let current_klass = repo.lookup_klass(klass_name.clone());
 
     dbg!(instr);
@@ -102,7 +105,7 @@ pub fn exec_method(
 
             // GETFIELD => {
             //     let cp_lookup = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     runtime::ot_field field = repo.lookupField(klass_name, (short) cp_lookup);
+            //     runtime::ot_field field = context.get_repo().lookupField(klass_name, (short) cp_lookup);
             //     runtime::jvm_value receiver = eval.pop();
             //     // VERIFY: Should check to make sure receiver is an Opcode::A
             //     runtime::ot_obj obj = heap.findObject(receiver.value);
@@ -110,7 +113,7 @@ pub fn exec_method(
             // },
             // GETSTATIC => {
             //     let cp_lookup = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     runtime::ot_field f = repo.lookupField(klass_name, (short) cp_lookup);
+            //     runtime::ot_field f = context.get_repo().lookupField(klass_name, (short) cp_lookup);
             //     runtime::ot_klass fgKlass = f.getKlass();
             //     eval.push(fgKlass.getStaticField(f));
             // },
@@ -259,11 +262,12 @@ pub fn exec_method(
                 // let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 // current += 2;
                 // let cp_fq_name_desc = current_klass.lookup_cp(cp_lookup);
-                // dispatch_invoke(repo.lookup_method_exact(dispatch_klass_name, local_name_desc), &eval);
+                // dispatch_invoke(context.get_repo().lookup_method_exact(dispatch_klass_name, local_name_desc), &eval);
             }
             Opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
+                dbg!(current_klass.clone());
                 let fq_name_desc = match current_klass.lookup_cp(cp_lookup) {
                     runtime::cp_entry::methodref { clz_idx, nt_idx } => ".xxxx:()V", // FIXME
                     _ => panic!(
@@ -276,7 +280,9 @@ pub fn exec_method(
                     runtime::split_name_desc(fq_name_desc.to_string());
 
                 dispatch_invoke(
-                    repo.lookup_method_exact(&dispatch_klass_name, local_name_desc),
+                    context
+                        .get_repo()
+                        .lookup_method_exact(&dispatch_klass_name, local_name_desc),
                     &eval,
                 );
             }
@@ -284,7 +290,7 @@ pub fn exec_method(
             Opcode::INVOKEVIRTUAL => {
                 // let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 // current += 2;
-                // dispatch_invoke(repo.lookup_method_virtual(&klass_name, cp_lookup), &eval);
+                // dispatch_invoke(context.get_repo().lookup_method_virtual(&klass_name, cp_lookup), &eval);
             }
             Opcode::IOR => eval.ior(),
 
@@ -336,9 +342,9 @@ pub fn exec_method(
                     ),
                 };
 
-                let klass: runtime::ot_klass = repo.lookup_klass(klass_name);
+                let klass: runtime::ot_klass = context.get_repo().lookup_klass(klass_name);
                 eval.push(runtime::jvm_value::ObjRef {
-                    val: heap.allocate_obj(klass),
+                    val: context.get_heap().allocate_obj(klass),
                 });
             }
             Opcode::NOP => {
@@ -360,7 +366,9 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let putf: runtime::ot_field = repo.lookup_field(my_klass_name.clone(), cp_lookup);
+                let putf: runtime::ot_field = context
+                    .get_repo()
+                    .lookup_field(my_klass_name.clone(), cp_lookup);
                 let val: runtime::jvm_value = eval.pop();
 
                 let recvp: runtime::jvm_value = eval.pop();
@@ -377,7 +385,9 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let puts = repo.lookup_field(my_klass_name.clone(), cp_lookup);
+                let puts = context
+                    .get_repo()
+                    .lookup_field(my_klass_name.clone(), cp_lookup);
                 let f_klass = puts.get_klass();
                 f_klass.set_static_field(puts.get_name(), eval.pop());
             }

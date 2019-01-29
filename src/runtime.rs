@@ -68,7 +68,7 @@ impl cp_entry {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct cp_attr {
     name_idx: u16,
 }
@@ -85,7 +85,7 @@ pub fn split_name_desc(name_desc: String) -> (String, String) {
 
 //////////// RUNTIME KLASS AND RELATED HANDLING
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ot_klass {
     name: String,
     super_name: String,
@@ -106,7 +106,7 @@ impl ot_klass {
         let mut lookup = HashMap::new();
         let mut i = 0;
         while i < methods.len() {
-            let mut meth = match methods.get(i).clone() {
+            let meth = match methods.get(i).clone() {
                 Some(val) => val.clone(),
                 None => panic!("Error: method {} not found on {}", i, klass_name),
             };
@@ -166,7 +166,7 @@ impl ot_klass {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ot_method {
     klass_name: String,
     flags: u16,
@@ -234,6 +234,7 @@ impl fmt::Display for ot_method {
     }
 }
 
+#[derive(Debug)]
 pub struct ot_field {
     class_name: String,
     flags: u16,
@@ -272,7 +273,7 @@ impl ot_field {
         // FIXME DUMMY
         return ot_klass {
             name: "DUMMY_CLASS".to_string(),
-            super_name: "DUMMY_SUPER".to_string(),
+            super_name: "DUMMY_SUPER0".to_string(),
             flags: 0,
             cp_entries: Vec::new(),
             methods: Vec::new(),
@@ -362,6 +363,28 @@ impl ot_obj {
 impl fmt::Display for ot_obj {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "MarK: {} ; Klass: {}", self.mark, self.klassid)
+    }
+}
+
+pub struct vm_context {
+    heap: shared_simple_heap,
+    repo: shared_klass_repo,
+}
+
+impl vm_context {
+    pub fn of() -> vm_context {
+        vm_context {
+            heap: shared_simple_heap {},
+            repo: shared_klass_repo::new(),
+        }
+    }
+
+    pub fn get_repo(&mut self) -> &mut shared_klass_repo {
+        &mut self.repo
+    }
+
+    pub fn get_heap(&mut self) -> &mut shared_simple_heap {
+        &mut self.heap
     }
 }
 
@@ -566,11 +589,15 @@ impl interp_local_vars {
 
 //////////// SHARED RUNTIME STRUCTURES
 
-pub struct shared_klass_repo {}
+pub struct shared_klass_repo {
+    klass_lookup: HashMap<String, ot_klass>,
+}
 
 impl shared_klass_repo {
     pub fn new() -> shared_klass_repo {
-        shared_klass_repo {}
+        shared_klass_repo {
+            klass_lookup: HashMap::new(),
+        }
     }
 
     pub fn lookup_field(&self, _klass_name: String, _idx: u16) -> ot_field {
@@ -621,7 +648,9 @@ impl shared_klass_repo {
         }
     }
 
-    pub fn add_klass(&self, k: ot_klass) -> () {}
+    pub fn add_klass(&mut self, k: ot_klass) -> () {
+        self.klass_lookup.insert(k.get_name().clone(), k.clone());
+    }
 }
 
 pub struct shared_simple_heap {}
