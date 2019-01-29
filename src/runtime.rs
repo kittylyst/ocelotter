@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::ptr;
 
 pub const ACC_PUBLIC: u16 = 0x0001; // Declared public; may be accessed from outside its package.
 pub const ACC_PRIVATE: u16 = 0x0002; // Declared private; usable only within the defining class.
@@ -185,6 +186,15 @@ impl OtKlass {
     }
 }
 
+// flags: u16,
+// cp_entries: Vec<CpEntry>,
+// name_desc_lookup: HashMap<String, usize>,
+impl fmt::Display for OtKlass {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} ISA {} with methods ", self.name, self.super_name)
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct OtMethod {
     klass_name: String,
@@ -357,21 +367,28 @@ impl fmt::Display for JvmValue {
 #[derive(Copy, Clone)]
 pub struct OtObj {
     mark: u64,
-    klassid: u32, // FIXME: This should become a pointer at some point
+    klass: *const OtKlass,
 }
 
 impl OtObj {
+    pub fn of(klass: &OtKlass) -> OtObj {
+        OtObj {
+            mark: 0u64,
+            klass: klass,
+        }
+    }
+
     pub fn put_field(&self, _f: OtField, _val: JvmValue) -> () {}
 
     pub fn get_null() -> OtObj {
         OtObj {
             mark: 0u64,
-            klassid: 0u32,
+            klass: ptr::null(),
         }
     }
 
     pub fn is_null(&self) -> bool {
-        if self.mark == 0u64 && self.klassid == 0u32 {
+        if self.mark == 0u64 && self.klass == ptr::null() {
             true
         } else {
             false
@@ -381,7 +398,7 @@ impl OtObj {
 
 impl fmt::Display for OtObj {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "MarK: {} ; Klass: {}", self.mark, self.klassid)
+        unsafe { write!(f, "MarK: {} ; Klass: {}", self.mark, *self.klass) }
     }
 }
 
@@ -669,11 +686,13 @@ impl SharedKlassRepo {
     }
 }
 
-pub struct SharedSimpleHeap {}
+pub struct SharedSimpleHeap {
+    // Free list
+// Alloc table
+}
 
 impl SharedSimpleHeap {
     pub fn allocate_obj(&self, klass: &OtKlass) -> OtObj {
-        // FIXME
-        OtObj::get_null()
+        OtObj::of(klass)
     }
 }
