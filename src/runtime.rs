@@ -392,7 +392,7 @@ pub struct interp_eval_stack {
 }
 
 impl interp_eval_stack {
-    pub fn new() -> interp_eval_stack {
+    pub fn of() -> interp_eval_stack {
         interp_eval_stack { stack: Vec::new() }
     }
 
@@ -556,32 +556,31 @@ impl interp_eval_stack {
     }
 }
 
-pub struct interp_local_vars {}
+pub struct interp_local_vars {
+    lvt: [jvm_value; 256],
+}
 
 impl interp_local_vars {
-    pub fn iload(&self, _idx: u8) -> jvm_value {
-        // FIXME Type checks...
-        jvm_value::Int { val: 1 }
+    pub fn of() -> interp_local_vars {
+        interp_local_vars { lvt: [jvm_value::Int{val: 0} ; 256] }
     }
 
-    pub fn store(&self, _idx: u8, _val: jvm_value) -> () {
-        // FIXME Load from LVT
+    pub fn load(&self, idx: u8) -> jvm_value {
+        self.lvt[idx as usize]
     }
 
-    pub fn iinc(&self, _idx: u8, _incr: u8) -> () {}
-
-    pub fn dload(&self, _idx: u8) -> crate::runtime::jvm_value {
-        jvm_value::Double { val: 0.001 }
+    pub fn store(&mut self, idx: u8, val: jvm_value) -> () {
+        self.lvt[idx as usize] = val
     }
 
-    pub fn aload(&self, _idx: u8) -> crate::runtime::jvm_value {
-        // FIXME Load from LVT
-        jvm_value::ObjRef {
-            val: ot_obj::get_null(),
+    pub fn iinc(&mut self, idx: u8, incr: u8) -> () {
+        match self.lvt[idx as usize] {
+            jvm_value::Int{ val: v } => {
+                self.lvt[idx as usize] = jvm_value::Int{ val: v + 1 };
+            },
+            _ => panic!("Non-integer value encountered in IINC of local var {}", idx),
         }
     }
-
-    pub fn astore(&self, _idx: u8, _val: jvm_value) -> () {}
 }
 
 //////////// SHARED RUNTIME STRUCTURES

@@ -9,18 +9,18 @@ pub fn exec_method2(
     context: &mut runtime::vm_context,
     meth: runtime::ot_method,
 ) -> Option<runtime::jvm_value> {
-    let vars = runtime::interp_local_vars {};
-    exec_method(context, meth.get_klass_name(), &meth.get_code(), &vars)
+    let mut vars = runtime::interp_local_vars::of();
+    exec_method(context, meth.get_klass_name(), &meth.get_code(), &mut vars)
 }
 
 pub fn exec_method(
     context: &mut runtime::vm_context,
     klass_name: String,
     instr: &Vec<u8>,
-    lvt: &runtime::interp_local_vars,
+    lvt: &mut runtime::interp_local_vars,
 ) -> Option<runtime::jvm_value> {
     let mut current = 0;
-    let mut eval = runtime::interp_eval_stack::new();
+    let mut eval = runtime::interp_eval_stack::of();
 
     // dbg!(instr);
     loop {
@@ -37,21 +37,21 @@ pub fn exec_method(
             Opcode::ACONST_NULL => eval.aconst_null(),
 
             Opcode::ALOAD => {
-                eval.push(lvt.aload(instr[current]));
+                eval.push(lvt.load(instr[current]));
                 current += 1;
             }
-            Opcode::ALOAD_0 => eval.push(lvt.aload(0)),
+            Opcode::ALOAD_0 => eval.push(lvt.load(0)),
 
-            Opcode::ALOAD_1 => eval.push(lvt.aload(1)),
+            Opcode::ALOAD_1 => eval.push(lvt.load(1)),
 
             Opcode::ARETURN => break Some(eval.pop()),
             Opcode::ASTORE => {
-                lvt.astore(instr[current], eval.pop());
+                lvt.store(instr[current], eval.pop());
                 current += 1;
             }
-            Opcode::ASTORE_0 => lvt.astore(0, eval.pop()),
+            Opcode::ASTORE_0 => lvt.store(0, eval.pop()),
 
-            Opcode::ASTORE_1 => lvt.astore(1, eval.pop()),
+            Opcode::ASTORE_1 => lvt.store(1, eval.pop()),
 
             Opcode::BIPUSH => {
                 eval.iconst(instr[current] as i32);
@@ -64,17 +64,17 @@ pub fn exec_method(
             Opcode::DCONST_1 => eval.dconst(1.0),
 
             Opcode::DLOAD => {
-                eval.push(lvt.dload(instr[current]));
+                eval.push(lvt.load(instr[current]));
                 current += 1;
             }
 
-            Opcode::DLOAD_0 => eval.push(lvt.dload(0)),
+            Opcode::DLOAD_0 => eval.push(lvt.load(0)),
 
-            Opcode::DLOAD_1 => eval.push(lvt.dload(1)),
+            Opcode::DLOAD_1 => eval.push(lvt.load(1)),
 
-            Opcode::DLOAD_2 => eval.push(lvt.dload(2)),
+            Opcode::DLOAD_2 => eval.push(lvt.load(2)),
 
-            Opcode::DLOAD_3 => eval.push(lvt.dload(3)),
+            Opcode::DLOAD_3 => eval.push(lvt.load(3)),
 
             Opcode::DRETURN => break Some(eval.pop()),
             Opcode::DSTORE => {
@@ -233,17 +233,17 @@ pub fn exec_method(
             }
 
             Opcode::ILOAD => {
-                eval.push(lvt.iload(instr[current]));
+                eval.push(lvt.load(instr[current]));
                 current += 1
             }
 
-            Opcode::ILOAD_0 => eval.push(lvt.iload(0)),
+            Opcode::ILOAD_0 => eval.push(lvt.load(0)),
 
-            Opcode::ILOAD_1 => eval.push(lvt.iload(1)),
+            Opcode::ILOAD_1 => eval.push(lvt.load(1)),
 
-            Opcode::ILOAD_2 => eval.push(lvt.iload(2)),
+            Opcode::ILOAD_2 => eval.push(lvt.load(2)),
 
-            Opcode::ILOAD_3 => eval.push(lvt.iload(3)),
+            Opcode::ILOAD_3 => eval.push(lvt.load(3)),
 
             Opcode::IMUL => eval.imul(),
 

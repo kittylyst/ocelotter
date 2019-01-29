@@ -6,9 +6,9 @@ use std::io::Read;
 use std::path::Path;
 
 fn execute_method(buf: &Vec<u8>) -> runtime::jvm_value {
-    let lvt = runtime::interp_local_vars {};
+    let mut lvt = runtime::interp_local_vars::of();
     let mut context = runtime::vm_context::of();
-    let opt_ret = exec_method(&mut context, "DUMMY".to_string(), &buf, &lvt);
+    let opt_ret = exec_method(&mut context, "DUMMY".to_string(), &buf, &mut lvt);
     match opt_ret {
         Some(value) => value,
         None => runtime::jvm_value::ObjRef {
@@ -302,30 +302,19 @@ fn test_invoke_simple() {
         assert_eq!(7, ret2);
     }
 
-    // {
-    //     // public static int foo();
-    //     // Code:
-    //     //    0: iconst_2
-    //     //    1: istore_0
-    //     //    2: iload_0
-    //     //    3: invokestatic  #2                  // Method bar:()I
-    //     //    6: iadd
-    //     //    7: istore_0
-    //     //    8: iload_0
-    //     //    9: ireturn
+    {
+        let meth = k.get_method_by_name_and_desc("SampleInvoke.foo:()I".to_string());
+        assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-    //     let meth = k.get_method_by_name_and_desc("SampleInvoke.foo:()I".to_string());
-    //     assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
-
-    //     let opt_ret = exec_method2(&mut context, meth);
-    //     let ret = match opt_ret {
-    //         Some(value) => value,
-    //         None => panic!("Error executing SampleInvoke.foo:()I - no value returned"),
-    //     };
-    //     let ret2 = match ret {
-    //         runtime::jvm_value::Int { val: i } => i,
-    //         _ => panic!("Error executing SampleInvoke.foo:()I - non-int value returned"),
-    //     };
-    //     assert_eq!(9, ret2);
-    // }
+        let opt_ret = exec_method2(&mut context, meth);
+        let ret = match opt_ret {
+            Some(value) => value,
+            None => panic!("Error executing SampleInvoke.foo:()I - no value returned"),
+        };
+        let ret2 = match ret {
+            runtime::jvm_value::Int { val: i } => i,
+            _ => panic!("Error executing SampleInvoke.foo:()I - non-int value returned"),
+        };
+        assert_eq!(9, ret2);
+    }
 }
