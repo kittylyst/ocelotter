@@ -96,7 +96,7 @@ impl ot_klass {
     }
 
     // FIXME: Shouldn't this be ot_field for consistency
-    pub fn set_static_field(&self, _f: String, _vals: JVMValue) -> () {}
+    pub fn set_static_field(&self, _f: String, _vals: jvm_value) -> () {}
 
     pub fn get_name(&mut self) -> String {
         self.name.to_owned()
@@ -251,7 +251,7 @@ impl fmt::Display for ot_field {
 }
 
 #[derive(Copy, Clone)]
-pub enum JVMValue {
+pub enum jvm_value {
     Boolean { val: bool },
     Byte { val: i8 },
     Short { val: i16 },
@@ -260,52 +260,52 @@ pub enum JVMValue {
     Float { val: f32 },
     Double { val: f64 },
     Char { val: char },
-    ObjRef { val: JVMObj },
+    ObjRef { val: ot_obj },
 }
 
-impl JVMValue {
+impl jvm_value {
     fn name(&self) -> char {
         match *self {
-            JVMValue::Boolean { val: _ } => 'Z',
-            JVMValue::Byte { val: _ } => 'B',
-            JVMValue::Short { val: _ } => 'S',
-            JVMValue::Int { val: _ } => 'I',
-            JVMValue::Long { val: _ } => 'J',
-            JVMValue::Float { val: _ } => 'F',
-            JVMValue::Double { val: _ } => 'D',
-            JVMValue::Char { val: _ } => 'C',
-            JVMValue::ObjRef { val: _ } => 'A',
+            jvm_value::Boolean { val: _ } => 'Z',
+            jvm_value::Byte { val: _ } => 'B',
+            jvm_value::Short { val: _ } => 'S',
+            jvm_value::Int { val: _ } => 'I',
+            jvm_value::Long { val: _ } => 'J',
+            jvm_value::Float { val: _ } => 'F',
+            jvm_value::Double { val: _ } => 'D',
+            jvm_value::Char { val: _ } => 'C',
+            jvm_value::ObjRef { val: _ } => 'A',
         }
     }
 }
 
-impl fmt::Display for JVMValue {
+impl fmt::Display for jvm_value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            JVMValue::Boolean { val: v } => write!(f, "{}", v),
-            JVMValue::Byte { val: v } => write!(f, "{}", v),
-            JVMValue::Short { val: v } => write!(f, "{}", v),
-            JVMValue::Int { val: v } => write!(f, "{}", v),
-            JVMValue::Long { val: v } => write!(f, "{}", v),
-            JVMValue::Float { val: v } => write!(f, "{}", v),
-            JVMValue::Double { val: v } => write!(f, "{}", v),
-            JVMValue::Char { val: v } => write!(f, "{}", v),
-            JVMValue::ObjRef { val: v } => write!(f, "{}", v),
+            jvm_value::Boolean { val: v } => write!(f, "{}", v),
+            jvm_value::Byte { val: v } => write!(f, "{}", v),
+            jvm_value::Short { val: v } => write!(f, "{}", v),
+            jvm_value::Int { val: v } => write!(f, "{}", v),
+            jvm_value::Long { val: v } => write!(f, "{}", v),
+            jvm_value::Float { val: v } => write!(f, "{}", v),
+            jvm_value::Double { val: v } => write!(f, "{}", v),
+            jvm_value::Char { val: v } => write!(f, "{}", v),
+            jvm_value::ObjRef { val: v } => write!(f, "{}", v),
         }
     }
 }
 
 #[derive(Copy, Clone)]
-pub struct JVMObj {
+pub struct ot_obj {
     mark: u64,
     klassid: u32, // FIXME: This should become a pointer at some point
 }
 
-impl JVMObj {
-    pub fn put_field(&self, _f: ot_field, _val: JVMValue) -> () {}
+impl ot_obj {
+    pub fn put_field(&self, _f: ot_field, _val: jvm_value) -> () {}
 
-    pub fn get_null() -> JVMObj {
-        JVMObj {
+    pub fn get_null() -> ot_obj {
+        ot_obj {
             mark: 0u64,
             klassid: 0u32,
         }
@@ -320,14 +320,14 @@ impl JVMObj {
     }
 }
 
-impl fmt::Display for JVMObj {
+impl fmt::Display for ot_obj {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "MarK: {} ; Klass: {}", self.mark, self.klassid)
     }
 }
 
 pub struct interp_eval_stack {
-    stack: Vec<JVMValue>,
+    stack: Vec<jvm_value>,
 }
 
 impl interp_eval_stack {
@@ -335,12 +335,12 @@ impl interp_eval_stack {
         interp_eval_stack { stack: Vec::new() }
     }
 
-    pub fn push(&mut self, val: JVMValue) -> () {
+    pub fn push(&mut self, val: jvm_value) -> () {
         let s = &mut self.stack;
         s.push(val);
     }
 
-    pub fn pop(&mut self) -> JVMValue {
+    pub fn pop(&mut self) -> jvm_value {
         let s = &mut self.stack;
         match s.pop() {
             Some(value) => value,
@@ -349,135 +349,135 @@ impl interp_eval_stack {
     }
 
     pub fn aconst_null(&mut self) -> () {
-        self.push(JVMValue::ObjRef {
-            val: JVMObj::get_null(),
+        self.push(jvm_value::ObjRef {
+            val: ot_obj::get_null(),
         });
     }
 
     pub fn iconst(&mut self, v: i32) -> () {
-        self.push(JVMValue::Int { val: v });
+        self.push(jvm_value::Int { val: v });
     }
 
     pub fn iadd(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            JVMValue::Int { val: i } => i,
+            jvm_value::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
-            JVMValue::Int { val: i } => i,
+            jvm_value::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
 
-        self.push(JVMValue::Int { val: i1 + i2 });
+        self.push(jvm_value::Int { val: i1 + i2 });
     }
 
     pub fn isub(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            JVMValue::Int { val: i } => i,
+            jvm_value::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
-            JVMValue::Int { val: i } => i,
+            jvm_value::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
 
-        self.push(JVMValue::Int { val: i1 - i2 });
+        self.push(jvm_value::Int { val: i1 - i2 });
     }
     pub fn imul(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            JVMValue::Int { val: i } => i,
+            jvm_value::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
-            JVMValue::Int { val: i } => i,
+            jvm_value::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
 
-        self.push(JVMValue::Int { val: i1 * i2 });
+        self.push(jvm_value::Int { val: i1 * i2 });
     }
 
     pub fn irem(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            JVMValue::Int { val: i } => i,
+            jvm_value::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
-            JVMValue::Int { val: i } => i,
+            jvm_value::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
 
-        self.push(JVMValue::Int { val: i2 % i1 });
+        self.push(jvm_value::Int { val: i2 % i1 });
     }
     pub fn ixor(&self) -> () {}
     pub fn idiv(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            JVMValue::Int { val: i } => i,
+            jvm_value::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
         let i2 = match self.pop() {
-            JVMValue::Int { val: i } => i,
+            jvm_value::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
 
-        self.push(JVMValue::Int { val: i2 / i1 });
+        self.push(jvm_value::Int { val: i2 / i1 });
     }
     pub fn iand(&self) -> () {}
     pub fn ineg(&mut self) -> () {
         let i1 = match self.pop() {
-            JVMValue::Int { val: i } => i,
+            jvm_value::Int { val: i } => i,
             _ => panic!("Unexpected, non-integer value encountered"),
         };
-        self.push(JVMValue::Int { val: -i1 });
+        self.push(jvm_value::Int { val: -i1 });
     }
     pub fn ior(&self) -> () {}
 
     pub fn dadd(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            JVMValue::Double { val: i } => i,
+            jvm_value::Double { val: i } => i,
             _ => panic!("Unexpected, non-double value encountered"),
         };
         let i2 = match self.pop() {
-            JVMValue::Double { val: i } => i,
+            jvm_value::Double { val: i } => i,
             _ => panic!("Unexpected, non-double value encountered"),
         };
 
-        self.push(JVMValue::Double { val: i1 + i2 });
+        self.push(jvm_value::Double { val: i1 + i2 });
     }
     pub fn dsub(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            JVMValue::Double { val: i } => i,
+            jvm_value::Double { val: i } => i,
             _ => panic!("Unexpected, non-double value encountered"),
         };
         let i2 = match self.pop() {
-            JVMValue::Double { val: i } => i,
+            jvm_value::Double { val: i } => i,
             _ => panic!("Unexpected, non-double value encountered"),
         };
 
-        self.push(JVMValue::Double { val: i1 - i2 });
+        self.push(jvm_value::Double { val: i1 - i2 });
     }
     pub fn dmul(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
-            JVMValue::Double { val: i } => i,
+            jvm_value::Double { val: i } => i,
             _ => panic!("Unexpected, non-double value encountered"),
         };
         let i2 = match self.pop() {
-            JVMValue::Double { val: i } => i,
+            jvm_value::Double { val: i } => i,
             _ => panic!("Unexpected, non-double value encountered"),
         };
 
-        self.push(JVMValue::Double { val: i1 * i2 });
+        self.push(jvm_value::Double { val: i1 * i2 });
     }
 
     pub fn dconst(&mut self, v: f64) -> () {
-        self.push(JVMValue::Double { val: v });
+        self.push(jvm_value::Double { val: v });
     }
 
     pub fn i2d(&self) -> () {}
@@ -498,29 +498,29 @@ impl interp_eval_stack {
 pub struct interp_local_vars {}
 
 impl interp_local_vars {
-    pub fn iload(&self, _idx: u8) -> JVMValue {
+    pub fn iload(&self, _idx: u8) -> jvm_value {
         // FIXME Type checks...
-        JVMValue::Int { val: 1 }
+        jvm_value::Int { val: 1 }
     }
 
-    pub fn store(&self, _idx: u8, _val: JVMValue) -> () {
+    pub fn store(&self, _idx: u8, _val: jvm_value) -> () {
         // FIXME Load from LVT
     }
 
     pub fn iinc(&self, _idx: u8, _incr: u8) -> () {}
 
-    pub fn dload(&self, _idx: u8) -> crate::runtime::JVMValue {
-        JVMValue::Double { val: 0.001 }
+    pub fn dload(&self, _idx: u8) -> crate::runtime::jvm_value {
+        jvm_value::Double { val: 0.001 }
     }
 
-    pub fn aload(&self, _idx: u8) -> crate::runtime::JVMValue {
+    pub fn aload(&self, _idx: u8) -> crate::runtime::jvm_value {
         // FIXME Load from LVT
-        JVMValue::ObjRef {
-            val: JVMObj::get_null(),
+        jvm_value::ObjRef {
+            val: ot_obj::get_null(),
         }
     }
 
-    pub fn astore(&self, _idx: u8, _val: JVMValue) -> () {}
+    pub fn astore(&self, _idx: u8, _val: jvm_value) -> () {}
 }
 
 pub struct shared_klass_repo {}
@@ -581,8 +581,8 @@ impl shared_klass_repo {
 pub struct shared_simple_heap {}
 
 impl shared_simple_heap {
-    pub fn allocate_obj(&self, _klass: ot_klass) -> JVMObj {
+    pub fn allocate_obj(&self, _klass: ot_klass) -> ot_obj {
         // FIXME
-        JVMObj::get_null()
+        ot_obj::get_null()
     }
 }

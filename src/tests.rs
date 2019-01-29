@@ -5,13 +5,13 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-fn execute_method(buf: &Vec<u8>) -> runtime::JVMValue {
+fn execute_method(buf: &Vec<u8>) -> runtime::jvm_value {
     let lvt = runtime::interp_local_vars {};
     let opt_ret = exec_method("DUMMY".to_string(), "DUMMY_DESC".to_string(), &buf, &lvt);
     match opt_ret {
         Some(value) => value,
-        None => runtime::JVMValue::ObjRef {
-            val: runtime::JVMObj::get_null(),
+        None => runtime::jvm_value::ObjRef {
+            val: runtime::ot_obj::get_null(),
         },
     }
 }
@@ -25,7 +25,7 @@ fn adds_to_two() {
         opcode::Opcode::IRETURN,
     ];
     let ret = match execute_method(&first_test) {
-        runtime::JVMValue::Int { val: i } => i,
+        runtime::jvm_value::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -43,7 +43,7 @@ fn iconst_dup() {
         opcode::Opcode::IRETURN,
     ];
     let ret = match execute_method(&buf) {
-        runtime::JVMValue::Int { val: i } => i,
+        runtime::jvm_value::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -60,7 +60,7 @@ fn iconst_dup() {
         opcode::Opcode::IRETURN,
     ];
     let ret2 = match execute_method(&buf2) {
-        runtime::JVMValue::Int { val: i } => i,
+        runtime::jvm_value::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -78,7 +78,7 @@ fn irem_works() {
         opcode::Opcode::IRETURN,
     ];
     let ret = match execute_method(&buf) {
-        runtime::JVMValue::Int { val: i } => i,
+        runtime::jvm_value::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -96,7 +96,7 @@ fn idiv_works() {
         opcode::Opcode::IRETURN,
     ];
     let ret = match execute_method(&buf) {
-        runtime::JVMValue::Int { val: i } => i,
+        runtime::jvm_value::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -115,7 +115,7 @@ fn iconst_dup_nop_pop() {
         opcode::Opcode::IRETURN,
     ];
     let ret = match execute_method(&buf) {
-        runtime::JVMValue::Int { val: i } => i,
+        runtime::jvm_value::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -135,7 +135,7 @@ fn iconst_dup_x1() {
         opcode::Opcode::IRETURN,
     ];
     let ret = match execute_method(&buf) {
-        runtime::JVMValue::Int { val: i } => i,
+        runtime::jvm_value::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -154,7 +154,7 @@ fn iconst_dup_x1() {
         opcode::Opcode::IRETURN,
     ];
     let ret2 = match execute_method(&buf2) {
-        runtime::JVMValue::Int { val: i } => i,
+        runtime::jvm_value::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -176,7 +176,7 @@ fn test_ifnonnull() {
         opcode::Opcode::IRETURN,
     ];
     let ret = match execute_method(&buf) {
-        runtime::JVMValue::Int { val: i } => i,
+        runtime::jvm_value::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -198,7 +198,7 @@ fn test_ifnull() {
         opcode::Opcode::IRETURN,
     ];
     let ret = match execute_method(&buf) {
-        runtime::JVMValue::Int { val: i } => i,
+        runtime::jvm_value::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -220,7 +220,7 @@ fn test_goto() {
         opcode::Opcode::IRETURN,
     ];
     let ret = match execute_method(&buf) {
-        runtime::JVMValue::Int { val: i } => i,
+        runtime::jvm_value::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -293,7 +293,7 @@ fn test_invoke_simple() {
             None => panic!("Error executing bar:()I - no value returned"),
         };
         let ret2 = match ret {
-            runtime::JVMValue::Int { val: i } => i,
+            runtime::jvm_value::Int { val: i } => i,
             _ => panic!("Error executing bar:()I - non-int value returned"),
         };
         assert_eq!(7, ret2);
@@ -320,7 +320,7 @@ fn test_invoke_simple() {
     //         None => panic!("Error executing foo:()I - no value returned"),
     //     };
     //     let ret2 = match ret {
-    //         runtime::JVMValue::Int { val: i } => i,
+    //         runtime::jvm_value::Int { val: i } => i,
     //         _ => panic!("Error executing foo:()I - non-int value returned"),
     //     };
     //     assert_eq!(7, ret2);
