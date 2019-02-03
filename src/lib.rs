@@ -154,7 +154,7 @@ pub fn exec_method(
             // Opcode::IFEQ => {
             //     let jumpTo = (instr[current] as usize) << 8 + instr[current + 1] as usize;
             //     let i = match eval.pop() {
-                    
+
             //     }
             //     if == 0 {
             //         current += jumpTo;

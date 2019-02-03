@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use std::fmt;
 
-pub mod object;
 pub mod constant_pool;
+pub mod object;
 
-use crate::runtime::object::OtObj;
 use crate::runtime::constant_pool::CpAttr;
 use crate::runtime::constant_pool::CpEntry;
+use crate::runtime::object::OtObj;
 
 //////////// RUNTIME KLASS AND RELATED HANDLING
 
@@ -287,7 +287,6 @@ impl fmt::Display for JvmValue {
         }
     }
 }
-
 
 //////////// RUNTIME STACKS AND LOCAL VARS
 
