@@ -5,11 +5,14 @@ mod runtime;
 use opcode::*;
 use runtime::*;
 
+use crate::runtime::constant_pool::CpEntry;
+
 pub fn exec_method2(context: &mut VmContext, meth: OtMethod) -> Option<JvmValue> {
     let mut vars = InterpLocalVars::of();
     exec_method(context, meth.get_klass_name(), &meth.get_code(), &mut vars)
 }
 
+#[deny(unreachable_patterns)]
 pub fn exec_method(
     context: &mut VmContext,
     klass_name: String,
@@ -148,19 +151,15 @@ pub fn exec_method(
                     current += jumpTo;
                 }
             }
-
             // Opcode::IFEQ => {
             //     let jumpTo = (instr[current] as usize) << 8 + instr[current + 1] as usize;
-            //     let v1 = match eval.pop() {
-            //         JvmValue::ObjRef { val: v } => v,
-            //         _ => panic!("Value not of reference type found for IFEQ"),
-            //     };
-            //     let v2 = match eval.pop() {
-            //         JvmValue::ObjRef { val: v } => v,
-            //         _ => panic!("Value not of reference type found for IFEQ"),
-            //     };
-            //     if v1 == v2 {
-            //         current += jumpTo; // - 1; // The -1 is necessary as we've already inc'd current
+            //     let i = match eval.pop() {
+                    
+            //     }
+            //     if == 0 {
+            //         current += jumpTo;
+            //     } else {
+            //         current += 2;
             //     }
             // }    ,
             // Opcode::IFGE => {

@@ -1,6 +1,7 @@
 use super::*;
-use crate::runtime::ACC_PUBLIC;
-use crate::runtime::ACC_STATIC;
+use crate::runtime::constant_pool::ACC_PUBLIC;
+use crate::runtime::constant_pool::ACC_STATIC;
+use crate::runtime::object::OtObj;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -12,7 +13,7 @@ fn execute_method(buf: &Vec<u8>) -> runtime::JvmValue {
     match opt_ret {
         Some(value) => value,
         None => runtime::JvmValue::ObjRef {
-            val: runtime::OtObj::get_null(),
+            val: runtime::object::OtObj::get_null(),
         },
     }
 }

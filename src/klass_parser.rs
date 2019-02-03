@@ -4,6 +4,8 @@ use byteorder::{BigEndian, ByteOrder};
 use std::io::Read;
 use std::str;
 
+use crate::runtime::constant_pool::*;
+
 pub struct oc_parser {
     clz_read: Vec<u8>,
     filename: String,
@@ -127,6 +129,7 @@ impl oc_parser {
         self.poolItemCount = ((self.clz_read[8] as u16) << 8) + self.clz_read[9] as u16;
     }
 
+    #[deny(unreachable_patterns)]
     fn parse_constant_pool(&mut self) -> () {
         self.current = 10;
         dbg!("Pool size:");
