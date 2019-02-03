@@ -1,3 +1,4 @@
+#![deny(unreachable_patterns)]
 mod klass_parser;
 mod opcode;
 mod runtime;
@@ -12,7 +13,6 @@ pub fn exec_method2(context: &mut VmContext, meth: OtMethod) -> Option<JvmValue>
     exec_method(context, meth.get_klass_name(), &meth.get_code(), &mut vars)
 }
 
-#[deny(unreachable_patterns)]
 pub fn exec_method(
     context: &mut VmContext,
     klass_name: String,

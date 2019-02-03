@@ -21,7 +21,7 @@ pub struct oc_parser {
     interfaces: Vec<u16>,
     fields: Vec<OtField>,
     methods: Vec<OtMethod>,
-    // private CPAttr[] attributes;
+    // attributes: Vec<CpAttr>,
 }
 
 impl oc_parser {
@@ -129,7 +129,6 @@ impl oc_parser {
         self.poolItemCount = ((self.clz_read[8] as u16) << 8) + self.clz_read[9] as u16;
     }
 
-    #[deny(unreachable_patterns)]
     fn parse_constant_pool(&mut self) -> () {
         self.current = 10;
         dbg!("Pool size:");

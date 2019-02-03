@@ -243,7 +243,7 @@ impl fmt::Display for OtField {
 
 //////////// RUNTIME VALUES
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub enum JvmValue {
     Boolean { val: bool },
     Byte { val: i8 },
@@ -274,7 +274,7 @@ impl JvmValue {
 
 impl fmt::Display for JvmValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
+        match self {
             JvmValue::Boolean { val: v } => write!(f, "{}", v),
             JvmValue::Byte { val: v } => write!(f, "{}", v),
             JvmValue::Short { val: v } => write!(f, "{}", v),
@@ -283,8 +283,14 @@ impl fmt::Display for JvmValue {
             JvmValue::Float { val: v } => write!(f, "{}", v),
             JvmValue::Double { val: v } => write!(f, "{}", v),
             JvmValue::Char { val: v } => write!(f, "{}", v),
-            JvmValue::ObjRef { val: v } => write!(f, "{}", v),
+            JvmValue::ObjRef { val: v } => write!(f, "{}", v.clone()),
         }
+    }
+}
+
+impl Default for JvmValue {
+    fn default() -> JvmValue {
+        JvmValue::Int { val: 0i32 }
     }
 }
 
@@ -452,26 +458,31 @@ impl InterpEvalStack {
     }
     pub fn dupX1(&mut self) -> () {
         let i1 = self.pop();
+        let i1c = i1.clone();
         let i2 = self.pop();
         self.push(i1);
         self.push(i2);
-        self.push(i1);
+        self.push(i1c);
     }
 }
 
 pub struct InterpLocalVars {
-    lvt: [JvmValue; 256],
+    lvt: Vec<JvmValue>,
 }
 
 impl InterpLocalVars {
     pub fn of() -> InterpLocalVars {
-        InterpLocalVars {
-            lvt: [JvmValue::Int { val: 0 }; 256],
+        let mut out = InterpLocalVars { lvt: Vec::new() };
+        // HACK Replace with proper local var size by parsing class attributes properly
+        for i in 0..255 {
+            out.lvt.push(JvmValue::default());
         }
+
+        out
     }
 
     pub fn load(&self, idx: u8) -> JvmValue {
-        self.lvt[idx as usize]
+        self.lvt[idx as usize].clone()
     }
 
     pub fn store(&mut self, idx: u8, val: JvmValue) -> () {
