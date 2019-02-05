@@ -32,7 +32,9 @@ pub mod Opcode {
     pub const GOTO: u8 = 0xa7;
     pub const I2D: u8 = 0x87;
     pub const IADD: u8 = 0x60;
+    pub const IALOAD: u8 = 0x2e;
     pub const IAND: u8 = 0x7e;
+    pub const IASTORE: u8 = 0x4f;
     pub const ICONST_M1: u8 = 0x02;
     pub const ICONST_0: u8 = 0x03;
     pub const ICONST_1: u8 = 0x04;

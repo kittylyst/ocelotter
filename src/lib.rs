@@ -3,6 +3,7 @@ mod klass_parser;
 mod opcode;
 mod runtime;
 
+use object::*;
 use opcode::*;
 use runtime::*;
 
@@ -118,7 +119,56 @@ pub fn exec_method(
 
             Opcode::IADD => eval.iadd(),
 
+            Opcode::IALOAD => {
+                let pos_to_load = match eval.pop() {
+                    JvmValue::Int { val: v } => v,
+                    _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
+                };
+                let arrayref = match eval.pop() {
+                    JvmValue::ObjRef { val: v } => v,
+                    _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
+                };
+                dbg!(arrayref.clone());
+
+                let unwrapped_val = match arrayref {
+                    OtObj::vm_arr_int {
+                        mark: _,
+                        klass: _,
+                        length: _,
+                        elements: mut elts,
+                    } => elts[pos_to_load as usize],
+                    _ => panic!("Non-int[] seen on stack during IASTORE at {}", current - 1),
+                };
+                eval.push(JvmValue::Int { val: unwrapped_val });
+            }
+
             Opcode::IAND => eval.iand(),
+
+            Opcode::IASTORE => {
+                let val_to_store = match eval.pop() {
+                    JvmValue::Int { val: v } => v,
+                    _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
+                };
+                let pos_to_store = match eval.pop() {
+                    JvmValue::Int { val: v } => v,
+                    _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
+                };
+                let arrayref = match eval.pop() {
+                    JvmValue::ObjRef { val: v } => v,
+                    _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
+                };
+                dbg!(arrayref.clone());
+
+                match arrayref {
+                    OtObj::vm_arr_int {
+                        mark: _,
+                        klass: _,
+                        length: _,
+                        elements: mut elts,
+                    } => elts[pos_to_store as usize] = val_to_store,
+                    _ => panic!("Non-int[] seen on stack during IASTORE at {}", current - 1),
+                };
+            }
 
             Opcode::ICONST_0 => eval.iconst(0),
 
@@ -334,8 +384,16 @@ pub fn exec_method(
                 let arr_type = instr[current];
                 current += 1;
 
+                // FIXME Other primitive array types needed
                 let arr_ref = match arr_type {
-                    // FIXME Other primitive array types needed
+                    // boolean: 4
+                    // char: 5
+                    // float: 6
+                    // double: 7
+                    // byte: 8
+                    // short: 9
+                    // int: 10
+                    // long: 11
                     10 => match eval.pop() {
                         JvmValue::Int { val: arr_size } => context.allocate_int_arr(arr_size),
                         _ => panic!("Not an int on the stack at {}", (current - 1)),

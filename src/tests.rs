@@ -377,3 +377,35 @@ fn test_iffer() {
         assert_eq!(3, ret2);
     }
 }
+
+#[test]
+#[ignore]
+fn test_array_simple() {
+    let bytes = match file_to_bytes(Path::new("./resources/test/ArraySimple.class")) {
+        Ok(buf) => buf,
+        _ => panic!("Error reading Iffer"),
+    };
+    let mut parser = klass_parser::oc_parser::new(bytes, "ArraySimple.class".to_string());
+    parser.parse();
+    let k = parser.klass();
+
+    let mut context = runtime::VmContext::of();
+    let repo = context.get_repo();
+    repo.add_klass(k.clone());
+
+    {
+        let meth = k.get_method_by_name_and_desc("ArraySimple.baz:()I".to_string());
+        assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+
+        let opt_ret = exec_method2(&mut context, meth);
+        let ret = match opt_ret {
+            Some(value) => value,
+            None => panic!("Error executing ArraySimple.baz:()I - no value returned"),
+        };
+        let ret2 = match ret {
+            runtime::JvmValue::Int { val: i } => i,
+            _ => panic!("Error executing ArraySimple.baz:()I - non-int value returned"),
+        };
+        assert_eq!(7, ret2);
+    }
+}
