@@ -7,7 +7,7 @@ use std::io::Read;
 use std::path::Path;
 
 fn execute_method(buf: &Vec<u8>) -> runtime::JvmValue {
-    let mut lvt = runtime::InterpLocalVars::of();
+    let mut lvt = runtime::InterpLocalVars::of(10); // FIXME
     let mut context = runtime::VmContext::of();
     let opt_ret = exec_method(&mut context, "DUMMY".to_string(), &buf, &mut lvt);
     match opt_ret {

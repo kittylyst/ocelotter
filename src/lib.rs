@@ -9,7 +9,8 @@ use runtime::*;
 use crate::runtime::constant_pool::CpEntry;
 
 pub fn exec_method2(context: &mut VmContext, meth: OtMethod) -> Option<JvmValue> {
-    let mut vars = InterpLocalVars::of();
+    // HACK Replace with proper local var size by parsing class attributes properly
+    let mut vars = InterpLocalVars::of(255);
     exec_method(context, meth.get_klass_name(), &meth.get_code(), &mut vars)
 }
 
@@ -311,7 +312,6 @@ pub fn exec_method(
             Opcode::MONITOREXIT => {
                 eval.pop();
             }
-
             Opcode::NEW => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
@@ -330,6 +330,22 @@ pub fn exec_method(
                     val: context.allocate_obj(&current_klass),
                 });
             }
+            Opcode::NEWARRAY => {
+                let arr_type = instr[current];
+                current += 1;
+
+                let arr_ref = match arr_type {
+                    // FIXME Other primitive array types needed
+                    10 => match eval.pop() {
+                        JvmValue::Int { val: arr_size } => context.allocate_int_arr(arr_size),
+                        _ => panic!("Not an int on the stack at {}", (current - 1)),
+                    },
+                    _ => panic!("Unsupported primitive array type at {}", (current - 1)),
+                };
+
+                eval.push(JvmValue::ObjRef { val: arr_ref });
+            }
+
             Opcode::NOP => {
                 ();
             }
@@ -349,8 +365,8 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let putf: OtField = repo.lookup_field(my_klass_name.clone(), cp_lookup);
-                let val: JvmValue = eval.pop();
+                let putf = repo.lookup_field(my_klass_name.clone(), cp_lookup);
+                let val = eval.pop();
 
                 let recvp: JvmValue = eval.pop();
                 // VERIFY: Should check to make sure receiver is an A
@@ -458,7 +474,7 @@ fn dispatch_invoke(
     let callee = repo.lookup_method_exact(&dispatch_klass_name, fq_name_desc);
 
     // FIXME - General setup requires call args
-    let mut vars = InterpLocalVars::of();
+    let mut vars = InterpLocalVars::of(255);
     if additional_args > 0 {
         vars.store(0, eval.pop());
     }

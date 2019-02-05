@@ -27,6 +27,15 @@ impl OtObj {
         }
     }
 
+    pub fn int_arr_of(size: i32) -> OtObj {
+        OtObj::vm_arr_int {
+            mark: 0u64,
+            klass: ptr::null(), // FIXME Need Object in the mix soon...
+            length: size,
+            elements: Vec::new(),
+        }
+    }
+
     pub fn put_field(&self, _f: OtField, _val: JvmValue) -> () {}
 
     pub fn get_null() -> OtObj {

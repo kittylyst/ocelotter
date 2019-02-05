@@ -76,6 +76,7 @@ pub mod Opcode {
     pub const MONITORENTER: u8 = 0xc2;
     pub const MONITOREXIT: u8 = 0xc3;
     pub const NEW: u8 = 0xbb;
+    pub const NEWARRAY: u8 = 0xbc;
     pub const JSR: u8 = 0xa8;
     pub const JSR_W: u8 = 0xc9;
     pub const LDC: u8 = 0x12;
@@ -115,6 +116,7 @@ pub mod Opcode {
             INVOKEVIRTUAL => 2,
             ISTORE => 1,
             NEW => 2,
+            NEWARRAY => 1,
             JSR => 2,
             JSR_W => 2,
             LDC => 1,

@@ -471,10 +471,9 @@ pub struct InterpLocalVars {
 }
 
 impl InterpLocalVars {
-    pub fn of() -> InterpLocalVars {
+    pub fn of(var_count: u8) -> InterpLocalVars {
         let mut out = InterpLocalVars { lvt: Vec::new() };
-        // HACK Replace with proper local var size by parsing class attributes properly
-        for i in 0..255 {
+        for i in 0..var_count {
             out.lvt.push(JvmValue::default());
         }
 
@@ -524,6 +523,10 @@ impl VmContext {
 
     pub fn allocate_obj(&mut self, klass: &OtKlass) -> OtObj {
         self.heap.allocate_obj(klass)
+    }
+
+    pub fn allocate_int_arr(&mut self, size: i32) -> OtObj {
+        self.heap.allocate_int_arr(size)
     }
 }
 
@@ -591,5 +594,9 @@ pub struct SharedSimpleHeap {
 impl SharedSimpleHeap {
     pub fn allocate_obj(&self, klass: &OtKlass) -> OtObj {
         OtObj::of(klass)
+    }
+
+    pub fn allocate_int_arr(&self, size: i32) -> OtObj {
+        OtObj::int_arr_of(size)
     }
 }
