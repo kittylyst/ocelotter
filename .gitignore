@@ -12,3 +12,6 @@ Cargo.lock
 # Java files for testing
 *.class
 *.java
+
+.DS_Store
+
