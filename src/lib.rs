@@ -157,7 +157,8 @@ pub fn exec_method(
                     JvmValue::ObjRef { val: v } => v,
                     _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
                 };
-                dbg!(arrayref.clone());
+                let arrc = arrayref.clone();
+                dbg!(arrc.clone());
 
                 match arrayref {
                     OtObj::vm_arr_int {
@@ -165,9 +166,14 @@ pub fn exec_method(
                         klass: _,
                         length: _,
                         elements: mut elts,
-                    } => elts[pos_to_store as usize] = val_to_store,
+                    } => {
+                        elts[pos_to_store as usize] = val_to_store;
+                        dbg!(val_to_store);
+                    }
                     _ => panic!("Non-int[] seen on stack during IASTORE at {}", current - 1),
                 };
+                // let arrc2 = arrayref.clone();
+                // dbg!(arrc2.clone());
             }
 
             Opcode::ICONST_0 => eval.iconst(0),

@@ -379,7 +379,6 @@ fn test_iffer() {
 }
 
 #[test]
-#[ignore]
 fn test_array_simple() {
     let bytes = match file_to_bytes(Path::new("./resources/test/ArraySimple.class")) {
         Ok(buf) => buf,
