@@ -25,7 +25,7 @@ pub struct oc_parser {
 }
 
 impl oc_parser {
-    pub fn new(buf: Vec<u8>, fname: String) -> oc_parser {
+    pub fn of(buf: Vec<u8>, fname: String) -> oc_parser {
         oc_parser {
             clz_read: buf,
             filename: fname,
