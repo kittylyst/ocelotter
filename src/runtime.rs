@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 pub mod constant_pool;
 pub mod object;
@@ -12,6 +13,7 @@ use crate::runtime::object::OtObj;
 
 #[derive(Clone, Debug)]
 pub struct OtKlass {
+    id: usize,
     name: String,
     super_name: String,
     flags: u16,
@@ -40,6 +42,7 @@ impl OtKlass {
         }
         dbg!(lookup.clone());
         OtKlass {
+            id: 0, // This indicates that the class has not yet been loaded into a repo
             name: klass_name,
             super_name: super_klass,
             flags: flags,
@@ -48,6 +51,15 @@ impl OtKlass {
             name_desc_lookup: lookup,
         }
     }
+
+    pub fn set_id(&mut self, id: usize) -> () {
+        self.id = id
+    }
+
+    pub fn get_id(&self) -> usize {
+        self.id
+    }
+
 
     // FIXME: Shouldn't this be OtField for consistency
     pub fn set_static_field(&self, _f: String, _vals: JvmValue) -> () {}
@@ -225,6 +237,7 @@ impl OtField {
     pub fn get_klass(&self) -> OtKlass {
         // FIXME DUMMY
         return OtKlass {
+            id: 0,
             name: "DUMMY_CLASS".to_string(),
             super_name: "DUMMY_SUPER0".to_string(),
             flags: 0,
@@ -530,8 +543,9 @@ impl VmContext {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct SharedKlassRepo {
+    klass_count: AtomicUsize,
     klass_lookup: HashMap<String, OtKlass>,
 }
 
@@ -539,6 +553,7 @@ impl SharedKlassRepo {
     pub fn new() -> SharedKlassRepo {
         SharedKlassRepo {
             klass_lookup: HashMap::new(),
+            klass_count: AtomicUsize::new(1),
         }
     }
 
@@ -581,7 +596,8 @@ impl SharedKlassRepo {
         }
     }
 
-    pub fn add_klass(&mut self, k: OtKlass) -> () {
+    pub fn add_klass(&mut self, mut k: OtKlass) -> () {
+        k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
         self.klass_lookup.insert(k.get_name().clone(), k.clone());
     }
 }
@@ -593,7 +609,8 @@ pub struct SharedSimpleHeap {
 
 impl SharedSimpleHeap {
     pub fn allocate_obj(&self, klass: &OtKlass) -> OtObj {
-        OtObj::of(klass)
+        let klassid = klass.get_id();
+        OtObj::of(klassid)
     }
 
     pub fn allocate_int_arr(&self, size: i32) -> OtObj {

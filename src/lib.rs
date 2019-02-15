@@ -26,7 +26,7 @@ pub fn exec_method(
 
     // dbg!(instr);
     loop {
-        let repo = context.get_repo().clone();
+        let repo = context.get_repo();
         let my_klass_name = klass_name.clone();
         let opt_ins = instr.get(current);
         let ins: u8 = match opt_ins {
@@ -133,7 +133,7 @@ pub fn exec_method(
                 let unwrapped_val = match arrayref {
                     OtObj::vm_arr_int {
                         mark: _,
-                        klass: _,
+                        klassid: _,
                         length: _,
                         elements: mut elts,
                     } => elts[pos_to_load as usize],
@@ -163,7 +163,7 @@ pub fn exec_method(
                 match arrayref {
                     OtObj::vm_arr_int {
                         mark: _,
-                        klass: _,
+                        klassid: _,
                         length: _,
                         elements: mut elts,
                     } => {
@@ -534,7 +534,7 @@ fn dispatch_invoke(
         ),
     };
     let dispatch_klass_name = current_klass.cp_as_string(klz_idx);
-    let repo = context.get_repo().clone();
+    let repo = context.get_repo();
     let callee = repo.lookup_method_exact(&dispatch_klass_name, fq_name_desc);
 
     // FIXME - General setup requires call args
