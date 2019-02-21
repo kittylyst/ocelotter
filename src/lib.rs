@@ -2,12 +2,20 @@
 mod klass_parser;
 mod opcode;
 mod runtime;
-
 use object::*;
 use opcode::*;
 use runtime::*;
 
 use crate::runtime::constant_pool::CpEntry;
+
+#[macro_use]
+extern crate lazy_static;
+
+use std::sync::Mutex;
+
+lazy_static! {
+    static ref CONTEXT: Mutex<VmContext<'static>> = Mutex::new(VmContext::of());
+}
 
 pub fn exec_method2(context: &mut VmContext, meth: OtMethod) -> Option<JvmValue> {
     // HACK Replace with proper local var size by parsing class attributes properly

@@ -62,7 +62,10 @@ impl OtObj {
 
     pub fn get_mark(&self) -> u64 {
         match *self {
-            OtObj::vm_obj { mark: m, klassid: _ } => m,
+            OtObj::vm_obj {
+                mark: m,
+                klassid: _,
+            } => m,
             OtObj::vm_arr_int {
                 mark: m,
                 klassid: _,
@@ -80,7 +83,10 @@ impl OtObj {
 
     pub fn get_klassid(&self) -> usize {
         match *self {
-            OtObj::vm_obj { mark: _, klassid: k } => k,
+            OtObj::vm_obj {
+                mark: _,
+                klassid: k,
+            } => k,
             OtObj::vm_arr_int {
                 mark: _,
                 klassid: k,
@@ -98,9 +104,10 @@ impl OtObj {
 
     pub fn length(&self) -> i32 {
         match *self {
-            OtObj::vm_obj { mark: _, klassid: _ } => {
-                panic!("Attempted to take the length of a normal object!")
-            }
+            OtObj::vm_obj {
+                mark: _,
+                klassid: _,
+            } => panic!("Attempted to take the length of a normal object!"),
             OtObj::vm_arr_int {
                 mark: _,
                 klassid: _,
@@ -119,13 +126,11 @@ impl OtObj {
 
 impl fmt::Display for OtObj {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        unsafe {
-            write!(
-                f,
-                "MarK: {} ; Klass: {}",
-                self.get_mark(),
-                self.get_klassid()
-            )
-        }
+        write!(
+            f,
+            "MarK: {} ; Klass: {}",
+            self.get_mark(),
+            self.get_klassid()
+        )
     }
 }

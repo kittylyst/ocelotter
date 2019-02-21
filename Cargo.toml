@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 byteorder = "1.2.7"
+lazy_static = "1.2.0"
 
 [profile.release]
 lto = true

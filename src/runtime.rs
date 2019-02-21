@@ -60,7 +60,6 @@ impl OtKlass {
         self.id
     }
 
-
     // FIXME: Shouldn't this be OtField for consistency
     pub fn set_static_field(&self, _f: String, _vals: JvmValue) -> () {}
 
@@ -513,21 +512,21 @@ impl InterpLocalVars {
 
 //////////// SHARED RUNTIME STRUCTURES
 
-pub struct VmContext {
+pub struct VmContext<'a> {
     heap: SharedSimpleHeap,
-    repo: SharedKlassRepo,
+    repo: &'a SharedKlassRepo<'a>,
 }
 
-impl VmContext {
-    pub fn of() -> VmContext {
+impl<'a> VmContext<'a> {
+    pub fn of() -> VmContext<'a> {
         VmContext {
             heap: SharedSimpleHeap {},
-            repo: SharedKlassRepo::new(),
+            repo: &SharedKlassRepo::of(),
         }
     }
 
-    pub fn get_repo(&mut self) -> &mut SharedKlassRepo {
-        &mut self.repo
+    pub fn get_repo(&mut self) -> &SharedKlassRepo {
+        self.repo
     }
 
     pub fn get_heap(&mut self) -> &mut SharedSimpleHeap {
@@ -544,15 +543,17 @@ impl VmContext {
 }
 
 #[derive(Debug)]
-pub struct SharedKlassRepo {
+pub struct SharedKlassRepo<'a> {
     klass_count: AtomicUsize,
-    klass_lookup: HashMap<String, OtKlass>,
+    klass_lookup: HashMap<String, &'a OtKlass>,
+    id_lookup: HashMap<usize, &'a OtKlass>,
 }
 
-impl SharedKlassRepo {
-    pub fn new() -> SharedKlassRepo {
+impl<'a> SharedKlassRepo<'a> {
+    pub fn of() -> SharedKlassRepo<'a> {
         SharedKlassRepo {
             klass_lookup: HashMap::new(),
+            id_lookup: HashMap::new(),
             klass_count: AtomicUsize::new(1),
         }
     }
@@ -591,14 +592,16 @@ impl SharedKlassRepo {
     // FIXME SIG
     pub fn lookup_klass(&self, klass_name: String) -> &OtKlass {
         match self.klass_lookup.get(&klass_name) {
-            Some(value) => value,
+            Some(value) => *value,
             None => panic!("Error looking up {} - no value returned", klass_name),
         }
     }
 
     pub fn add_klass(&mut self, mut k: OtKlass) -> () {
         k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
-        self.klass_lookup.insert(k.get_name().clone(), k.clone());
+        let id = k.get_id();
+        self.klass_lookup.insert(k.get_name().clone(), &k);
+        self.id_lookup.insert(id, &k);
     }
 }
 
