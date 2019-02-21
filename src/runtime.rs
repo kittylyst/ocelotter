@@ -512,21 +512,21 @@ impl InterpLocalVars {
 
 //////////// SHARED RUNTIME STRUCTURES
 
-pub struct VmContext<'a> {
+pub struct VmContext {
     heap: SharedSimpleHeap,
-    repo: &'a SharedKlassRepo<'a>,
+    repo: SharedKlassRepo<'static>,
 }
 
-impl<'a> VmContext<'a> {
-    pub fn of() -> VmContext<'a> {
+impl VmContext {
+    pub fn of() -> VmContext {
         VmContext {
             heap: SharedSimpleHeap {},
-            repo: &SharedKlassRepo::of(),
+            repo: SharedKlassRepo::of(),
         }
     }
 
-    pub fn get_repo(&mut self) -> &SharedKlassRepo {
-        self.repo
+    pub fn get_repo(&mut self) -> &mut SharedKlassRepo<'static> {
+        &mut self.repo
     }
 
     pub fn get_heap(&mut self) -> &mut SharedSimpleHeap {
@@ -597,11 +597,13 @@ impl<'a> SharedKlassRepo<'a> {
         }
     }
 
-    pub fn add_klass(&mut self, mut k: OtKlass) -> () {
+    pub fn add_klass<'b>(&mut self, k: &'b mut OtKlass) -> () {
         k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
         let id = k.get_id();
-        self.klass_lookup.insert(k.get_name().clone(), &k);
-        self.id_lookup.insert(id, &k);
+        let k2 = k.clone();
+        let k3 = k.clone();
+        self.klass_lookup.insert(k.get_name().clone(), &k2);
+        self.id_lookup.insert(id, &k3);
     }
 }
 

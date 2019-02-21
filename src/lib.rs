@@ -14,7 +14,7 @@ extern crate lazy_static;
 use std::sync::Mutex;
 
 lazy_static! {
-    static ref CONTEXT: Mutex<VmContext<'static>> = Mutex::new(VmContext::of());
+    static ref CONTEXT: Mutex<VmContext> = Mutex::new(VmContext::of());
 }
 
 pub fn exec_method2(context: &mut VmContext, meth: OtMethod) -> Option<JvmValue> {
