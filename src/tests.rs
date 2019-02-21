@@ -8,8 +8,7 @@ use std::path::Path;
 
 fn execute_method(buf: &Vec<u8>) -> runtime::JvmValue {
     let mut lvt = runtime::InterpLocalVars::of(10); // FIXME
-    let mut context = runtime::VmContext::of();
-    let opt_ret = exec_method(&mut context, "DUMMY".to_string(), &buf, &mut lvt);
+    let opt_ret = exec_method("DUMMY".to_string(), &buf, &mut lvt);
     match opt_ret {
         Some(value) => value,
         None => runtime::JvmValue::ObjRef {
@@ -310,8 +309,7 @@ fn test_invoke_simple() {
     assert_eq!("java/lang/Object", k.get_super_name());
     assert_eq!(4, k.get_methods().len());
 
-    let mut context = runtime::VmContext::of();
-    let repo = context.get_repo();
+    let repo = CONTEXT.lock().unwrap().get_repo();
     repo.add_klass(k.clone());
 
     {
@@ -357,8 +355,7 @@ fn test_iffer() {
     parser.parse();
     let k = parser.klass();
 
-    let mut context = runtime::VmContext::of();
-    let repo = context.get_repo();
+    let repo = CONTEXT.lock().unwrap().get_repo();
     repo.add_klass(k.clone());
 
     {
@@ -389,8 +386,7 @@ fn test_array_simple() {
     parser.parse();
     let k = parser.klass();
 
-    let mut context = runtime::VmContext::of();
-    let repo = context.get_repo();
+    let repo = CONTEXT.lock().unwrap().get_repo();
     repo.add_klass(k.clone());
 
     {

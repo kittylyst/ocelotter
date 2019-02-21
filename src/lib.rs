@@ -17,14 +17,13 @@ lazy_static! {
     static ref CONTEXT: Mutex<VmContext> = Mutex::new(VmContext::of());
 }
 
-pub fn exec_method2(context: &mut VmContext, meth: OtMethod) -> Option<JvmValue> {
+pub fn exec_method2(meth: OtMethod) -> Option<JvmValue> {
     // HACK Replace with proper local var size by parsing class attributes properly
     let mut vars = InterpLocalVars::of(255);
-    exec_method(context, meth.get_klass_name(), &meth.get_code(), &mut vars)
+    exec_method(meth.get_klass_name(), &meth.get_code(), &mut vars)
 }
 
 pub fn exec_method(
-    context: &mut VmContext,
     klass_name: String,
     instr: &Vec<u8>,
     lvt: &mut InterpLocalVars,
@@ -34,7 +33,7 @@ pub fn exec_method(
 
     // dbg!(instr);
     loop {
-        let repo = context.get_repo();
+        let repo = CONTEXT.lock().unwrap().get_repo();
         let my_klass_name = klass_name.clone();
         let opt_ins = instr.get(current);
         let ins: u8 = match opt_ins {
@@ -325,14 +324,14 @@ pub fn exec_method(
                 current += 2;
                 let current_klass = repo.lookup_klass(klass_name.clone()).clone();
                 dbg!(current_klass.clone());
-                dispatch_invoke(context, current_klass, cp_lookup, &mut eval, 1);
+                dispatch_invoke(current_klass, cp_lookup, &mut eval, 1);
             }
             Opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 let current_klass = repo.lookup_klass(klass_name.clone()).clone();
                 dbg!(current_klass.clone());
-                dispatch_invoke(context, current_klass, cp_lookup, &mut eval, 0);
+                dispatch_invoke(current_klass, cp_lookup, &mut eval, 0);
             }
             // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
             Opcode::INVOKEVIRTUAL => {
@@ -391,7 +390,7 @@ pub fn exec_method(
                 };
 
                 eval.push(JvmValue::ObjRef {
-                    val: context.allocate_obj(&current_klass),
+                    val: CONTEXT.lock().unwrap().allocate_obj(&current_klass),
                 });
             }
             Opcode::NEWARRAY => {
@@ -409,7 +408,9 @@ pub fn exec_method(
                     // int: 10
                     // long: 11
                     10 => match eval.pop() {
-                        JvmValue::Int { val: arr_size } => context.allocate_int_arr(arr_size),
+                        JvmValue::Int { val: arr_size } => {
+                            CONTEXT.lock().unwrap().allocate_int_arr(arr_size)
+                        }
                         _ => panic!("Not an int on the stack at {}", (current - 1)),
                     },
                     _ => panic!("Unsupported primitive array type at {}", (current - 1)),
@@ -526,7 +527,6 @@ fn massage_to_jvm_int_and_equate(v1: JvmValue, v2: JvmValue) -> bool {
 }
 
 fn dispatch_invoke(
-    context: &mut VmContext,
     current_klass: OtKlass,
     cp_lookup: u16,
     eval: &mut InterpEvalStack,
@@ -542,7 +542,7 @@ fn dispatch_invoke(
         ),
     };
     let dispatch_klass_name = current_klass.cp_as_string(klz_idx);
-    let repo = context.get_repo();
+    let repo = CONTEXT.lock().unwrap().get_repo();
     let callee = repo.lookup_method_exact(&dispatch_klass_name, fq_name_desc);
 
     // FIXME - General setup requires call args
@@ -550,12 +550,7 @@ fn dispatch_invoke(
     if additional_args > 0 {
         vars.store(0, eval.pop());
     }
-    match exec_method(
-        context,
-        callee.get_klass_name(),
-        &callee.get_code(),
-        &mut vars,
-    ) {
+    match exec_method(callee.get_klass_name(), &callee.get_code(), &mut vars) {
         Some(val) => eval.push(val),
         None => (),
     }
