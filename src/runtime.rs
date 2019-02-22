@@ -514,7 +514,7 @@ impl InterpLocalVars {
 
 pub struct VmContext {
     heap: SharedSimpleHeap,
-    repo: SharedKlassRepo<'static>,
+    repo: SharedKlassRepo,
 }
 
 impl VmContext {
@@ -525,7 +525,7 @@ impl VmContext {
         }
     }
 
-    pub fn get_repo(&mut self) -> &mut SharedKlassRepo<'static> {
+    pub fn get_repo(&mut self) -> &mut SharedKlassRepo {
         &mut self.repo
     }
 
@@ -543,14 +543,14 @@ impl VmContext {
 }
 
 #[derive(Debug)]
-pub struct SharedKlassRepo<'a> {
+pub struct SharedKlassRepo {
     klass_count: AtomicUsize,
-    klass_lookup: HashMap<String, &'a OtKlass>,
-    id_lookup: HashMap<usize, &'a OtKlass>,
+    klass_lookup: HashMap<String, usize>,
+    id_lookup: HashMap<usize, OtKlass>,
 }
 
-impl<'a> SharedKlassRepo<'a> {
-    pub fn of() -> SharedKlassRepo<'a> {
+impl SharedKlassRepo {
+    pub fn of() -> SharedKlassRepo {
         SharedKlassRepo {
             klass_lookup: HashMap::new(),
             id_lookup: HashMap::new(),
@@ -570,14 +570,22 @@ impl<'a> SharedKlassRepo<'a> {
     }
 
     pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {
-        match self.klass_lookup.get(klass_name) {
-            Some(k) => k.get_method_by_name_and_desc(fq_name_desc),
+        let kid = match self.klass_lookup.get(klass_name) {
+            Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),
+        };
+        match self.id_lookup.get(kid) {
+            Some(k) => k.get_method_by_name_and_desc(fq_name_desc),
+            None => panic!("No klass with ID {} found in repo", kid),
         }
     }
 
     pub fn lookup_method_virtual(&self, klass_name: &String, _idx: u16) -> OtMethod {
-        let klass = self.klass_lookup.get(klass_name);
+        let kid = match self.klass_lookup.get(klass_name) {
+            Some(id) => id,
+            None => panic!("No klass called {} found in repo", klass_name),
+        };
+        let klass = self.id_lookup.get(kid);
         // FIXME DUMMY
         OtMethod::of(
             "DUMMY_KLASS".to_string(),
@@ -590,20 +598,24 @@ impl<'a> SharedKlassRepo<'a> {
     }
 
     // FIXME SIG
-    pub fn lookup_klass(&self, klass_name: String) -> &OtKlass {
-        match self.klass_lookup.get(&klass_name) {
-            Some(value) => *value,
-            None => panic!("Error looking up {} - no value returned", klass_name),
+    pub fn lookup_klass(&self, klass_name: &String) -> &OtKlass {
+        let kid = match self.klass_lookup.get(klass_name) {
+            Some(id) => id,
+            None => panic!("No klass called {} found in repo", klass_name),
+        };
+        match self.id_lookup.get(kid) {
+            Some(value) => value,
+            None => panic!("No klass with ID {} found in repo", kid),
         }
     }
 
     pub fn add_klass<'b>(&mut self, k: &'b mut OtKlass) -> () {
         k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
         let id = k.get_id();
-        let k2 = k.clone();
-        let k3 = k.clone();
-        self.klass_lookup.insert(k.get_name().clone(), &k2);
-        self.id_lookup.insert(id, &k3);
+        let k2: OtKlass = (*k).to_owned();
+
+        self.klass_lookup.insert(k.get_name().clone(), id);
+        self.id_lookup.insert(id, k2);
     }
 }
 

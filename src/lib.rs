@@ -33,7 +33,6 @@ pub fn exec_method(
 
     // dbg!(instr);
     loop {
-        let repo = CONTEXT.lock().unwrap().get_repo();
         let my_klass_name = klass_name.clone();
         let opt_ins = instr.get(current);
         let ins: u8 = match opt_ins {
@@ -322,14 +321,14 @@ pub fn exec_method(
             Opcode::INVOKESPECIAL => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = repo.lookup_klass(klass_name.clone()).clone();
+                let current_klass = CONTEXT.lock().unwrap().get_repo().lookup_klass(&klass_name).clone();
                 dbg!(current_klass.clone());
                 dispatch_invoke(current_klass, cp_lookup, &mut eval, 1);
             }
             Opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = repo.lookup_klass(klass_name.clone()).clone();
+                let current_klass = CONTEXT.lock().unwrap().get_repo().lookup_klass(&klass_name).clone();
                 dbg!(current_klass.clone());
                 dispatch_invoke(current_klass, cp_lookup, &mut eval, 0);
             }
@@ -378,7 +377,7 @@ pub fn exec_method(
             Opcode::NEW => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = repo.lookup_klass(klass_name.clone()).clone();
+                let current_klass = CONTEXT.lock().unwrap().get_repo().lookup_klass(&klass_name).clone();
 
                 let klass_name = match current_klass.lookup_cp(cp_lookup) {
                     CpEntry::class { idx } => "DUMMY_CLASS".to_string(), // FIXME
@@ -438,7 +437,7 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let putf = repo.lookup_field(my_klass_name.clone(), cp_lookup);
+                let putf = CONTEXT.lock().unwrap().get_repo().lookup_field(my_klass_name.clone(), cp_lookup);
                 let val = eval.pop();
 
                 let recvp: JvmValue = eval.pop();
@@ -455,7 +454,7 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let puts = repo.lookup_field(my_klass_name.clone(), cp_lookup);
+                let puts = CONTEXT.lock().unwrap().get_repo().lookup_field(my_klass_name.clone(), cp_lookup);
                 let f_klass = puts.get_klass();
                 f_klass.set_static_field(puts.get_name(), eval.pop());
             }
@@ -542,8 +541,7 @@ fn dispatch_invoke(
         ),
     };
     let dispatch_klass_name = current_klass.cp_as_string(klz_idx);
-    let repo = CONTEXT.lock().unwrap().get_repo();
-    let callee = repo.lookup_method_exact(&dispatch_klass_name, fq_name_desc);
+    let callee = CONTEXT.lock().unwrap().get_repo().lookup_method_exact(&dispatch_klass_name, fq_name_desc);
 
     // FIXME - General setup requires call args
     let mut vars = InterpLocalVars::of(255);

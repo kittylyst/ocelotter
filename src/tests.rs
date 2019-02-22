@@ -304,19 +304,18 @@ fn test_invoke_simple() {
     let mut parser = klass_parser::oc_parser::of(bytes, "SampleInvoke.class".to_string());
     parser.parse();
     assert_eq!(21, parser.get_pool_size());
-    let k = parser.klass();
+    let mut k = parser.klass();
     assert_eq!("SampleInvoke", k.get_name());
     assert_eq!("java/lang/Object", k.get_super_name());
     assert_eq!(4, k.get_methods().len());
 
-    let repo = CONTEXT.lock().unwrap().get_repo();
-    repo.add_klass(k.clone());
+    let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
 
     {
         let meth = k.get_method_by_name_and_desc("SampleInvoke.bar:()I".to_string());
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-        let opt_ret = exec_method2(&mut context, meth);
+        let opt_ret = exec_method2(meth);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing SampleInvoke.bar:()I - no value returned"),
@@ -332,7 +331,7 @@ fn test_invoke_simple() {
         let meth = k.get_method_by_name_and_desc("SampleInvoke.foo:()I".to_string());
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-        let opt_ret = exec_method2(&mut context, meth);
+        let opt_ret = exec_method2(meth);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing SampleInvoke.foo:()I - no value returned"),
@@ -353,16 +352,15 @@ fn test_iffer() {
     };
     let mut parser = klass_parser::oc_parser::of(bytes, "Iffer.class".to_string());
     parser.parse();
-    let k = parser.klass();
+    let mut k = parser.klass();
 
-    let repo = CONTEXT.lock().unwrap().get_repo();
-    repo.add_klass(k.clone());
+    let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
 
     {
         let meth = k.get_method_by_name_and_desc("Iffer.baz:()I".to_string());
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-        let opt_ret = exec_method2(&mut context, meth);
+        let opt_ret = exec_method2(meth);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing Iffer.baz:()I - no value returned"),
@@ -384,16 +382,15 @@ fn test_array_simple() {
     };
     let mut parser = klass_parser::oc_parser::of(bytes, "ArraySimple.class".to_string());
     parser.parse();
-    let k = parser.klass();
+    let mut k = parser.klass();
 
-    let repo = CONTEXT.lock().unwrap().get_repo();
-    repo.add_klass(k.clone());
+    let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
 
     {
         let meth = k.get_method_by_name_and_desc("ArraySimple.baz:()I".to_string());
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-        let opt_ret = exec_method2(&mut context, meth);
+        let opt_ret = exec_method2(meth);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing ArraySimple.baz:()I - no value returned"),
