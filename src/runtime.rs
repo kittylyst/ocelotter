@@ -270,7 +270,7 @@ pub enum JvmValue {
     Float { val: f32 },
     Double { val: f64 },
     Char { val: char },
-    ObjRef { val: OtObj },
+    ObjRef { val: usize }, // Access objects by id
 }
 
 impl JvmValue {
@@ -337,7 +337,7 @@ impl InterpEvalStack {
 
     pub fn aconst_null(&mut self) -> () {
         self.push(JvmValue::ObjRef {
-            val: OtObj::get_null(),
+            val: 0, // OtObj::get_null(),
         });
     }
 
@@ -525,7 +525,7 @@ pub struct VmContext {
 impl VmContext {
     pub fn of() -> VmContext {
         VmContext {
-            heap: SharedSimpleHeap {},
+            heap: SharedSimpleHeap::of(),
             repo: SharedKlassRepo::of(),
         }
     }
@@ -536,14 +536,6 @@ impl VmContext {
 
     pub fn get_heap(&mut self) -> &mut SharedSimpleHeap {
         &mut self.heap
-    }
-
-    pub fn allocate_obj(&mut self, klass: &OtKlass) -> OtObj {
-        self.heap.allocate_obj(klass)
-    }
-
-    pub fn allocate_int_arr(&mut self, size: i32) -> OtObj {
-        self.heap.allocate_int_arr(size)
     }
 }
 
@@ -625,17 +617,48 @@ impl SharedKlassRepo {
 }
 
 pub struct SharedSimpleHeap {
+    obj_count: AtomicUsize,
     // Free list
-// Alloc table
+    // Alloc table
+    alloc: Vec<OtObj>,
 }
 
 impl SharedSimpleHeap {
-    pub fn allocate_obj(&self, klass: &OtKlass) -> OtObj {
-        let klassid = klass.get_id();
-        OtObj::of(klassid)
+    pub fn of() -> SharedSimpleHeap {
+        SharedSimpleHeap {
+            obj_count: AtomicUsize::new(1),
+            alloc: Vec::new(),
+        }
     }
 
-    pub fn allocate_int_arr(&self, size: i32) -> OtObj {
-        OtObj::int_arr_of(size)
+    pub fn allocate_obj(&mut self, klass: &OtKlass) -> usize {
+        let klass_id = klass.get_id();
+        let obj_id: usize = self.obj_count.fetch_add(1, Ordering::SeqCst);
+        let out = OtObj::of(klass_id, obj_id);
+        self.alloc.push(out);
+        obj_id
+    }
+
+    pub fn allocate_int_arr(&mut self, size: i32) -> usize {
+        let obj_id = self.obj_count.fetch_add(1, Ordering::SeqCst);
+        let out = OtObj::int_arr_of(size, obj_id);
+        self.alloc.push(out);
+        obj_id
+    }
+
+    pub fn get_obj(&self, id: usize) -> &OtObj {
+        match self.alloc.get(id) {
+            Some(val) => val,
+            None => panic!("Error: object {} not found", id),
+        }
+    }
+
+    pub fn put_field(&self, obj_id: usize, f: OtField, v: JvmValue) -> () {
+        // FIXME Handle storage properly
+    }
+
+    pub fn iastore(&self, obj_id: usize, pos: i32, v: i32) -> () {
+        let p = pos as usize;
+        // FIXME Handle storage properly
     }
 }

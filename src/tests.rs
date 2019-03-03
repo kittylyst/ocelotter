@@ -12,7 +12,7 @@ fn execute_method(buf: &Vec<u8>) -> runtime::JvmValue {
     match opt_ret {
         Some(value) => value,
         None => runtime::JvmValue::ObjRef {
-            val: runtime::object::OtObj::get_null(),
+            val: 0, // runtime::object::OtObj::get_null(),
         },
     }
 }

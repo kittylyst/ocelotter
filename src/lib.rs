@@ -18,8 +18,7 @@ lazy_static! {
 }
 
 pub fn exec_method2(meth: OtMethod) -> Option<JvmValue> {
-    // HACK Replace with proper local var size by parsing class attributes properly
-    let mut vars = InterpLocalVars::of(255);
+    let mut vars = InterpLocalVars::of(meth.get_local_var_size());
     exec_method(meth.get_klass_name(), &meth.get_code(), &mut vars)
 }
 
@@ -129,18 +128,21 @@ pub fn exec_method(
                     JvmValue::Int { val: v } => v,
                     _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
                 };
-                let arrayref = match eval.pop() {
+                let arrayid = match eval.pop() {
                     JvmValue::ObjRef { val: v } => v,
                     _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
                 };
-                dbg!(arrayref.clone());
+                dbg!(arrayid.clone());
 
-                let unwrapped_val = match arrayref {
+                let current_obj = CONTEXT.lock().unwrap().get_heap().get_obj(arrayid).clone();
+
+                let unwrapped_val = match current_obj {
                     OtObj::vm_arr_int {
+                        id: _,
                         mark: _,
                         klassid: _,
                         length: _,
-                        elements: mut elts,
+                        elements: elts,
                     } => elts[pos_to_load as usize],
                     _ => panic!("Non-int[] seen on stack during IASTORE at {}", current - 1),
                 };
@@ -158,27 +160,17 @@ pub fn exec_method(
                     JvmValue::Int { val: v } => v,
                     _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
                 };
-                let arrayref = match eval.pop() {
+                let obj_id = match eval.pop() {
                     JvmValue::ObjRef { val: v } => v,
                     _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
                 };
-                let arrc = arrayref.clone();
-                dbg!(arrc.clone());
 
-                match arrayref {
-                    OtObj::vm_arr_int {
-                        mark: _,
-                        klassid: _,
-                        length: _,
-                        elements: mut elts,
-                    } => {
-                        elts[pos_to_store as usize] = val_to_store;
-                        dbg!(val_to_store);
-                    }
-                    _ => panic!("Non-int[] seen on stack during IASTORE at {}", current - 1),
-                };
-                // let arrc2 = arrayref.clone();
-                // dbg!(arrc2.clone());
+                // This update needs to be handled by the heap
+                CONTEXT
+                    .lock()
+                    .unwrap()
+                    .get_heap()
+                    .iastore(obj_id, pos_to_store, val_to_store);
             }
 
             Opcode::ICONST_0 => eval.iconst(0),
@@ -264,7 +256,7 @@ pub fn exec_method(
 
                 match eval.pop() {
                     JvmValue::ObjRef { val: v } => {
-                        if !v.is_null() {
+                        if v > 0 {
                             current += jumpTo;
                         } else {
                             current += 2;
@@ -281,7 +273,7 @@ pub fn exec_method(
 
                 match eval.pop() {
                     JvmValue::ObjRef { val: v } => {
-                        if v.is_null() {
+                        if v == 0 {
                             // println!("Ins[curr]: {} and {}", instr[current], instr[current + 1]);
                             // println!("Attempting to jump by: {} from {}", jumpTo, current);
                             current += jumpTo;
@@ -402,16 +394,20 @@ pub fn exec_method(
                     ),
                 };
 
-                eval.push(JvmValue::ObjRef {
-                    val: CONTEXT.lock().unwrap().allocate_obj(&current_klass),
-                });
+                let obj_id = CONTEXT
+                    .lock()
+                    .unwrap()
+                    .get_heap()
+                    .allocate_obj(&current_klass)
+                    .clone();
+                eval.push(JvmValue::ObjRef { val: obj_id });
             }
             Opcode::NEWARRAY => {
                 let arr_type = instr[current];
                 current += 1;
 
                 // FIXME Other primitive array types needed
-                let arr_ref = match arr_type {
+                let arr_id = match arr_type {
                     // boolean: 4
                     // char: 5
                     // float: 6
@@ -421,15 +417,17 @@ pub fn exec_method(
                     // int: 10
                     // long: 11
                     10 => match eval.pop() {
-                        JvmValue::Int { val: arr_size } => {
-                            CONTEXT.lock().unwrap().allocate_int_arr(arr_size)
-                        }
+                        JvmValue::Int { val: arr_size } => CONTEXT
+                            .lock()
+                            .unwrap()
+                            .get_heap()
+                            .allocate_int_arr(arr_size),
                         _ => panic!("Not an int on the stack at {}", (current - 1)),
                     },
                     _ => panic!("Unsupported primitive array type at {}", (current - 1)),
                 };
 
-                eval.push(JvmValue::ObjRef { val: arr_ref });
+                eval.push(JvmValue::ObjRef { val: arr_id });
             }
 
             Opcode::NOP => {
@@ -451,7 +449,7 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let putf = CONTEXT
+                let putf: OtField = CONTEXT
                     .lock()
                     .unwrap()
                     .get_repo()
@@ -461,12 +459,17 @@ pub fn exec_method(
                 let recvp: JvmValue = eval.pop();
                 // VERIFY: Should check to make sure receiver is an A
                 // FIXME Match expression & destructure for recvp
-                let obj: OtObj = match recvp {
+
+                let obj_id = match recvp {
                     JvmValue::ObjRef { val: v } => v,
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
 
-                obj.put_field(putf, val);
+                CONTEXT
+                    .lock()
+                    .unwrap()
+                    .get_heap()
+                    .put_field(obj_id, putf, val);
             }
             Opcode::PUTSTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
