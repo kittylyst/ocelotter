@@ -272,7 +272,7 @@ fn test_read_header() {
         Ok(buf) => buf,
         _ => panic!("Error reading Foo"),
     };
-    let mut parser = klass_parser::oc_parser::of(bytes, "Foo.class".to_string());
+    let mut parser = klass_parser::OtKlassParser::of(bytes, "Foo.class".to_string());
     parser.parse();
     assert_eq!(16, parser.get_pool_size());
     let k = parser.klass();
@@ -286,7 +286,7 @@ fn test_read_simple_class() {
         Ok(buf) => buf,
         _ => panic!("Error reading Foo2"),
     };
-    let mut parser = klass_parser::oc_parser::of(bytes, "Foo2.class".to_string());
+    let mut parser = klass_parser::OtKlassParser::of(bytes, "Foo2.class".to_string());
     parser.parse();
     assert_eq!(30, parser.get_pool_size());
     let k = parser.klass();
@@ -301,7 +301,7 @@ fn test_invoke_simple() {
         Ok(buf) => buf,
         _ => panic!("Error reading SampleInvoke"),
     };
-    let mut parser = klass_parser::oc_parser::of(bytes, "SampleInvoke.class".to_string());
+    let mut parser = klass_parser::OtKlassParser::of(bytes, "SampleInvoke.class".to_string());
     parser.parse();
     assert_eq!(21, parser.get_pool_size());
     let mut k = parser.klass();
@@ -350,7 +350,7 @@ fn test_iffer() {
         Ok(buf) => buf,
         _ => panic!("Error reading Iffer"),
     };
-    let mut parser = klass_parser::oc_parser::of(bytes, "Iffer.class".to_string());
+    let mut parser = klass_parser::OtKlassParser::of(bytes, "Iffer.class".to_string());
     parser.parse();
     let mut k = parser.klass();
 
@@ -379,7 +379,7 @@ fn test_array_simple() {
         Ok(buf) => buf,
         _ => panic!("Error reading ArraySimple"),
     };
-    let mut parser = klass_parser::oc_parser::of(bytes, "ArraySimple.class".to_string());
+    let mut parser = klass_parser::OtKlassParser::of(bytes, "ArraySimple.class".to_string());
     parser.parse();
     let mut k = parser.klass();
 

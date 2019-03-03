@@ -6,7 +6,7 @@ use std::str;
 
 use crate::runtime::constant_pool::*;
 
-pub struct oc_parser {
+pub struct OtKlassParser {
     clz_read: Vec<u8>,
     filename: String,
     current: usize,
@@ -24,9 +24,9 @@ pub struct oc_parser {
     // attributes: Vec<CpAttr>,
 }
 
-impl oc_parser {
-    pub fn of(buf: Vec<u8>, fname: String) -> oc_parser {
-        oc_parser {
+impl OtKlassParser {
+    pub fn of(buf: Vec<u8>, fname: String) -> OtKlassParser {
+        OtKlassParser {
             clz_read: buf,
             filename: fname,
             current: 0,

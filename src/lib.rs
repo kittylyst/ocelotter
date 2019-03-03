@@ -580,7 +580,7 @@ fn dispatch_invoke(
 }
 
 fn parse_class(bytes: Vec<u8>, fname: String) -> OtKlass {
-    let mut parser = klass_parser::oc_parser::of(bytes, fname);
+    let mut parser = klass_parser::OtKlassParser::of(bytes, fname);
     parser.parse();
     parser.klass()
 }
