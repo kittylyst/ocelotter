@@ -625,10 +625,13 @@ pub struct SharedSimpleHeap {
 
 impl SharedSimpleHeap {
     pub fn of() -> SharedSimpleHeap {
-        SharedSimpleHeap {
+        let mut out = SharedSimpleHeap {
             obj_count: AtomicUsize::new(1),
             alloc: Vec::new(),
-        }
+        };
+        let null_obj = OtObj::of(0, 0);
+        out.alloc.push(null_obj);
+        out
     }
 
     pub fn allocate_obj(&mut self, klass: &OtKlass) -> usize {
