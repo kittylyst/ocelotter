@@ -34,8 +34,7 @@ pub fn exec_method(
     // dbg!(instr);
     loop {
         let my_klass_name = klass_name.clone();
-        let opt_ins = instr.get(current);
-        let ins: u8 = match opt_ins {
+        let ins: u8 = match instr.get(current) {
             Some(value) => *value,
             None => panic!("Byte {} has no value", current),
         };
@@ -462,7 +461,7 @@ pub fn exec_method(
                 let recvp: JvmValue = eval.pop();
                 // VERIFY: Should check to make sure receiver is an A
                 // FIXME Match expression & destructure for recvp
-                let obj = match recvp {
+                let obj: OtObj = match recvp {
                     JvmValue::ObjRef { val: v } => v,
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };

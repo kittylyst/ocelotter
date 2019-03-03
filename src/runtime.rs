@@ -190,6 +190,11 @@ impl OtMethod {
     pub fn get_flags(&self) -> u16 {
         self.flags
     }
+
+    // HACK Replace with proper local var size by parsing class attributes properly
+    pub fn get_local_var_size(&self) -> u8 {
+        255
+    }
 }
 
 impl fmt::Display for OtMethod {
