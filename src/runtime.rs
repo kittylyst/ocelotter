@@ -660,8 +660,31 @@ impl SharedSimpleHeap {
         // FIXME Handle storage properly
     }
 
-    pub fn iastore(&self, obj_id: usize, pos: i32, v: i32) -> () {
+    pub fn iastore(&mut self, id: usize, pos: i32, v: i32) -> () {
         let p = pos as usize;
-        // FIXME Handle storage properly
+        let obj = match self.alloc.get(id) {
+            Some(val) => val,
+            None => panic!("Error: object {} not found", id),
+        };
+        let t = match obj {
+            OtObj::vm_arr_int {
+                id: i,
+                mark: m,
+                klassid: kid,
+                length: _,
+                elements: elts,
+            } => (i, m, kid, elts),
+            _ => panic!("Non-int[] seen in heap during IASTORE at {}", id),
+        };
+        let mut elts = t.3.clone();
+        elts[pos as usize] = v;
+        let obj = OtObj::vm_arr_int {
+                id: *t.0,
+                mark: *t.1,
+                klassid: *t.2,
+                length: elts.len() as i32,
+                elements: elts,
+            };
+        self.alloc[id] = obj;
     }
 }
