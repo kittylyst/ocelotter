@@ -679,12 +679,12 @@ impl SharedSimpleHeap {
         let mut elts = t.3.clone();
         elts[pos as usize] = v;
         let obj = OtObj::vm_arr_int {
-                id: *t.0,
-                mark: *t.1,
-                klassid: *t.2,
-                length: elts.len() as i32,
-                elements: elts,
-            };
+            id: *t.0,
+            mark: *t.1,
+            klassid: *t.2,
+            length: elts.len() as i32,
+            elements: elts,
+        };
         self.alloc[id] = obj;
     }
 }

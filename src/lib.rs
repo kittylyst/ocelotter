@@ -134,9 +134,7 @@ pub fn exec_method(
                 };
                 dbg!(arrayid.clone());
 
-                let current_obj = CONTEXT.lock().unwrap().get_heap().get_obj(arrayid).clone();
-
-                let unwrapped_val = match current_obj {
+                let unwrapped_val = match CONTEXT.lock().unwrap().get_heap().get_obj(arrayid) {
                     OtObj::vm_arr_int {
                         id: _,
                         mark: _,
@@ -165,7 +163,6 @@ pub fn exec_method(
                     _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
                 };
 
-                // This update needs to be handled by the heap
                 CONTEXT
                     .lock()
                     .unwrap()
@@ -398,8 +395,7 @@ pub fn exec_method(
                     .lock()
                     .unwrap()
                     .get_heap()
-                    .allocate_obj(&current_klass)
-                    .clone();
+                    .allocate_obj(&current_klass);
                 eval.push(JvmValue::ObjRef { val: obj_id });
             }
             Opcode::NEWARRAY => {
