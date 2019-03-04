@@ -555,6 +555,7 @@ impl SharedKlassRepo {
         }
     }
 
+    // FIXME CHECK SIG
     pub fn lookup_field(&self, _klass_name: String, _idx: u16) -> OtField {
         // FIXME DUMMY
         OtField::of(
@@ -564,6 +565,10 @@ impl SharedKlassRepo {
             1,
             2,
         )
+    }
+
+    pub fn put_static(&self, klass_id: usize, f: OtField, v: JvmValue) -> () {
+        // FIXME Handle storage properly
     }
 
     pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {

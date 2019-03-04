@@ -471,13 +471,19 @@ pub fn exec_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let puts = CONTEXT
+                let puts: OtField = CONTEXT
                     .lock()
                     .unwrap()
                     .get_repo()
                     .lookup_field(my_klass_name.clone(), cp_lookup);
-                let f_klass = puts.get_klass();
-                f_klass.set_static_field(puts.get_name(), eval.pop());
+
+                let klass_id = puts.get_klass().get_id();
+                CONTEXT
+                    .lock()
+                    .unwrap()
+                    .get_repo()
+                    .put_static(klass_id, puts, eval.pop());
+                // f_klass.set_static_field(puts.get_name(), eval.pop());
             }
             Opcode::RETURN => break None,
             Opcode::SIPUSH => {
