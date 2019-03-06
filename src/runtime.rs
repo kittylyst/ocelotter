@@ -192,6 +192,11 @@ impl OtMethod {
     pub fn get_local_var_size(&self) -> u8 {
         255
     }
+
+    // FIXME STUB
+    pub fn is_native(&self) -> bool {
+        false
+    }
 }
 
 impl fmt::Display for OtMethod {
@@ -568,6 +573,11 @@ impl SharedKlassRepo {
         // FIXME Handle storage properly
     }
 
+    // FIXME What does a rust directly-executable closure look like????
+    pub fn lookup_method_native(&self, klass_name: &String, fq_name_desc: String) -> Option<JvmValue> {
+        None
+    }
+
     pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {
         let kid = match self.klass_lookup.get(klass_name) {
             Some(id) => id,
@@ -579,7 +589,7 @@ impl SharedKlassRepo {
         }
     }
 
-    pub fn lookup_method_virtual(&self, klass_name: &String, _idx: u16) -> OtMethod {
+    pub fn lookup_method_virtual(&self, klass_name: &String, idx: u16) -> OtMethod {
         let kid = match self.klass_lookup.get(klass_name) {
             Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),

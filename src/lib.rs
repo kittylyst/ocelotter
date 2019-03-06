@@ -23,8 +23,18 @@ lazy_static! {
 }
 
 pub fn exec_method(meth: OtMethod) -> Option<JvmValue> {
-    let mut vars = InterpLocalVars::of(meth.get_local_var_size());
-    exec_method2(meth.get_klass_name(), &meth.get_code(), &mut vars)
+    // Perform the native check here...
+    if meth.is_native() {
+        // FIXME Get an owned value back as a closure
+        CONTEXT
+            .lock()
+            .unwrap()
+            .get_repo()
+            .lookup_method_native(&meth.get_klass_name(), meth.get_desc())
+    } else {
+        let mut vars = InterpLocalVars::of(meth.get_local_var_size());
+        exec_method2(meth.get_klass_name(), &meth.get_code(), &mut vars)
+    }
 }
 
 pub fn exec_method2(
@@ -621,7 +631,8 @@ fn main() {
     let mut k = parser.klass();
     let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
 
-    let main_str: String = fq_klass_name + ".main:([Ljava/lang/String;)V";
+    // FIXME Real main() signture required, dummying for ease of testing
+    let main_str: String = fq_klass_name + ".main2:([Ljava/lang/String;)I";
     let meth = k.get_method_by_name_and_desc(main_str);
 
     let opt_ret = exec_method(meth);
@@ -629,10 +640,11 @@ fn main() {
         Some(value) => value,
         None => panic!("Error executing ".to_owned() + &f_name + " - no value returned"),
     };
-    match ret {
+    let ret_i = match ret {
         runtime::JvmValue::Int { val: i } => i,
         _ => panic!("Error executing ".to_owned() + &f_name + " - non-int value returned"),
     };
+    println!("{}", ret_i);
 }
 
 #[cfg(test)]
