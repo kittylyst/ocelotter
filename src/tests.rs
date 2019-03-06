@@ -6,9 +6,11 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
+// Helper fns
+
 fn execute_method(buf: &Vec<u8>) -> runtime::JvmValue {
     let mut lvt = runtime::InterpLocalVars::of(10); // FIXME
-    let opt_ret = exec_method("DUMMY".to_string(), &buf, &mut lvt);
+    let opt_ret = exec_method2("DUMMY".to_string(), &buf, &mut lvt);
     match opt_ret {
         Some(value) => value,
         None => runtime::JvmValue::ObjRef {
@@ -257,15 +259,6 @@ fn test_goto() {
     assert_eq!(2, ret);
 }
 
-// Helper fn
-fn file_to_bytes(path: &Path) -> Result<Vec<u8>, std::io::Error> {
-    File::open(path).and_then(|mut file| {
-        let mut bytes = Vec::new();
-        file.read_to_end(&mut bytes)?;
-        Ok(bytes)
-    })
-}
-
 #[test]
 fn test_read_header() {
     let bytes = match file_to_bytes(Path::new("./resources/test/Foo.class")) {
@@ -315,7 +308,7 @@ fn test_invoke_simple() {
         let meth = k.get_method_by_name_and_desc("SampleInvoke.bar:()I".to_string());
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-        let opt_ret = exec_method2(meth);
+        let opt_ret = exec_method(meth);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing SampleInvoke.bar:()I - no value returned"),
@@ -331,7 +324,7 @@ fn test_invoke_simple() {
         let meth = k.get_method_by_name_and_desc("SampleInvoke.foo:()I".to_string());
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-        let opt_ret = exec_method2(meth);
+        let opt_ret = exec_method(meth);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing SampleInvoke.foo:()I - no value returned"),
@@ -360,7 +353,7 @@ fn test_iffer() {
         let meth = k.get_method_by_name_and_desc("Iffer.baz:()I".to_string());
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-        let opt_ret = exec_method2(meth);
+        let opt_ret = exec_method(meth);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing Iffer.baz:()I - no value returned"),
@@ -389,7 +382,7 @@ fn test_array_simple() {
         let meth = k.get_method_by_name_and_desc("ArraySimple.baz:()I".to_string());
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-        let opt_ret = exec_method2(meth);
+        let opt_ret = exec_method(meth);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing ArraySimple.baz:()I - no value returned"),

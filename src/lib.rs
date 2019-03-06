@@ -6,6 +6,11 @@ use object::*;
 use opcode::*;
 use runtime::*;
 
+use std::env;
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
+
 use crate::runtime::constant_pool::CpEntry;
 
 #[macro_use]
@@ -17,12 +22,12 @@ lazy_static! {
     static ref CONTEXT: Mutex<VmContext> = Mutex::new(VmContext::of());
 }
 
-pub fn exec_method2(meth: OtMethod) -> Option<JvmValue> {
+pub fn exec_method(meth: OtMethod) -> Option<JvmValue> {
     let mut vars = InterpLocalVars::of(meth.get_local_var_size());
-    exec_method(meth.get_klass_name(), &meth.get_code(), &mut vars)
+    exec_method2(meth.get_klass_name(), &meth.get_code(), &mut vars)
 }
 
-pub fn exec_method(
+pub fn exec_method2(
     klass_name: String,
     instr: &Vec<u8>,
     lvt: &mut InterpLocalVars,
@@ -579,7 +584,7 @@ fn dispatch_invoke(
     if additional_args > 0 {
         vars.store(0, eval.pop());
     }
-    match exec_method(callee.get_klass_name(), &callee.get_code(), &mut vars) {
+    match exec_method2(callee.get_klass_name(), &callee.get_code(), &mut vars) {
         Some(val) => eval.push(val),
         None => (),
     }
@@ -589,6 +594,45 @@ fn parse_class(bytes: Vec<u8>, fname: String) -> OtKlass {
     let mut parser = klass_parser::OtKlassParser::of(bytes, fname);
     parser.parse();
     parser.klass()
+}
+
+fn file_to_bytes(path: &Path) -> Result<Vec<u8>, std::io::Error> {
+    File::open(path).and_then(|mut file| {
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes)?;
+        Ok(bytes)
+    })
+}
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    println!("{:?}", args);
+
+    let f_name = args[0].clone();
+
+    let fq_klass_name = f_name.clone() + ".class";
+    let bytes = match file_to_bytes(Path::new(&fq_klass_name)) {
+        Ok(buf) => buf,
+        _ => panic!("Error reading {}", f_name),
+    };
+    let mut parser = klass_parser::OtKlassParser::of(bytes, fq_klass_name.clone());
+    parser.parse();
+    let mut k = parser.klass();
+    let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
+
+    let main_str: String = fq_klass_name + ".main:([Ljava/lang/String;)V";
+    let meth = k.get_method_by_name_and_desc(main_str);
+
+    let opt_ret = exec_method(meth);
+    let ret = match opt_ret {
+        Some(value) => value,
+        None => panic!("Error executing ".to_owned() + &f_name + " - no value returned"),
+    };
+    match ret {
+        runtime::JvmValue::Int { val: i } => i,
+        _ => panic!("Error executing ".to_owned() + &f_name + " - non-int value returned"),
+    };
 }
 
 #[cfg(test)]

@@ -60,9 +60,6 @@ impl OtKlass {
         self.id
     }
 
-    // FIXME: Shouldn't this be OtField for consistency
-    pub fn set_static_field(&self, _f: String, _vals: JvmValue) -> () {}
-
     pub fn get_name(&self) -> String {
         self.name.to_owned()
     }
