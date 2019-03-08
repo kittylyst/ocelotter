@@ -2,12 +2,18 @@ use std::collections::HashMap;
 use std::fmt;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use std::path::Path;
+
 pub mod constant_pool;
 pub mod object;
+
+// use crate::file_to_bytes;
 
 use crate::runtime::constant_pool::CpAttr;
 use crate::runtime::constant_pool::CpEntry;
 use crate::runtime::object::OtObj;
+
+use crate::klass_parser::OtKlassParser;
 
 //////////// RUNTIME KLASS AND RELATED HANDLING
 
@@ -557,6 +563,22 @@ impl SharedKlassRepo {
         }
     }
 
+    pub fn bootstrap(&mut self) -> () {
+        // Add java.lang.Object
+        let cl_name = "java/lang/Object".to_string();
+
+        let fq_klass_fname = "./resources/lib/".to_owned() + &cl_name + ".class";
+        let bytes = match file_to_bytes(Path::new(&fq_klass_fname)) {
+            Ok(buf) => buf,
+            _ => panic!("Error reading {}", cl_name),
+        };
+        let mut parser = crate::klass_parser::OtKlassParser::of(bytes, cl_name.clone());
+        parser.parse();
+        let mut k = parser.klass();
+        // let repo =
+        self.add_klass(&mut k);
+    }
+
     // FIXME CHECK SIG
     pub fn lookup_field(&self, _klass_name: String, _idx: u16) -> OtField {
         // FIXME DUMMY
@@ -574,7 +596,11 @@ impl SharedKlassRepo {
     }
 
     // FIXME What does a rust directly-executable closure look like????
-    pub fn lookup_method_native(&self, klass_name: &String, fq_name_desc: String) -> Option<JvmValue> {
+    pub fn lookup_method_native(
+        &self,
+        klass_name: &String,
+        fq_name_desc: String,
+    ) -> Option<JvmValue> {
         None
     }
 

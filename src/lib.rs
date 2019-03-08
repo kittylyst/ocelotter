@@ -606,7 +606,7 @@ fn parse_class(bytes: Vec<u8>, fname: String) -> OtKlass {
     parser.klass()
 }
 
-fn file_to_bytes(path: &Path) -> Result<Vec<u8>, std::io::Error> {
+pub fn file_to_bytes(path: &Path) -> Result<Vec<u8>, std::io::Error> {
     File::open(path).and_then(|mut file| {
         let mut bytes = Vec::new();
         file.read_to_end(&mut bytes)?;
@@ -619,6 +619,9 @@ fn main() {
 
     println!("{:?}", args);
 
+    // FIXME In reality, need to bootstrap rt.jar
+    CONTEXT.lock().unwrap().get_repo().bootstrap();
+
     let f_name = args[0].clone();
 
     let fq_klass_name = f_name.clone() + ".class";
@@ -629,7 +632,8 @@ fn main() {
     let mut parser = klass_parser::OtKlassParser::of(bytes, fq_klass_name.clone());
     parser.parse();
     let mut k = parser.klass();
-    let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
+    // let repo =
+    CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
 
     // FIXME Real main() signture required, dummying for ease of testing
     let main_str: String = fq_klass_name + ".main2:([Ljava/lang/String;)I";
