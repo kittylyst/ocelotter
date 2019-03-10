@@ -726,3 +726,6 @@ impl SharedSimpleHeap {
         self.alloc[id] = obj;
     }
 }
+
+#[cfg(test)]
+mod tests;
