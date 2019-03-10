@@ -20,7 +20,7 @@ extern crate lazy_static;
 use std::sync::Mutex;
 
 lazy_static! {
-    static ref CONTEXT: Mutex<VmContext> = Mutex::new(VmContext::of());
+    pub static ref CONTEXT: Mutex<VmContext> = Mutex::new(VmContext::of());
 }
 
 pub fn exec_method(meth: OtMethod) -> Option<JvmValue> {
@@ -605,43 +605,6 @@ fn parse_class(bytes: Vec<u8>, fname: String) -> OtKlass {
     let mut parser = klass_parser::OtKlassParser::of(bytes, fname);
     parser.parse();
     parser.klass()
-}
-
-fn main() {
-    let args: Vec<String> = env::args().collect();
-
-    println!("{:?}", args);
-
-    // FIXME In reality, need to bootstrap rt.jar
-    CONTEXT.lock().unwrap().get_repo().bootstrap();
-
-    let f_name = args[0].clone();
-
-    let fq_klass_name = f_name.clone() + ".class";
-    let bytes = match file_to_bytes(Path::new(&fq_klass_name)) {
-        Ok(buf) => buf,
-        _ => panic!("Error reading {}", f_name),
-    };
-    let mut parser = klass_parser::OtKlassParser::of(bytes, fq_klass_name.clone());
-    parser.parse();
-    let mut k = parser.klass();
-    // let repo =
-    CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
-
-    // FIXME Real main() signture required, dummying for ease of testing
-    let main_str: String = fq_klass_name + ".main2:([Ljava/lang/String;)I";
-    let meth = k.get_method_by_name_and_desc(main_str);
-
-    let opt_ret = exec_method(meth);
-    let ret = match opt_ret {
-        Some(value) => value,
-        None => panic!("Error executing ".to_owned() + &f_name + " - no value returned"),
-    };
-    let ret_i = match ret {
-        JvmValue::Int { val: i } => i,
-        _ => panic!("Error executing ".to_owned() + &f_name + " - non-int value returned"),
-    };
-    println!("{}", ret_i);
 }
 
 #[cfg(test)]
