@@ -75,6 +75,11 @@ impl OtKlassParser {
     }
 
     fn super_name(&mut self) -> &String {
+        // Special-case j.l.O
+        if self.klass_name() == "java/lang/Object" {
+            return self.klass_name();
+        }
+
         // Lookup the superclass name in the CP - note that CP indices are 1-indexed
         match self.cp_entries[self.cp_index_super as usize] {
             CpEntry::class { idx: scl } => match &self.cp_entries[scl as usize] {
@@ -497,6 +502,10 @@ impl OtKlassParser {
                 self.current += code_len as usize;
                 method.set_code(bytecode);
             }
+            "Signature" => {
+                dbg!("Encountered signature in bytecode - skipping");
+                ()
+            }
             //    u2 exception_table_length;
             //    {   u2 start_pc;
             //        u2 end_pc;
@@ -505,7 +514,10 @@ impl OtKlassParser {
             //    } exception_table[exception_table_length];
             //    u2 attributes_count;
             //    attribute_info attributes[attributes_count];
-            "Exceptions" => panic!("Encountered exception handlers in bytecode - skipping"),
+            "Exceptions" => {
+                dbg!("Encountered exception handlers in bytecode - skipping");
+                ()
+            }
             _ => panic!("Unsupported attribute {} seen on {}", s, method),
         };
         // HACK HACK FIX THIS

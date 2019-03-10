@@ -16,7 +16,7 @@ pub fn main() {
     // FIXME In reality, need to bootstrap rt.jar
     CONTEXT.lock().unwrap().get_repo().bootstrap();
 
-    let f_name = args[0].clone();
+    let f_name = args[1].clone();
 
     let fq_klass_name = f_name.clone() + ".class";
     let bytes = match file_to_bytes(Path::new(&fq_klass_name)) {
@@ -30,7 +30,7 @@ pub fn main() {
     CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
 
     // FIXME Real main() signture required, dummying for ease of testing
-    let main_str: String = fq_klass_name + ".main2:([Ljava/lang/String;)I";
+    let main_str: String = f_name.clone() + ".main2:([Ljava/lang/String;)I";
     let meth = k.get_method_by_name_and_desc(main_str);
 
     let opt_ret = exec_method(meth);
