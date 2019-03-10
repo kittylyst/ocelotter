@@ -1,10 +1,14 @@
-use super::*;
-use crate::runtime::*;
+#![deny(unreachable_patterns)]
+
 use byteorder::{BigEndian, ByteOrder};
 use std::io::Read;
 use std::str;
 
-use crate::runtime::constant_pool::*;
+use crate::constant_pool::*;
+
+use crate::OtField;
+use crate::OtKlass;
+use crate::OtMethod;
 
 pub struct OtKlassParser {
     clz_read: Vec<u8>,
@@ -43,8 +47,8 @@ impl OtKlassParser {
         }
     }
 
-    pub fn klass(&mut self) -> runtime::OtKlass {
-        runtime::OtKlass::of(
+    pub fn klass(&mut self) -> OtKlass {
+        OtKlass::of(
             self.klass_name().to_string(),
             self.super_name().to_string(),
             self.flags,

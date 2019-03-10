@@ -1,7 +1,7 @@
 use std::fmt;
 
-use crate::runtime::JvmValue;
-use crate::runtime::OtField;
+use crate::JvmValue;
+use crate::OtField;
 
 #[derive(Clone, Debug)]
 pub enum OtObj {

@@ -1,5 +1,5 @@
 [package]
-name = "ocelotter"
+name = "ocelotter_runtime"
 version = "0.1.0"
 authors = ["Ben Evans <benjamin.john.evans@gmail.com>"]
 edition = "2018"
@@ -7,8 +7,4 @@ edition = "2018"
 [dependencies]
 byteorder = "1.2.7"
 lazy_static = "1.2.0"
-ocelotter_runtime = {path = "runtime"}
-ocelotter_util = {path = "util"}
-
-[profile.release]
-lto = true
+ocelotter_util = {path = "../util"}

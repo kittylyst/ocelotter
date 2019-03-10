@@ -5,15 +5,15 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::path::Path;
 
 pub mod constant_pool;
+pub mod klass_parser;
 pub mod object;
 
-// use crate::file_to_bytes;
+use constant_pool::CpAttr;
+use constant_pool::CpEntry;
+use object::OtObj;
+use ocelotter_util::file_to_bytes;
 
-use crate::runtime::constant_pool::CpAttr;
-use crate::runtime::constant_pool::CpEntry;
-use crate::runtime::object::OtObj;
-
-use crate::klass_parser::OtKlassParser;
+use klass_parser::OtKlassParser;
 
 //////////// RUNTIME KLASS AND RELATED HANDLING
 

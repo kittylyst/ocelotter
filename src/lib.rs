@@ -1,17 +1,18 @@
 #![deny(unreachable_patterns)]
-mod klass_parser;
-mod opcode;
-mod runtime;
-use object::*;
-use opcode::*;
-use runtime::*;
 
 use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use crate::runtime::constant_pool::CpEntry;
+use ocelotter_runtime::constant_pool::*;
+use ocelotter_runtime::object::OtObj::*;
+use ocelotter_runtime::JvmValue::*;
+use ocelotter_runtime::*;
+use ocelotter_util::file_to_bytes;
+
+pub mod opcode;
+use opcode::*;
 
 #[macro_use]
 extern crate lazy_static;
@@ -150,7 +151,7 @@ pub fn exec_method2(
                 dbg!(arrayid.clone());
 
                 let unwrapped_val = match CONTEXT.lock().unwrap().get_heap().get_obj(arrayid) {
-                    OtObj::vm_arr_int {
+                    ocelotter_runtime::object::OtObj::vm_arr_int {
                         id: _,
                         mark: _,
                         klassid: _,
@@ -606,14 +607,6 @@ fn parse_class(bytes: Vec<u8>, fname: String) -> OtKlass {
     parser.klass()
 }
 
-pub fn file_to_bytes(path: &Path) -> Result<Vec<u8>, std::io::Error> {
-    File::open(path).and_then(|mut file| {
-        let mut bytes = Vec::new();
-        file.read_to_end(&mut bytes)?;
-        Ok(bytes)
-    })
-}
-
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -645,7 +638,7 @@ fn main() {
         None => panic!("Error executing ".to_owned() + &f_name + " - no value returned"),
     };
     let ret_i = match ret {
-        runtime::JvmValue::Int { val: i } => i,
+        JvmValue::Int { val: i } => i,
         _ => panic!("Error executing ".to_owned() + &f_name + " - non-int value returned"),
     };
     println!("{}", ret_i);
