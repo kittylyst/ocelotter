@@ -258,7 +258,6 @@ fn test_goto() {
     assert_eq!(2, ret);
 }
 
-
 #[test]
 fn test_invoke_simple() {
     let bytes = match file_to_bytes(Path::new("./resources/test/SampleInvoke.class")) {

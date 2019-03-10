@@ -563,20 +563,33 @@ impl SharedKlassRepo {
         }
     }
 
-    pub fn bootstrap(&mut self) -> () {
-        // Add java.lang.Object
-        let cl_name = "java/lang/Object".to_string();
-
+    fn add_bootstrap_class(&mut self, cl_name: String) {
         let fq_klass_fname = "./resources/lib/".to_owned() + &cl_name + ".class";
         let bytes = match file_to_bytes(Path::new(&fq_klass_fname)) {
             Ok(buf) => buf,
-            _ => panic!("Error reading {}", cl_name),
+            _ => panic!("Error reading file {}", fq_klass_fname),
         };
         let mut parser = crate::klass_parser::OtKlassParser::of(bytes, cl_name.clone());
         parser.parse();
         let mut k = parser.klass();
         // let repo =
         self.add_klass(&mut k);
+    }
+
+    pub fn bootstrap(&mut self) -> () {
+        // Add java.lang.Object
+        let cl_name = "java/lang/Object".to_string();
+        self.add_bootstrap_class(cl_name);
+
+        // FIXME Add j.l.O native methods (e.g. hashCode())
+
+        // FIXME Add primitive arrays
+
+        // FIXME Add java.lang.String
+
+        // FIXME Add java.lang.Class
+
+        ()
     }
 
     // FIXME CHECK SIG
