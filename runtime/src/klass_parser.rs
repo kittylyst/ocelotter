@@ -398,8 +398,9 @@ impl OtKlassParser {
         // * RuntimeVisibleAnnotations (§4.7.16)
         // * RuntimeInvisibleAnnotations (§4.7.17).
         match s {
-            // FIXME: Actually parse this instead of skipping
+            // FIXME: Actually parse these instead of skipping
             "ConstantValue" => self.current += 2,
+            "Signature" => self.current += 2,
             _ => panic!("Unsupported attribute {} seen on {}", s, field),
         }
 
@@ -517,7 +518,15 @@ impl OtKlassParser {
             "Exceptions" => {
                 dbg!("Encountered exception handlers in bytecode - skipping");
                 ()
-            }
+            },
+            "Deprecated" => {
+                dbg!("Encountered Deprecated attribute in bytecode - skipping");
+                ()
+            },
+            "RuntimeVisibleAnnotations" => {
+                dbg!("Encountered RuntimeVisibleAnnotations attribute in bytecode - skipping");
+                ()
+            },
             _ => panic!("Unsupported attribute {} seen on {}", s, method),
         };
         // HACK HACK FIX THIS

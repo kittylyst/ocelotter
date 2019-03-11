@@ -23,15 +23,17 @@ lazy_static! {
     pub static ref CONTEXT: Mutex<VmContext> = Mutex::new(VmContext::of());
 }
 
+// FIXME Parameter passing
 pub fn exec_method(meth: OtMethod) -> Option<JvmValue> {
     // Perform the native check here...
     if meth.is_native() {
-        // FIXME Get an owned value back as a closure
-        CONTEXT
+        // Get an owned value back as a function pointer
+        let n_f: fn(Vec<JvmValue>) -> Option<JvmValue> = CONTEXT
             .lock()
             .unwrap()
             .get_repo()
-            .lookup_method_native(&meth.get_klass_name(), meth.get_desc())
+            .lookup_method_native(&meth.get_klass_name(), meth.get_desc());
+        n_f(Vec::new())
     } else {
         let mut vars = InterpLocalVars::of(meth.get_local_var_size());
         exec_method2(meth.get_klass_name(), &meth.get_code(), &mut vars)

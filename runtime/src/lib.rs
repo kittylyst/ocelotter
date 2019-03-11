@@ -578,14 +578,15 @@ impl SharedKlassRepo {
 
     pub fn bootstrap(&mut self) -> () {
         // Add java.lang.Object
-        let cl_name = "java/lang/Object".to_string();
-        self.add_bootstrap_class(cl_name);
+        self.add_bootstrap_class("java/lang/Object".to_string());
 
-        // FIXME Add j.l.O native methods (e.g. hashCode())
+        // Add j.l.O native methods (e.g. hashCode())
+
 
         // FIXME Add primitive arrays
 
         // FIXME Add java.lang.String
+        self.add_bootstrap_class("java/lang/String".to_string());
 
         // FIXME Add java.lang.Class
 
@@ -608,13 +609,17 @@ impl SharedKlassRepo {
         // FIXME Handle storage properly
     }
 
+    fn none(args: Vec<JvmValue>) -> Option<JvmValue> {
+        None
+    } 
+
     // FIXME What does a rust directly-executable closure look like????
     pub fn lookup_method_native(
         &self,
         klass_name: &String,
         fq_name_desc: String,
-    ) -> Option<JvmValue> {
-        None
+    ) -> fn(Vec<JvmValue>) -> Option<JvmValue> {
+        SharedKlassRepo::none
     }
 
     pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {
