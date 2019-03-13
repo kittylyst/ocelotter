@@ -7,13 +7,12 @@ use std::path::Path;
 pub mod constant_pool;
 pub mod klass_parser;
 pub mod object;
+pub mod native_methods;
 
 use constant_pool::CpAttr;
 use constant_pool::CpEntry;
 use object::OtObj;
 use ocelotter_util::file_to_bytes;
-
-use klass_parser::OtKlassParser;
 
 //////////// RUNTIME KLASS AND RELATED HANDLING
 
@@ -613,13 +612,13 @@ impl SharedKlassRepo {
         None
     } 
 
-    // FIXME What does a rust directly-executable closure look like????
+    // FIXME 
     pub fn lookup_method_native(
         &self,
         klass_name: &String,
         fq_name_desc: String,
     ) -> fn(Vec<JvmValue>) -> Option<JvmValue> {
-        SharedKlassRepo::none
+        crate::native_methods::java_lang_Object__hashcode
     }
 
     pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {

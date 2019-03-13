@@ -26,7 +26,6 @@ pub fn main() {
     let mut parser = OtKlassParser::of(bytes, fq_klass_name.clone());
     parser.parse();
     let mut k = parser.klass();
-    // let repo =
     CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
 
     // FIXME Real main() signture required, dummying for ease of testing
@@ -42,5 +41,5 @@ pub fn main() {
         Int { val: i } => i,
         _ => panic!("Error executing ".to_owned() + &f_name + " - non-int value returned"),
     };
-    println!("{}", ret_i);
+    println!("Ret: {}", ret_i);
 }

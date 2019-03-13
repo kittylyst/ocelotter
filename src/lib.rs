@@ -400,20 +400,28 @@ pub fn exec_method2(
                     .lookup_klass(&klass_name)
                     .clone();
 
-                let klass_name = match current_klass.lookup_cp(cp_lookup) {
-                    CpEntry::class { idx } => "DUMMY_CLASS".to_string(), // FIXME
+                let alloc_klass_name = match current_klass.lookup_cp(cp_lookup) {
+                    // FIXME Find class name from constant pool of the current class
+                    CpEntry::class { idx } => current_klass.cp_as_string(idx), // "DUMMY_CLASS".to_string(), 
                     _ => panic!(
                         "Non-class found in {} at CP index {}",
                         current_klass.get_name(),
                         cp_lookup
                     ),
                 };
+                // dbg!(alloc_klass_name);
+                let object_klass = CONTEXT
+                    .lock()
+                    .unwrap()
+                    .get_repo()
+                    .lookup_klass(&alloc_klass_name)
+                    .clone();
 
                 let obj_id = CONTEXT
                     .lock()
                     .unwrap()
                     .get_heap()
-                    .allocate_obj(&current_klass);
+                    .allocate_obj(&object_klass);
                 eval.push(JvmValue::ObjRef { val: obj_id });
             }
             Opcode::NEWARRAY => {
