@@ -402,7 +402,7 @@ pub fn exec_method2(
 
                 let alloc_klass_name = match current_klass.lookup_cp(cp_lookup) {
                     // FIXME Find class name from constant pool of the current class
-                    CpEntry::class { idx } => current_klass.cp_as_string(idx), // "DUMMY_CLASS".to_string(), 
+                    CpEntry::class { idx } => current_klass.cp_as_string(idx), // "DUMMY_CLASS".to_string(),
                     _ => panic!(
                         "Non-class found in {} at CP index {}",
                         current_klass.get_name(),
