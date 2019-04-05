@@ -9,6 +9,7 @@ pub enum OtObj {
         id: usize,
         mark: u64,
         klassid: usize,
+        fields: Vec<u8>, // Try storing as a slab
     },
     vm_arr_int {
         id: usize,
@@ -27,11 +28,12 @@ pub enum OtObj {
 }
 
 impl OtObj {
-    pub fn of(klass_id: usize, obj_id: usize) -> OtObj {
+    pub fn of(klass_id: usize, obj_id: usize, obj_size: usize) -> OtObj {
         OtObj::vm_obj {
             id: obj_id,
             mark: 0u64,
             klassid: klass_id,
+            fields: Vec::new(), // FIXME size
         }
     }
 
@@ -55,6 +57,7 @@ impl OtObj {
             id: 0,
             mark: 0u64,
             klassid: 0, // klassid of 0 implies null
+            fields: Vec::new(),
         }
     }
 
@@ -72,6 +75,7 @@ impl OtObj {
                 id: i,
                 mark: _,
                 klassid: _,
+                fields: _,
             } => i,
             OtObj::vm_arr_int {
                 id: i,
@@ -96,6 +100,7 @@ impl OtObj {
                 id: _,
                 mark: m,
                 klassid: _,
+                fields: _,
             } => m,
             OtObj::vm_arr_int {
                 id: _,
@@ -120,6 +125,7 @@ impl OtObj {
                 id: _,
                 mark: _,
                 klassid: k,
+                fields: _,
             } => k,
             OtObj::vm_arr_int {
                 id: _,
@@ -144,6 +150,7 @@ impl OtObj {
                 id: _,
                 mark: _,
                 klassid: _,
+                fields: _,
             } => panic!("Attempted to take the length of a normal object!"),
             OtObj::vm_arr_int {
                 id: _,

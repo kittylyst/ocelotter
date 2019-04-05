@@ -409,7 +409,7 @@ pub fn exec_method2(
                         cp_lookup
                     ),
                 };
-                // dbg!(alloc_klass_name);
+                dbg!(alloc_klass_name.clone());
                 let object_klass = CONTEXT
                     .lock()
                     .unwrap()
@@ -475,7 +475,7 @@ pub fn exec_method2(
                     .lock()
                     .unwrap()
                     .get_repo()
-                    .lookup_field(my_klass_name.clone(), cp_lookup);
+                    .lookup_field(&my_klass_name, cp_lookup);
                 let val = eval.pop();
 
                 let recvp: JvmValue = eval.pop();
@@ -501,7 +501,7 @@ pub fn exec_method2(
                     .lock()
                     .unwrap()
                     .get_repo()
-                    .lookup_field(my_klass_name.clone(), cp_lookup);
+                    .lookup_field(&my_klass_name, cp_lookup);
 
                 let klass_name = puts.get_klass_name();
                 CONTEXT

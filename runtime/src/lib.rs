@@ -25,6 +25,7 @@ pub struct OtKlass {
     cp_entries: Vec<CpEntry>,
     methods: Vec<OtMethod>,
     name_desc_lookup: HashMap<String, usize>,
+    // fields: Vec<OtField>,
 }
 
 impl OtKlass {
@@ -34,6 +35,7 @@ impl OtKlass {
         flags: u16,
         cp_entries: &Vec<CpEntry>,
         methods: &Vec<OtMethod>,
+        // fields: &Vec<OtField>,
     ) -> OtKlass {
         let mut lookup = HashMap::new();
         let mut i = 0;
@@ -75,6 +77,11 @@ impl OtKlass {
 
     pub fn get_methods(&self) -> Vec<OtMethod> {
         self.methods.clone()
+    }
+
+    // FIXME The size in bytes of an object of this type
+    pub fn obj_size(&self) -> usize {
+        100
     }
 
     // NOTE: This is fully-qualified
@@ -531,6 +538,7 @@ impl VmContext {
     pub fn get_heap(&mut self) -> &mut SharedSimpleHeap {
         &mut self.heap
     }
+
 }
 
 #[derive(Debug)]
@@ -574,13 +582,27 @@ impl SharedKlassRepo {
         // FIXME Add java.lang.String
         self.add_bootstrap_class("java/lang/String".to_string());
 
+        // FIXME Add java.lang.StringBuilder
+
         // FIXME Add java.lang.Class
 
         ()
     }
 
-    // FIXME CHECK SIG
-    pub fn lookup_field(&self, _klass_name: String, _idx: u16) -> OtField {
+    // FIXME SHOULD THIS BE DONE BY INDEX OR DESC???
+    pub fn lookup_field(&self, klass_name: &String, _idx: u16) -> OtField {
+        let kid = match self.klass_lookup.get(klass_name) {
+            Some(id) => id,
+            None => panic!("No klass called {} found in repo", klass_name),
+        };
+        // let opt_f : Option<&OtField> = match self.id_lookup.get(kid) {
+        //     Some(k) => k.get_field_by_name_and_desc(fq_name_desc.clone()),
+        //     None => panic!("No klass with ID {} found in repo", kid),
+        // };
+        // match opt_meth {
+        //     Some(k) => k.clone(),
+        //     None => panic!("No method {} found on klass {} ", fq_name_desc.clone(), kid),
+        // }
         // FIXME DUMMY
         OtField::of(
             "DUMMY_KLASS".to_string(),
@@ -675,15 +697,16 @@ impl SharedSimpleHeap {
             obj_count: AtomicUsize::new(1),
             alloc: Vec::new(),
         };
-        let null_obj = OtObj::of(0, 0);
+        let null_obj = OtObj::of(0, 0, 0);
         out.alloc.push(null_obj);
         out
     }
 
     pub fn allocate_obj(&mut self, klass: &OtKlass) -> usize {
         let klass_id = klass.get_id();
+        let bytes_to_alloc = klass.obj_size();
         let obj_id: usize = self.obj_count.fetch_add(1, Ordering::SeqCst);
-        let out = OtObj::of(klass_id, obj_id);
+        let out = OtObj::of(klass_id, obj_id, bytes_to_alloc);
         self.alloc.push(out);
         obj_id
     }
