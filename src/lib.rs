@@ -503,12 +503,12 @@ pub fn exec_method2(
                     .get_repo()
                     .lookup_field(my_klass_name.clone(), cp_lookup);
 
-                let klass_id = puts.get_klass().get_id();
+                let klass_name = puts.get_klass_name();
                 CONTEXT
                     .lock()
                     .unwrap()
                     .get_repo()
-                    .put_static(klass_id, puts, eval.pop());
+                    .put_static(klass_name, puts, eval.pop());
                 // f_klass.set_static_field(puts.get_name(), eval.pop());
             }
             Opcode::RETURN => break None,

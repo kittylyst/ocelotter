@@ -208,7 +208,7 @@ impl fmt::Display for OtMethod {
 
 #[derive(Debug)]
 pub struct OtField {
-    class_name: String,
+    klass_name: String,
     flags: u16,
     name_idx: u16,
     desc_idx: u16,
@@ -225,7 +225,7 @@ impl OtField {
         desc: u16,
     ) -> OtField {
         OtField {
-            class_name: klass_name.to_string(),
+            klass_name: klass_name.to_string(),
             // FIXME
             flags: field_flags,
             name_idx: name,
@@ -241,23 +241,14 @@ impl OtField {
         String::from("")
     }
 
-    pub fn get_klass(&self) -> OtKlass {
-        // FIXME DUMMY
-        return OtKlass {
-            id: 0,
-            name: "DUMMY_CLASS".to_string(),
-            super_name: "DUMMY_SUPER0".to_string(),
-            flags: 0,
-            cp_entries: Vec::new(),
-            methods: Vec::new(),
-            name_desc_lookup: HashMap::new(),
-        };
+    pub fn get_klass_name(&self) -> String {
+        self.klass_name.clone()
     }
 }
 
 impl fmt::Display for OtField {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}.{}:{}", self.class_name, self.name, self.desc_idx)
+        write!(f, "{}.{}:{}", self.klass_name, self.name, self.desc_idx)
     }
 }
 
@@ -600,7 +591,7 @@ impl SharedKlassRepo {
         )
     }
 
-    pub fn put_static(&self, klass_id: usize, f: OtField, v: JvmValue) -> () {
+    pub fn put_static(&self, klass_name: String, f: OtField, v: JvmValue) -> () {
         // FIXME Handle storage properly
     }
 
