@@ -275,7 +275,10 @@ fn test_invoke_simple() {
     let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
 
     {
-        let meth = k.get_method_by_name_and_desc("SampleInvoke.bar:()I".to_string());
+        let meth = match k.get_method_by_name_and_desc("SampleInvoke.bar:()I".to_string()) {
+            Some(value) => value.clone(),
+            None => panic!("SampleInvoke.bar:()I not found"),
+        };
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let opt_ret = exec_method(meth);
@@ -291,7 +294,11 @@ fn test_invoke_simple() {
     }
 
     {
-        let meth = k.get_method_by_name_and_desc("SampleInvoke.foo:()I".to_string());
+        let meth = match k.get_method_by_name_and_desc("SampleInvoke.foo:()I".to_string()) {
+            Some(value) => value.clone(),
+            None => panic!("SampleInvoke.bar:()I not found"),
+        };
+
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let opt_ret = exec_method(meth);
@@ -320,7 +327,11 @@ fn test_iffer() {
     let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
 
     {
-        let meth = k.get_method_by_name_and_desc("Iffer.baz:()I".to_string());
+        let meth = match k.get_method_by_name_and_desc("Iffer.baz:()I".to_string()) {
+            Some(value) => value.clone(),
+            None => panic!("Iffer.baz:()I not found"),
+        };
+
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let opt_ret = exec_method(meth);
@@ -349,7 +360,11 @@ fn test_array_simple() {
     let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
 
     {
-        let meth = k.get_method_by_name_and_desc("ArraySimple.baz:()I".to_string());
+        let meth = match k.get_method_by_name_and_desc("ArraySimple.baz:()I".to_string()) {
+            Some(value) => value.clone(),
+            None => panic!("ArraySimple.baz:()I not found"),
+        };
+
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let opt_ret = exec_method(meth);

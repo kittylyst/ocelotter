@@ -78,18 +78,14 @@ impl OtKlass {
     }
 
     // NOTE: This is fully-qualified
-    pub fn get_method_by_name_and_desc(&self, name_desc: String) -> OtMethod {
+    pub fn get_method_by_name_and_desc(&self, name_desc: String) -> Option<&OtMethod> {
         dbg!(&self.name_desc_lookup);
         let opt_idx = self.name_desc_lookup.get(&name_desc);
         let idx: usize = match opt_idx {
             Some(value) => value.clone(),
-            None => panic!("Error: method {} not found on {}", name_desc, self.name),
+            None => return None,
         };
-        let opt_meth = self.methods.get(idx).clone();
-        match opt_meth {
-            Some(val) => val.clone(),
-            None => panic!("Error: method {} not found on {}", name_desc, self.name),
-        }
+        self.methods.get(idx)
     }
 
     pub fn lookup_cp(&self, cp_idx: u16) -> CpEntry {
@@ -626,9 +622,13 @@ impl SharedKlassRepo {
             Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),
         };
-        match self.id_lookup.get(kid) {
-            Some(k) => k.get_method_by_name_and_desc(fq_name_desc),
+        let opt_meth : Option<&OtMethod> = match self.id_lookup.get(kid) {
+            Some(k) => k.get_method_by_name_and_desc(fq_name_desc.clone()),
             None => panic!("No klass with ID {} found in repo", kid),
+        };
+        match opt_meth {
+            Some(k) => k.clone(),
+            None => panic!("No method {} found on klass {} ", fq_name_desc.clone(), kid),
         }
     }
 
