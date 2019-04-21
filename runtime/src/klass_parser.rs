@@ -17,7 +17,7 @@ pub struct OtKlassParser {
     major: u16,
     minor: u16,
 
-    poolItemCount: u16,
+    pool_item_count: u16,
     flags: u16,
     cp_index_this: u16,
     cp_index_super: u16,
@@ -36,7 +36,7 @@ impl OtKlassParser {
             current: 0,
             major: 0,
             minor: 0,
-            poolItemCount: 0,
+            pool_item_count: 0,
             flags: 0,
             cp_index_this: 0,
             cp_index_super: 0,
@@ -117,7 +117,7 @@ impl OtKlassParser {
 
     // CP is 1-indexed
     pub fn get_pool_size(&self) -> u16 {
-        self.poolItemCount - 1
+        self.pool_item_count - 1
     }
 
     // Impl methods
@@ -135,7 +135,7 @@ impl OtKlassParser {
 
         self.minor = ((self.clz_read[4] as u16) << 8) + self.clz_read[5] as u16;
         self.major = ((self.clz_read[6] as u16) << 8) + self.clz_read[7] as u16;
-        self.poolItemCount = ((self.clz_read[8] as u16) << 8) + self.clz_read[9] as u16;
+        self.pool_item_count = ((self.clz_read[8] as u16) << 8) + self.clz_read[9] as u16;
     }
 
     fn parse_constant_pool(&mut self) -> () {
@@ -143,11 +143,11 @@ impl OtKlassParser {
         dbg!("Pool size:");
         dbg!(self.get_pool_size());
         self.cp_entries.resize(
-            (self.poolItemCount as usize) + 1,
+            (self.pool_item_count as usize) + 1,
             CpEntry::integer { val: 0 },
         );
         let mut current_cp = 1;
-        while current_cp < self.poolItemCount {
+        while current_cp < self.pool_item_count {
             let tag = self.clz_read[self.current];
             dbg!(tag);
             dbg!(current_cp);
@@ -335,12 +335,12 @@ impl OtKlassParser {
     }
 
     fn parse_fields(&mut self) -> () {
-        let fCount =
+        let f_count =
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         self.current += 2;
 
-        for _idx in 0..fCount {
-            let fFlags = ((self.clz_read[self.current] as u16) << 8)
+        for _idx in 0..f_count {
+            let f_flags = ((self.clz_read[self.current] as u16) << 8)
                 + self.clz_read[self.current + 1] as u16;
             let name_idx = ((self.clz_read[self.current + 2] as u16) << 8)
                 + self.clz_read[self.current + 3] as u16;
@@ -362,7 +362,7 @@ impl OtKlassParser {
             let f = OtField::of(
                 k_name.to_string(),
                 f_name.to_string(),
-                fFlags,
+                f_flags,
                 name_idx,
                 desc_idx,
             );

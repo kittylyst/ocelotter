@@ -1,15 +1,7 @@
 #![deny(unreachable_patterns)]
 
-use std::env;
-use std::fs::File;
-use std::io::Read;
-use std::path::Path;
-
 use ocelotter_runtime::constant_pool::*;
-use ocelotter_runtime::object::OtObj::*;
-use ocelotter_runtime::JvmValue::*;
 use ocelotter_runtime::*;
-use ocelotter_util::file_to_bytes;
 
 pub mod opcode;
 use opcode::*;
@@ -205,74 +197,74 @@ pub fn exec_method2(
             Opcode::IDIV => eval.idiv(),
 
             Opcode::IF_ICMPEQ => {
-                let jumpTo = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+                let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
                 if massage_to_jvm_int_and_equate(eval.pop(), eval.pop()) {
-                    current += jumpTo;
+                    current += jump_to;
                 } else {
                     current += 2;
                 }
             }
             Opcode::IF_ICMPNE => {
-                let jumpTo = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+                let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
                 if massage_to_jvm_int_and_equate(eval.pop(), eval.pop()) {
                     current += 2;
                 } else {
-                    current += jumpTo;
+                    current += jump_to;
                 }
             }
             // Opcode::IFEQ => {
-            //     let jumpTo = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+            //     let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
             //     let i = match eval.pop() {
 
             //     }
             //     if == 0 {
-            //         current += jumpTo;
+            //         current += jump_to;
             //     } else {
             //         current += 2;
             //     }
             // }    ,
             // Opcode::IFGE => {
             //     v = eval.pop();
-            //     jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
+            //     jump_to = ((int) instr[current++] << 8) + (int) instr[current++];
             //     if (v.value >= 0L) {
-            //         current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
+            //         current += jump_to - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // } ,
             // Opcode::IFGT => {
             //     v = eval.pop();
-            //     jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
+            //     jump_to = ((int) instr[current++] << 8) + (int) instr[current++];
             //     if (v.value > 0L) {
-            //         current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
+            //         current += jump_to - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // },
             // Opcode::IFLE => {
             //     v = eval.pop();
-            //     jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
+            //     jump_to = ((int) instr[current++] << 8) + (int) instr[current++];
             //     if (v.value <= 0L) {
-            //         current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
+            //         current += jump_to - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // },
             // Opcode::IFLT => {
             //     v = eval.pop();
-            //     jumpTo = ((int) instr[current++] << 8) + (int) instr[current++];
+            //     jump_to = ((int) instr[current++] << 8) + (int) instr[current++];
             //     if (v.value < 0L) {
-            //         current += jumpTo - 1; // The -1 is necessary as we've already inc'd current
+            //         current += jump_to - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // },
             // Opcode::IFNE => {
             //     v = eval.pop();
-            //     jumpTo = ((int) instr[current] << 8) + (int) instr[current + 1];
+            //     jump_to = ((int) instr[current] << 8) + (int) instr[current + 1];
             //     if (v.value != 0L) {
-            //         current += jumpTo - 1;  // The -1 is necessary as we've already inc'd current
+            //         current += jump_to - 1;  // The -1 is necessary as we've already inc'd current
             //     }
             // },
             Opcode::IFNONNULL => {
-                let jumpTo = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
 
                 match eval.pop() {
                     JvmValue::ObjRef { val: v } => {
                         if v > 0 {
-                            current += jumpTo;
+                            current += jump_to;
                         } else {
                             current += 2;
                         }
@@ -284,14 +276,14 @@ pub fn exec_method2(
                 };
             }
             Opcode::IFNULL => {
-                let jumpTo = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
 
                 match eval.pop() {
                     JvmValue::ObjRef { val: v } => {
                         if v == 0 {
                             // println!("Ins[curr]: {} and {}", instr[current], instr[current + 1]);
-                            // println!("Attempting to jump by: {} from {}", jumpTo, current);
-                            current += jumpTo;
+                            // println!("Attempting to jump by: {} from {}", jump_to, current);
+                            current += jump_to;
                         } else {
                             current += 2;
                         }
@@ -574,7 +566,7 @@ fn massage_to_jvm_int_and_equate(v1: JvmValue, v2: JvmValue) -> bool {
             JvmValue::Char { val: i1 } => i == i1,
             _ => panic!("Values found to have differing type for IF_ICMP*"),
         },
-        JvmValue::ObjRef { val: v } => panic!("Values found to have differing type for IF_ICMP*"),
+        JvmValue::ObjRef { val: _ } => panic!("Values found to have differing type for IF_ICMP*"),
     }
 }
 
@@ -586,7 +578,7 @@ fn dispatch_invoke(
 ) -> () {
     let fq_name_desc = current_klass.cp_as_string(cp_lookup);
     let klz_idx = match current_klass.lookup_cp(cp_lookup) {
-        CpEntry::methodref { clz_idx, nt_idx } => clz_idx,
+        CpEntry::methodref { clz_idx, nt_idx: _ } => clz_idx,
         _ => panic!(
             "Non-methodref found in {} at CP index {}",
             current_klass.get_name(),
