@@ -1,7 +1,6 @@
 use super::*;
 
 use ocelotter_runtime::constant_pool::ACC_PUBLIC;
-use ocelotter_runtime::JvmValue::*;
 use ocelotter_util::file_to_bytes;
 
 use std::path::Path;
@@ -276,7 +275,7 @@ fn test_invoke_simple() {
     let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
 
     {
-        let meth = match k.get_method_by_name_and_desc("SampleInvoke.bar:()I".to_string()) {
+        let meth = match k.get_method_by_name_and_desc(&"SampleInvoke.bar:()I".to_string()) {
             Some(value) => value.clone(),
             None => panic!("SampleInvoke.bar:()I not found"),
         };
@@ -295,7 +294,7 @@ fn test_invoke_simple() {
     }
 
     {
-        let meth = match k.get_method_by_name_and_desc("SampleInvoke.foo:()I".to_string()) {
+        let meth = match k.get_method_by_name_and_desc(&"SampleInvoke.foo:()I".to_string()) {
             Some(value) => value.clone(),
             None => panic!("SampleInvoke.bar:()I not found"),
         };
@@ -328,7 +327,7 @@ fn test_iffer() {
     let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
 
     {
-        let meth = match k.get_method_by_name_and_desc("Iffer.baz:()I".to_string()) {
+        let meth = match k.get_method_by_name_and_desc(&"Iffer.baz:()I".to_string()) {
             Some(value) => value.clone(),
             None => panic!("Iffer.baz:()I not found"),
         };
@@ -361,7 +360,7 @@ fn test_array_simple() {
     let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
 
     {
-        let meth = match k.get_method_by_name_and_desc("ArraySimple.baz:()I".to_string()) {
+        let meth = match k.get_method_by_name_and_desc(&"ArraySimple.baz:()I".to_string()) {
             Some(value) => value.clone(),
             None => panic!("ArraySimple.baz:()I not found"),
         };

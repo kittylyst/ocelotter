@@ -81,20 +81,36 @@ impl OtKlass {
         self.methods.clone()
     }
 
+    pub fn set_native_method(&mut self, name_desc: String, n_code: fn(Vec<JvmValue>) -> Option<JvmValue>) {
+        match self.get_mutable_method(&name_desc) {
+            Some(m2) => m2.set_native_code(n_code),
+            None => panic!("Should be unreachable"),
+        }
+    }
+
     // FIXME The size in bytes of an object of this type
     pub fn obj_size(&self) -> usize {
         100
     }
 
     // NOTE: This is fully-qualified
-    pub fn get_method_by_name_and_desc(&self, name_desc: String) -> Option<&OtMethod> {
+    pub fn get_method_by_name_and_desc(&self, name_desc: &String) -> Option<&OtMethod> {
         dbg!(&self.name_desc_lookup);
-        let opt_idx = self.name_desc_lookup.get(&name_desc);
+        let opt_idx = self.name_desc_lookup.get(name_desc);
         let idx: usize = match opt_idx {
             Some(value) => value.clone(),
             None => return None,
         };
         self.methods.get(idx)
+    }
+
+    pub fn get_mutable_method(&mut self, name_desc: &String) -> Option<&mut OtMethod> {
+        for m in &mut self.methods {
+            if *m.name_desc == *name_desc {
+                return Some(m)
+            }
+        }
+        None
     }
 
     pub fn lookup_cp(&self, cp_idx: u16) -> CpEntry {
@@ -205,7 +221,7 @@ impl OtMethod {
     }
 
     pub fn set_native_code(&mut self, n_code: fn(Vec<JvmValue>) -> Option<JvmValue>) {
-
+        self.native_code = Some(n_code);
     }
 
     // HACK Replace with proper local var size by parsing class attributes properly
@@ -579,10 +595,10 @@ impl SharedKlassRepo {
 
     pub fn bootstrap(&mut self) -> () {
         // Add java.lang.Object
-        let k_obj = self.add_bootstrap_class("java/lang/Object".to_string());
+        let mut k_obj = self.add_bootstrap_class("java/lang/Object".to_string());
 
         // Add j.l.O native methods (e.g. hashCode())
-        // self.add_native_method();
+        k_obj.set_native_method("hashCode:()I".to_string(), crate::native_methods::java_lang_Object__hashcode);
 
         // FIXME Add primitive arrays
 
@@ -642,8 +658,8 @@ impl SharedKlassRepo {
             Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),
         };
-        let opt_meth: Option<&OtMethod> = match self.id_lookup.get(kid) {
-            Some(k) => k.get_method_by_name_and_desc(fq_name_desc.clone()),
+        let opt_meth = match self.id_lookup.get(kid) {
+            Some(k) => k.get_method_by_name_and_desc(&fq_name_desc),
             None => panic!("No klass with ID {} found in repo", kid),
         };
         match opt_meth {

@@ -30,7 +30,7 @@ pub fn main() {
 
     // FIXME Real main() signture required, dummying for ease of testing
     let main_str: String = f_name.clone() + ".main2:([Ljava/lang/String;)I";
-    let main = match k.get_method_by_name_and_desc(main_str.clone()) {
+    let main = match k.get_method_by_name_and_desc(&main_str) {
         Some(value) => value.clone(),
         // FIXME Make this a clean exit
         None => panic!("Error: Main method not found {}", main_str.clone()),
