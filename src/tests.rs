@@ -2,6 +2,7 @@ use super::*;
 
 use ocelotter_runtime::constant_pool::ACC_PUBLIC;
 use ocelotter_runtime::JvmValue::*;
+use ocelotter_util::file_to_bytes;
 
 use std::path::Path;
 

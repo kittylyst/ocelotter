@@ -163,16 +163,20 @@ impl OtKlassParser {
 
                     let mut buf = vec![];
                     let mut chunk = self.clz_read[self.current..].take(len as u64);
-                    chunk.read_to_end(&mut buf);
-                    self.current += len as usize;
+                    match chunk.read_to_end(&mut buf) {
+                        Ok(v) => {
+                            self.current += len as usize;
 
-                    let str_c = match str::from_utf8(&buf) {
-                        Ok(v) => v,
-                        Err(e) => panic!("{}", e),
+                            let str_c = match str::from_utf8(&buf) {
+                                Ok(v) => v,
+                                Err(e) => panic!("{}", e),
+                            }
+                            .to_owned();
+                            dbg!(str_c.clone());
+                            CpEntry::utf8 { val: str_c }
+                        }
+                        Err(e) => panic!("error parsing constant pool: {:?}", e),
                     }
-                    .to_owned();
-                    dbg!(str_c.clone());
-                    CpEntry::utf8 { val: str_c }
                 }
                 CP_INTEGER => {
                     let b1 = self.clz_read[self.current];
@@ -499,9 +503,14 @@ impl OtKlassParser {
 
                 let mut bytecode = vec![];
                 let mut chunk = self.clz_read[self.current..].take(code_len as u64);
-                chunk.read_to_end(&mut bytecode);
-                self.current += code_len as usize;
-                method.set_code(bytecode);
+
+                match chunk.read_to_end(&mut bytecode) {
+                    Ok(v) => {
+                        self.current += code_len as usize;
+                        method.set_code(bytecode);
+                    }
+                    Err(e) => panic!("error parsing file: {:?}", e),
+                };
             }
             "Signature" => {
                 dbg!("Encountered signature in bytecode - skipping");
@@ -518,15 +527,15 @@ impl OtKlassParser {
             "Exceptions" => {
                 dbg!("Encountered exception handlers in bytecode - skipping");
                 ()
-            },
+            }
             "Deprecated" => {
                 dbg!("Encountered Deprecated attribute in bytecode - skipping");
                 ()
-            },
+            }
             "RuntimeVisibleAnnotations" => {
                 dbg!("Encountered RuntimeVisibleAnnotations attribute in bytecode - skipping");
                 ()
-            },
+            }
             _ => panic!("Unsupported attribute {} seen on {}", s, method),
         };
         // HACK HACK FIX THIS

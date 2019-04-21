@@ -34,7 +34,6 @@ pub fn main() {
         Some(value) => value.clone(),
         // FIXME Make this a clean exit
         None => panic!("Error: Main method not found {}", main_str.clone()),
-        // None => panic!("Error: Main method not found in class {}", f_name.clone()),
     };
 
     let opt_ret = exec_method(main);

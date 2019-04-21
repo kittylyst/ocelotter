@@ -6,13 +6,15 @@ use std::path::Path;
 
 pub mod constant_pool;
 pub mod klass_parser;
-pub mod object;
 pub mod native_methods;
+pub mod object;
 
 use constant_pool::CpAttr;
 use constant_pool::CpEntry;
 use object::OtObj;
 use ocelotter_util::file_to_bytes;
+
+use crate::constant_pool::ACC_NATIVE;
 
 //////////// RUNTIME KLASS AND RELATED HANDLING
 
@@ -144,6 +146,7 @@ pub struct OtMethod {
     name_idx: u16,
     desc_idx: u16,
     code: Vec<u8>,
+    native_code: Option<fn(Vec<JvmValue>) -> Option<JvmValue>>,
     attrs: Vec<CpAttr>,
 }
 
@@ -164,6 +167,7 @@ impl OtMethod {
             name_desc: name_and_desc,
             attrs: Vec::new(),
             code: Vec::new(),
+            native_code: None,
             // FIXME
             name_idx: desc_idx,
             desc_idx: desc_idx,
@@ -196,15 +200,19 @@ impl OtMethod {
         self.flags
     }
 
+    pub fn is_native(&self) -> bool {
+        self.flags | ACC_NATIVE == ACC_NATIVE
+    }
+
+    pub fn set_native_code(&mut self, n_code: fn(Vec<JvmValue>) -> Option<JvmValue>) {
+
+    }
+
     // HACK Replace with proper local var size by parsing class attributes properly
     pub fn get_local_var_size(&self) -> u8 {
         255
     }
 
-    // FIXME STUB
-    pub fn is_native(&self) -> bool {
-        false
-    }
 }
 
 impl fmt::Display for OtMethod {
@@ -538,7 +546,6 @@ impl VmContext {
     pub fn get_heap(&mut self) -> &mut SharedSimpleHeap {
         &mut self.heap
     }
-
 }
 
 #[derive(Debug)]
@@ -557,7 +564,7 @@ impl SharedKlassRepo {
         }
     }
 
-    fn add_bootstrap_class(&mut self, cl_name: String) {
+    fn add_bootstrap_class(&mut self, cl_name: String) -> OtKlass {
         let fq_klass_fname = "./resources/lib/".to_owned() + &cl_name + ".class";
         let bytes = match file_to_bytes(Path::new(&fq_klass_fname)) {
             Ok(buf) => buf,
@@ -566,16 +573,16 @@ impl SharedKlassRepo {
         let mut parser = crate::klass_parser::OtKlassParser::of(bytes, cl_name.clone());
         parser.parse();
         let mut k = parser.klass();
-        // let repo =
         self.add_klass(&mut k);
+        k
     }
 
     pub fn bootstrap(&mut self) -> () {
         // Add java.lang.Object
-        self.add_bootstrap_class("java/lang/Object".to_string());
+        let k_obj = self.add_bootstrap_class("java/lang/Object".to_string());
 
         // Add j.l.O native methods (e.g. hashCode())
-
+        // self.add_native_method();
 
         // FIXME Add primitive arrays
 
@@ -619,9 +626,9 @@ impl SharedKlassRepo {
 
     fn none(args: Vec<JvmValue>) -> Option<JvmValue> {
         None
-    } 
+    }
 
-    // FIXME 
+    // FIXME
     pub fn lookup_method_native(
         &self,
         klass_name: &String,
@@ -635,7 +642,7 @@ impl SharedKlassRepo {
             Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),
         };
-        let opt_meth : Option<&OtMethod> = match self.id_lookup.get(kid) {
+        let opt_meth: Option<&OtMethod> = match self.id_lookup.get(kid) {
             Some(k) => k.get_method_by_name_and_desc(fq_name_desc.clone()),
             None => panic!("No klass with ID {} found in repo", kid),
         };

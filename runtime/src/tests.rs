@@ -33,11 +33,14 @@ fn test_read_simple_class() {
 
 #[test]
 fn check_simple_fields_methods() {
-    let bytes = match file_to_bytes(Path::new("../resources/test/octest/SimpleFieldsAndMethods.class")) {
+    let bytes = match file_to_bytes(Path::new(
+        "../resources/test/octest/SimpleFieldsAndMethods.class",
+    )) {
         Ok(buf) => buf,
         _ => panic!("Error reading SimpleFieldsAndMethods"),
     };
-    let mut parser = klass_parser::OtKlassParser::of(bytes, "octest/SimpleFieldsAndMethods.class".to_string());
+    let mut parser =
+        klass_parser::OtKlassParser::of(bytes, "octest/SimpleFieldsAndMethods.class".to_string());
     parser.parse();
     assert_eq!(23, parser.get_pool_size());
     let k = parser.klass();
