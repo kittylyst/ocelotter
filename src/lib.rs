@@ -15,20 +15,18 @@ lazy_static! {
     pub static ref CONTEXT: Mutex<VmContext> = Mutex::new(VmContext::of());
 }
 
-// FIXME Parameter passing
-pub fn exec_method(meth: OtMethod) -> Option<JvmValue> {
-    // Perform the native check here...
+pub fn exec_method(meth: OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValue> {
+    // dbg!(meth.clone());
+    // dbg!(meth.get_flags());
     if meth.is_native() {
-        // Get an owned value back as a function pointer
-        let n_f: fn(Vec<JvmValue>) -> Option<JvmValue> = CONTEXT
-            .lock()
-            .unwrap()
-            .get_repo()
-            .lookup_method_native(&meth.get_klass_name(), meth.get_desc());
-        n_f(Vec::new())
+        let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = match meth.get_native_code() {
+            Some(f) => f,
+            None => panic!("Native code not found {}", meth.get_fq_name_desc()),
+        };
+        // FIXME Parameter passing
+        n_f(lvt)
     } else {
-        let mut vars = InterpLocalVars::of(meth.get_local_var_size());
-        exec_method2(meth.get_klass_name(), &meth.get_code(), &mut vars)
+        exec_method2(meth.get_klass_name(), &meth.get_code(), lvt)
     }
 }
 
@@ -45,6 +43,7 @@ pub fn exec_method2(
         let my_klass_name = klass_name.clone();
         let ins: u8 = match instr.get(current) {
             Some(value) => *value,
+            // FIXME We don't know the name of the currently executing method!
             None => panic!("Byte {} has no value", current),
         };
         current += 1;
@@ -340,11 +339,18 @@ pub fn exec_method2(
                 dbg!(current_klass.clone());
                 dispatch_invoke(current_klass, cp_lookup, &mut eval, 0);
             }
-            // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
             Opcode::INVOKEVIRTUAL => {
-                // let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
-                // current += 2;
-                // dispatch_invoke(context.get_repo().lookup_method_virtual(&klass_name, cp_lookup), &eval);
+                // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
+                let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
+                current += 2;
+                let current_klass = CONTEXT
+                    .lock()
+                    .unwrap()
+                    .get_repo()
+                    .lookup_klass(&klass_name)
+                    .clone();
+                dbg!(current_klass.clone());
+                dispatch_invoke(current_klass, cp_lookup, &mut eval, 1);
             }
             Opcode::IOR => eval.ior(),
 
@@ -597,7 +603,7 @@ fn dispatch_invoke(
     if additional_args > 0 {
         vars.store(0, eval.pop());
     }
-    match exec_method2(callee.get_klass_name(), &callee.get_code(), &mut vars) {
+    match exec_method(callee, &mut vars) {
         Some(val) => eval.push(val),
         None => (),
     }

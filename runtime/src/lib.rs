@@ -81,7 +81,9 @@ impl OtKlass {
         self.methods.clone()
     }
 
-    pub fn set_native_method(&mut self, name_desc: String, n_code: fn(Vec<JvmValue>) -> Option<JvmValue>) {
+    pub fn set_native_method(&mut self, name_desc: String, n_code: fn(&InterpLocalVars) -> Option<JvmValue>) {
+        // dbg!("Setting native code");
+        // dbg!(name_desc.clone());
         match self.get_mutable_method(&name_desc) {
             Some(m2) => m2.set_native_code(n_code),
             None => panic!("Should be unreachable"),
@@ -96,6 +98,7 @@ impl OtKlass {
     // NOTE: This is fully-qualified
     pub fn get_method_by_name_and_desc(&self, name_desc: &String) -> Option<&OtMethod> {
         dbg!(&self.name_desc_lookup);
+        dbg!(&name_desc);
         let opt_idx = self.name_desc_lookup.get(name_desc);
         let idx: usize = match opt_idx {
             Some(value) => value.clone(),
@@ -153,7 +156,7 @@ impl fmt::Display for OtKlass {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct OtMethod {
     klass_name: String,
     flags: u16,
@@ -162,7 +165,7 @@ pub struct OtMethod {
     name_idx: u16,
     desc_idx: u16,
     code: Vec<u8>,
-    native_code: Option<fn(Vec<JvmValue>) -> Option<JvmValue>>,
+    native_code: Option<fn(&InterpLocalVars) -> Option<JvmValue>>,
     attrs: Vec<CpAttr>,
 }
 
@@ -217,11 +220,15 @@ impl OtMethod {
     }
 
     pub fn is_native(&self) -> bool {
-        self.flags | ACC_NATIVE == ACC_NATIVE
+        self.flags & ACC_NATIVE == ACC_NATIVE
     }
 
-    pub fn set_native_code(&mut self, n_code: fn(Vec<JvmValue>) -> Option<JvmValue>) {
+    pub fn set_native_code(&mut self, n_code: fn(&InterpLocalVars) -> Option<JvmValue>) {
         self.native_code = Some(n_code);
+    }
+
+    pub fn get_native_code(&self) -> Option<fn(&InterpLocalVars) -> Option<JvmValue>> {
+        self.native_code
     }
 
     // HACK Replace with proper local var size by parsing class attributes properly
@@ -230,6 +237,13 @@ impl OtMethod {
     }
 
 }
+
+impl fmt::Debug for OtMethod {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}.{}", self.klass_name, self.name_desc)
+    }
+}
+
 
 impl fmt::Display for OtMethod {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -580,7 +594,7 @@ impl SharedKlassRepo {
         }
     }
 
-    fn add_bootstrap_class(&mut self, cl_name: String) -> OtKlass {
+    fn add_bootstrap_class(&mut self, cl_name: String) -> &mut OtKlass {
         let fq_klass_fname = "./resources/lib/".to_owned() + &cl_name + ".class";
         let bytes = match file_to_bytes(Path::new(&fq_klass_fname)) {
             Ok(buf) => buf,
@@ -590,7 +604,7 @@ impl SharedKlassRepo {
         parser.parse();
         let mut k = parser.klass();
         self.add_klass(&mut k);
-        k
+        self.lookup_mutable_klass(&cl_name)
     }
 
     pub fn bootstrap(&mut self) -> () {
@@ -640,19 +654,6 @@ impl SharedKlassRepo {
         // FIXME Handle storage properly
     }
 
-    fn none(args: Vec<JvmValue>) -> Option<JvmValue> {
-        None
-    }
-
-    // FIXME
-    pub fn lookup_method_native(
-        &self,
-        klass_name: &String,
-        fq_name_desc: String,
-    ) -> fn(Vec<JvmValue>) -> Option<JvmValue> {
-        crate::native_methods::java_lang_Object__hashcode
-    }
-
     pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {
         let kid = match self.klass_lookup.get(klass_name) {
             Some(id) => id,
@@ -685,7 +686,6 @@ impl SharedKlassRepo {
         )
     }
 
-    // FIXME SIG
     pub fn lookup_klass(&self, klass_name: &String) -> &OtKlass {
         let kid = match self.klass_lookup.get(klass_name) {
             Some(id) => id,
@@ -696,6 +696,16 @@ impl SharedKlassRepo {
             None => panic!("No klass with ID {} found in repo", kid),
         }
     }
+
+    pub fn lookup_mutable_klass(&mut self, klass_name: &String) -> &mut OtKlass {
+        for (id, k) in &mut self.id_lookup {
+            if *k.get_name() == *klass_name {
+                return k
+            }
+        }
+        panic!("Klass not found")
+    }
+
 
     pub fn add_klass<'b>(&mut self, k: &'b mut OtKlass) -> () {
         k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));

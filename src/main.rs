@@ -2,6 +2,7 @@ use std::env;
 use std::path::Path;
 
 use ocelotter_runtime::klass_parser::*;
+use ocelotter_runtime::InterpLocalVars;
 use ocelotter_runtime::JvmValue::*;
 use ocelotter_util::file_to_bytes;
 
@@ -36,7 +37,9 @@ pub fn main() {
         None => panic!("Error: Main method not found {}", main_str.clone()),
     };
 
-    let opt_ret = exec_method(main);
+    // FIXME Parameter passing
+    let mut vars = InterpLocalVars::of(5);
+    let opt_ret = exec_method(main, &mut vars);
     let ret = match opt_ret {
         Some(value) => value,
         None => panic!("Error executing ".to_owned() + &f_name + " - no value returned"),

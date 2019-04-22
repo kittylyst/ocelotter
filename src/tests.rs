@@ -281,7 +281,8 @@ fn test_invoke_simple() {
         };
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-        let opt_ret = exec_method(meth);
+        let mut vars = InterpLocalVars::of(5);
+        let opt_ret = exec_method(meth, &mut vars);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing SampleInvoke.bar:()I - no value returned"),
@@ -301,7 +302,8 @@ fn test_invoke_simple() {
 
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-        let opt_ret = exec_method(meth);
+        let mut vars = InterpLocalVars::of(5);
+        let opt_ret = exec_method(meth, &mut vars);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing SampleInvoke.foo:()I - no value returned"),
@@ -334,7 +336,8 @@ fn test_iffer() {
 
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-        let opt_ret = exec_method(meth);
+        let mut vars = InterpLocalVars::of(5);
+        let opt_ret = exec_method(meth, &mut vars);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing Iffer.baz:()I - no value returned"),
@@ -367,7 +370,8 @@ fn test_array_simple() {
 
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
-        let opt_ret = exec_method(meth);
+        let mut vars = InterpLocalVars::of(5);
+        let opt_ret = exec_method(meth, &mut vars);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing ArraySimple.baz:()I - no value returned"),
