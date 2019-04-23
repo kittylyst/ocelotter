@@ -152,7 +152,7 @@ impl OtKlass {
 // name_desc_lookup: HashMap<String, usize>,
 impl fmt::Display for OtKlass {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} ISA {} with methods ", self.name, self.super_name)
+        write!(f, "{} ISA {} with methods {:?}", self.name, self.super_name, self.name_desc_lookup)
     }
 }
 
@@ -616,10 +616,16 @@ impl SharedKlassRepo {
 
         // FIXME Add primitive arrays
 
-        // FIXME Add java.lang.String
+        // Add java.lang.String
         self.add_bootstrap_class("java/lang/String".to_string());
+        // FIXME String only has intern() as a native method, skip for now
 
-        // FIXME Add java.lang.StringBuilder
+        // Add java.lang.StringBuilder
+        self.add_bootstrap_class("java/lang/StringBuilder".to_string());
+
+        // Add java.lang.System
+        k_obj = self.add_bootstrap_class("java/lang/System".to_string());
+        k_obj.set_native_method("currentTimeMillis:()J".to_string(), crate::native_methods::java_lang_System__currentTimeMillis);
 
         // FIXME Add java.lang.Class
 
