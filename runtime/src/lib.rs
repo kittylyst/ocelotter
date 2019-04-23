@@ -26,8 +26,9 @@ pub struct OtKlass {
     flags: u16,
     cp_entries: Vec<CpEntry>,
     methods: Vec<OtMethod>,
-    name_desc_lookup: HashMap<String, usize>,
-    // fields: Vec<OtField>,
+    fields: Vec<OtField>,
+    m_name_desc_lookup: HashMap<String, usize>,
+    f_name_desc_lookup: HashMap<String, usize>,
 }
 
 impl OtKlass {
@@ -37,19 +38,30 @@ impl OtKlass {
         flags: u16,
         cp_entries: &Vec<CpEntry>,
         methods: &Vec<OtMethod>,
-        // fields: &Vec<OtField>,
+        fields: &Vec<OtField>,
     ) -> OtKlass {
-        let mut lookup = HashMap::new();
+        let mut m_lookup = HashMap::new();
         let mut i = 0;
         while i < methods.len() {
             let meth = match methods.get(i).clone() {
                 Some(val) => val.clone(),
                 None => panic!("Error: method {} not found on {}", i, klass_name),
             };
-            lookup.insert(meth.get_fq_name_desc().clone(), i);
+            m_lookup.insert(meth.get_fq_name_desc().clone(), i);
             i = i + 1;
         }
-        dbg!(lookup.clone());
+        i = 0;
+        let mut f_lookup = HashMap::new();
+        while i < fields.len() {
+            let f = match fields.get(i).clone() {
+                Some(val) => val.clone(),
+                None => panic!("Error: field {} not found on {}", i, klass_name),
+            };
+            f_lookup.insert(f.get_fq_name_desc().clone(), i);
+            i = i + 1;
+        }
+        // dbg!(m_lookup.clone());
+        // dbg!(f_lookup.clone());
         OtKlass {
             id: 0, // This indicates that the class has not yet been loaded into a repo
             name: klass_name,
@@ -57,7 +69,9 @@ impl OtKlass {
             flags: flags,
             cp_entries: cp_entries.to_vec(),
             methods: methods.to_vec(),
-            name_desc_lookup: lookup,
+            fields: fields.to_vec(),
+            m_name_desc_lookup: m_lookup,
+            f_name_desc_lookup: f_lookup,
         }
     }
 
@@ -97,9 +111,9 @@ impl OtKlass {
 
     // NOTE: This is fully-qualified
     pub fn get_method_by_name_and_desc(&self, name_desc: &String) -> Option<&OtMethod> {
-        dbg!(&self.name_desc_lookup);
+        dbg!(&self.m_name_desc_lookup);
         dbg!(&name_desc);
-        let opt_idx = self.name_desc_lookup.get(name_desc);
+        let opt_idx = self.m_name_desc_lookup.get(name_desc);
         let idx: usize = match opt_idx {
             Some(value) => value.clone(),
             None => return None,
@@ -152,7 +166,7 @@ impl OtKlass {
 // name_desc_lookup: HashMap<String, usize>,
 impl fmt::Display for OtKlass {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} ISA {} with methods {:?}", self.name, self.super_name, self.name_desc_lookup)
+        write!(f, "{} ISA {} with methods {:?}", self.name, self.super_name, self.m_name_desc_lookup)
     }
 }
 
@@ -251,13 +265,14 @@ impl fmt::Display for OtMethod {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OtField {
     klass_name: String,
     flags: u16,
     name_idx: u16,
     desc_idx: u16,
     name: String,
+    desc: String,
     attrs: Vec<CpAttr>,
 }
 
@@ -265,6 +280,7 @@ impl OtField {
     pub fn of(
         klass_name: String,
         field_name: String,
+        field_desc: String,
         field_flags: u16,
         name: u16,
         desc: u16,
@@ -276,6 +292,7 @@ impl OtField {
             name_idx: name,
             desc_idx: desc,
             name: field_name,
+            desc: field_desc,
             attrs: Vec::new(),
         }
     }
@@ -288,6 +305,10 @@ impl OtField {
 
     pub fn get_klass_name(&self) -> String {
         self.klass_name.clone()
+    }
+
+    pub fn get_fq_name_desc(&self) -> String {
+        self.klass_name.clone() + "." + &self.name +":"+ &self.desc
     }
 }
 
@@ -650,6 +671,7 @@ impl SharedKlassRepo {
         OtField::of(
             "DUMMY_KLASS".to_string(),
             "DUMMY_FIELD".to_string(),
+            "I".to_string(),
             0,
             1,
             2,

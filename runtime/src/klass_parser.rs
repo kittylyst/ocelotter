@@ -54,6 +54,7 @@ impl OtKlassParser {
             self.flags,
             &self.cp_entries,
             &self.methods,
+            &self.fields,
         )
     }
 
@@ -361,11 +362,20 @@ impl OtKlassParser {
                     name_idx
                 ),
             };
+            let f_desc = match &self.cp_entries[desc_idx as usize] {
+                CpEntry::utf8 { val: s } => s,
+                _ => panic!(
+                    "Desc index {} does not point at utf8 string in constant pool",
+                    desc_idx
+                ),
+            };
+
             // NOTE: have just thrashed about to get the borrow checker to shut up here... need to revisit
             let k_name = &self.klass_name();
             let f = OtField::of(
                 k_name.to_string(),
                 f_name.to_string(),
+                f_desc.to_string(),
                 f_flags,
                 name_idx,
                 desc_idx,
