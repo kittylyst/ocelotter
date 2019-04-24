@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::constant_pool::CpAttr;
+use crate::JvmValue;
 
 #[derive(Debug, Clone)]
 pub struct OtField {
@@ -46,6 +47,22 @@ impl OtField {
 
     pub fn get_fq_name_desc(&self) -> String {
         self.klass_name.clone() + "." + &self.name + ":" + &self.desc
+    }
+
+    pub fn get_default(&self) -> JvmValue {
+        match self.desc.as_str() {
+            "Z" => JvmValue::Boolean { val: false },
+            "B" => JvmValue::Byte { val: 0 },
+            "S" => JvmValue::Short { val: 0 },
+            "C" => JvmValue::Char { val: '\0' },
+            "I" => JvmValue::Int { val: 0i32 },
+            "J" => JvmValue::Long { val: 0i64 },
+            "F" => JvmValue::Float { val: 0.0 },
+            "D" => JvmValue::Double { val: 0.0 },
+            _ => panic!("Quirkafleeg"),
+            // JvmValue::ObjRef { val: _ } => 'A',
+
+        }
     }
 }
 

@@ -477,6 +477,7 @@ pub fn exec_method2(
                     .unwrap()
                     .get_repo()
                     .lookup_field(&my_klass_name, cp_lookup);
+                // let def = putf.get_default();
                 let val = eval.pop();
 
                 let recvp: JvmValue = eval.pop();
