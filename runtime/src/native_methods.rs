@@ -1,7 +1,7 @@
 use std::time::SystemTime;
 
-use crate::JvmValue;
 use crate::InterpLocalVars;
+use crate::JvmValue;
 
 pub fn java_lang_Object__hashcode(args: &InterpLocalVars) -> Option<JvmValue> {
     Some(JvmValue::Int { val: 255 })
@@ -17,7 +17,7 @@ pub fn java_lang_System__currentTimeMillis(args: &InterpLocalVars) -> Option<Jvm
         Ok(n) => n.as_millis(),
         Err(_) => panic!("SystemTime before UNIX EPOCH!"),
     };
-    Some(JvmValue::Long { val: millis as i64})
+    Some(JvmValue::Long { val: millis as i64 })
 }
 
 // pub fn java_lang_System__nanoTime(args: &InterpLocalVars) -> Option<JvmValue> {

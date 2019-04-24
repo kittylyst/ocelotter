@@ -8,315 +8,19 @@ pub mod constant_pool;
 pub mod klass_parser;
 pub mod native_methods;
 pub mod object;
+pub mod otfield;
+pub mod otklass;
+pub mod otmethod;
 
-use constant_pool::CpAttr;
+// use constant_pool::CpAttr;
 use constant_pool::CpEntry;
 use object::OtObj;
 use ocelotter_util::file_to_bytes;
+use otfield::OtField;
+use otklass::OtKlass;
+use otmethod::OtMethod;
 
 use crate::constant_pool::ACC_NATIVE;
-
-//////////// RUNTIME KLASS AND RELATED HANDLING
-
-#[derive(Clone, Debug)]
-pub struct OtKlass {
-    id: usize,
-    name: String,
-    super_name: String,
-    flags: u16,
-    cp_entries: Vec<CpEntry>,
-    methods: Vec<OtMethod>,
-    fields: Vec<OtField>,
-    m_name_desc_lookup: HashMap<String, usize>,
-    f_name_desc_lookup: HashMap<String, usize>,
-}
-
-impl OtKlass {
-    pub fn of(
-        klass_name: String,
-        super_klass: String,
-        flags: u16,
-        cp_entries: &Vec<CpEntry>,
-        methods: &Vec<OtMethod>,
-        fields: &Vec<OtField>,
-    ) -> OtKlass {
-        let mut m_lookup = HashMap::new();
-        let mut i = 0;
-        while i < methods.len() {
-            let meth = match methods.get(i).clone() {
-                Some(val) => val.clone(),
-                None => panic!("Error: method {} not found on {}", i, klass_name),
-            };
-            m_lookup.insert(meth.get_fq_name_desc().clone(), i);
-            i = i + 1;
-        }
-        i = 0;
-        let mut f_lookup = HashMap::new();
-        while i < fields.len() {
-            let f = match fields.get(i).clone() {
-                Some(val) => val.clone(),
-                None => panic!("Error: field {} not found on {}", i, klass_name),
-            };
-            f_lookup.insert(f.get_fq_name_desc().clone(), i);
-            i = i + 1;
-        }
-        // dbg!(m_lookup.clone());
-        // dbg!(f_lookup.clone());
-        OtKlass {
-            id: 0, // This indicates that the class has not yet been loaded into a repo
-            name: klass_name,
-            super_name: super_klass,
-            flags: flags,
-            cp_entries: cp_entries.to_vec(),
-            methods: methods.to_vec(),
-            fields: fields.to_vec(),
-            m_name_desc_lookup: m_lookup,
-            f_name_desc_lookup: f_lookup,
-        }
-    }
-
-    pub fn set_id(&mut self, id: usize) -> () {
-        self.id = id
-    }
-
-    pub fn get_id(&self) -> usize {
-        self.id
-    }
-
-    pub fn get_name(&self) -> String {
-        self.name.to_owned()
-    }
-
-    pub fn get_super_name(&self) -> String {
-        self.super_name.to_owned()
-    }
-
-    pub fn get_methods(&self) -> Vec<OtMethod> {
-        self.methods.clone()
-    }
-
-    pub fn set_native_method(&mut self, name_desc: String, n_code: fn(&InterpLocalVars) -> Option<JvmValue>) {
-        // dbg!("Setting native code");
-        // dbg!(name_desc.clone());
-        match self.get_mutable_method(&name_desc) {
-            Some(m2) => m2.set_native_code(n_code),
-            None => panic!("Should be unreachable"),
-        }
-    }
-
-    // FIXME The size in bytes of an object of this type
-    pub fn obj_size(&self) -> usize {
-        100
-    }
-
-    // NOTE: This is fully-qualified
-    pub fn get_method_by_name_and_desc(&self, name_desc: &String) -> Option<&OtMethod> {
-        dbg!(&self.m_name_desc_lookup);
-        dbg!(&name_desc);
-        let opt_idx = self.m_name_desc_lookup.get(name_desc);
-        let idx: usize = match opt_idx {
-            Some(value) => value.clone(),
-            None => return None,
-        };
-        self.methods.get(idx)
-    }
-
-    pub fn get_mutable_method(&mut self, name_desc: &String) -> Option<&mut OtMethod> {
-        for m in &mut self.methods {
-            if *m.name_desc == *name_desc {
-                return Some(m)
-            }
-        }
-        None
-    }
-
-    pub fn lookup_cp(&self, cp_idx: u16) -> CpEntry {
-        let idx = cp_idx as usize;
-        // dbg!(&self.cp_entries);
-        match self.cp_entries.get(idx).clone() {
-            Some(val) => val.clone(),
-            None => panic!(
-                "Error: No entry found on {} at CP index {}",
-                self.name, cp_idx
-            ),
-        }
-    }
-
-    pub fn cp_as_string(&self, i: u16) -> String {
-        match self.lookup_cp(i) {
-            CpEntry::utf8 { val: s } => s,
-            CpEntry::class { idx: utf_idx } => self.cp_as_string(utf_idx),
-            CpEntry::methodref { clz_idx, nt_idx } => {
-                self.cp_as_string(clz_idx) + "." + &self.cp_as_string(nt_idx)
-            }
-            CpEntry::name_and_type {
-                name_idx: nidx,
-                type_idx: tidx,
-            } => self.cp_as_string(nidx) + ":" + &self.cp_as_string(tidx),
-            _ => panic!(
-                "Unimplemented stringify of CP entry found in {} at index {}",
-                self.name, i
-            ),
-        }
-    }
-}
-
-// flags: u16,
-// cp_entries: Vec<CpEntry>,
-// name_desc_lookup: HashMap<String, usize>,
-impl fmt::Display for OtKlass {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} ISA {} with methods {:?}", self.name, self.super_name, self.m_name_desc_lookup)
-    }
-}
-
-#[derive(Clone)]
-pub struct OtMethod {
-    klass_name: String,
-    flags: u16,
-    name: String,
-    name_desc: String,
-    name_idx: u16,
-    desc_idx: u16,
-    code: Vec<u8>,
-    native_code: Option<fn(&InterpLocalVars) -> Option<JvmValue>>,
-    attrs: Vec<CpAttr>,
-}
-
-impl OtMethod {
-    pub fn of(
-        klass_name: String,
-        name: String,
-        desc: String,
-        flags: u16,
-        name_idx: u16,
-        desc_idx: u16,
-    ) -> OtMethod {
-        let name_and_desc = name.clone() + ":" + &desc.clone();
-        OtMethod {
-            klass_name: klass_name.to_string(),
-            flags: flags,
-            name: name.clone(),
-            name_desc: name_and_desc,
-            attrs: Vec::new(),
-            code: Vec::new(),
-            native_code: None,
-            // FIXME
-            name_idx: desc_idx,
-            desc_idx: desc_idx,
-        }
-    }
-
-    pub fn set_attr(&self, _index: u16, _attr: CpAttr) -> () {}
-
-    pub fn set_code(&mut self, code: Vec<u8>) -> () {
-        self.code = code;
-    }
-
-    pub fn get_code(&self) -> Vec<u8> {
-        self.code.clone()
-    }
-
-    pub fn get_klass_name(&self) -> String {
-        self.klass_name.clone()
-    }
-
-    pub fn get_desc(&self) -> String {
-        self.name_desc.clone()
-    }
-
-    pub fn get_fq_name_desc(&self) -> String {
-        self.klass_name.clone() + "." + &self.name_desc.clone()
-    }
-
-    pub fn get_flags(&self) -> u16 {
-        self.flags
-    }
-
-    pub fn is_native(&self) -> bool {
-        self.flags & ACC_NATIVE == ACC_NATIVE
-    }
-
-    pub fn set_native_code(&mut self, n_code: fn(&InterpLocalVars) -> Option<JvmValue>) {
-        self.native_code = Some(n_code);
-    }
-
-    pub fn get_native_code(&self) -> Option<fn(&InterpLocalVars) -> Option<JvmValue>> {
-        self.native_code
-    }
-
-    // HACK Replace with proper local var size by parsing class attributes properly
-    pub fn get_local_var_size(&self) -> u8 {
-        255
-    }
-
-}
-
-impl fmt::Debug for OtMethod {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}.{}", self.klass_name, self.name_desc)
-    }
-}
-
-
-impl fmt::Display for OtMethod {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}.{}", self.klass_name, self.name_desc)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct OtField {
-    klass_name: String,
-    flags: u16,
-    name_idx: u16,
-    desc_idx: u16,
-    name: String,
-    desc: String,
-    attrs: Vec<CpAttr>,
-}
-
-impl OtField {
-    pub fn of(
-        klass_name: String,
-        field_name: String,
-        field_desc: String,
-        field_flags: u16,
-        name: u16,
-        desc: u16,
-    ) -> OtField {
-        OtField {
-            klass_name: klass_name.to_string(),
-            // FIXME
-            flags: field_flags,
-            name_idx: name,
-            desc_idx: desc,
-            name: field_name,
-            desc: field_desc,
-            attrs: Vec::new(),
-        }
-    }
-
-    pub fn set_attr(&self, _index: u16, _attr: CpAttr) -> () {}
-
-    pub fn get_name(&self) -> String {
-        String::from("")
-    }
-
-    pub fn get_klass_name(&self) -> String {
-        self.klass_name.clone()
-    }
-
-    pub fn get_fq_name_desc(&self) -> String {
-        self.klass_name.clone() + "." + &self.name +":"+ &self.desc
-    }
-}
-
-impl fmt::Display for OtField {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}.{}:{}", self.klass_name, self.name, self.desc_idx)
-    }
-}
 
 //////////// RUNTIME VALUES
 
@@ -633,7 +337,10 @@ impl SharedKlassRepo {
         let mut k_obj = self.add_bootstrap_class("java/lang/Object".to_string());
 
         // Add j.l.O native methods (e.g. hashCode())
-        k_obj.set_native_method("hashCode:()I".to_string(), crate::native_methods::java_lang_Object__hashcode);
+        k_obj.set_native_method(
+            "hashCode:()I".to_string(),
+            crate::native_methods::java_lang_Object__hashcode,
+        );
 
         // FIXME Add primitive arrays
 
@@ -646,7 +353,10 @@ impl SharedKlassRepo {
 
         // Add java.lang.System
         k_obj = self.add_bootstrap_class("java/lang/System".to_string());
-        k_obj.set_native_method("currentTimeMillis:()J".to_string(), crate::native_methods::java_lang_System__currentTimeMillis);
+        k_obj.set_native_method(
+            "currentTimeMillis:()J".to_string(),
+            crate::native_methods::java_lang_System__currentTimeMillis,
+        );
 
         // FIXME Add java.lang.Class
 
@@ -728,12 +438,11 @@ impl SharedKlassRepo {
     pub fn lookup_mutable_klass(&mut self, klass_name: &String) -> &mut OtKlass {
         for (id, k) in &mut self.id_lookup {
             if *k.get_name() == *klass_name {
-                return k
+                return k;
             }
         }
         panic!("Klass not found")
     }
-
 
     pub fn add_klass<'b>(&mut self, k: &'b mut OtKlass) -> () {
         k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));

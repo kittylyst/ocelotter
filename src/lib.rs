@@ -1,6 +1,9 @@
 #![deny(unreachable_patterns)]
 
 use ocelotter_runtime::constant_pool::*;
+use ocelotter_runtime::otfield::OtField;
+use ocelotter_runtime::otklass::OtKlass;
+use ocelotter_runtime::otmethod::OtMethod;
 use ocelotter_runtime::*;
 
 pub mod opcode;
@@ -579,6 +582,7 @@ fn massage_to_jvm_int_and_equate(v1: JvmValue, v2: JvmValue) -> bool {
 fn dispatch_invoke(
     current_klass: OtKlass,
     cp_lookup: u16,
+
     eval: &mut InterpEvalStack,
     additional_args: u8,
 ) -> () {
@@ -598,7 +602,7 @@ fn dispatch_invoke(
         .get_repo()
         .lookup_method_exact(&dispatch_klass_name, fq_name_desc);
 
-    // FIXME - General setup requires call args
+    // FIXME - General setup requires call args from the stack
     let mut vars = InterpLocalVars::of(255);
     if additional_args > 0 {
         vars.store(0, eval.pop());
@@ -609,11 +613,11 @@ fn dispatch_invoke(
     }
 }
 
-fn parse_class(bytes: Vec<u8>, fname: String) -> OtKlass {
-    let mut parser = klass_parser::OtKlassParser::of(bytes, fname);
-    parser.parse();
-    parser.klass()
-}
+// fn parse_class(bytes: Vec<u8>, fname: String) -> OtKlass {
+//     let mut parser = klass_parser::OtKlassParser::of(bytes, fname);
+//     parser.parse();
+//     parser.klass()
+// }
 
 #[cfg(test)]
 mod tests;
