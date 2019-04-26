@@ -351,6 +351,10 @@ impl SharedKlassRepo {
         // Add java.lang.StringBuilder
         self.add_bootstrap_class("java/lang/StringBuilder".to_string());
 
+        // FIXME Add java.lang.Class
+
+        // FIXME Add class objects for already bootstrapped classes
+
         // Add java.lang.System
         k_obj = self.add_bootstrap_class("java/lang/System".to_string());
         k_obj.set_native_method(
@@ -358,7 +362,13 @@ impl SharedKlassRepo {
             crate::native_methods::java_lang_System__currentTimeMillis,
         );
 
-        // FIXME Add java.lang.Class
+        // TODO Dummy up enough of java.io.PrintStream to get System.out.println() to work
+        // By faking up the class so that println(Ljava/lang/Object;) fwds to native code
+        // k_obj = self.add_bootstrap_class("java/io/PrintStream".to_string());
+        // k_obj.set_native_method(
+        //     "println:(Ljava/lang/Object;)V".to_string(),
+        //     crate::native_methods::java_io_PrintStream__println,
+        // );
 
         ()
     }
