@@ -75,13 +75,14 @@ pub mod Opcode {
     pub const ISTORE_2: u8 = 0x3d;
     pub const ISTORE_3: u8 = 0x3e;
     pub const ISUB: u8 = 0x64;
+    pub const JSR: u8 = 0xa8;
+    pub const JSR_W: u8 = 0xc9;
+    pub const LDC: u8 = 0x12;
+    pub const L2I: u8 = 0x88;
     pub const MONITORENTER: u8 = 0xc2;
     pub const MONITOREXIT: u8 = 0xc3;
     pub const NEW: u8 = 0xbb;
     pub const NEWARRAY: u8 = 0xbc;
-    pub const JSR: u8 = 0xa8;
-    pub const JSR_W: u8 = 0xc9;
-    pub const LDC: u8 = 0x12;
     pub const NOP: u8 = 0x00;
     pub const POP: u8 = 0x57;
     pub const POP2: u8 = 0x58;

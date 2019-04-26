@@ -374,15 +374,20 @@ pub fn exec_method2(
 
             Opcode::ISUB => eval.isub(),
             // Dummy implementation
-            Opcode::LDC => {
-                // System.out.print("Executing " + op + " with param bytes: ");
-                // for (int i = current; i < current + num; i++) {
-                //     System.out.print(instr[i] + " ");
-                // }
-                // current += num;
-                // System.out.println();
+            // Opcode::LDC => {
+            //     // System.out.print("Executing " + op + " with param bytes: ");
+            //     // for (int i = current; i < current + num; i++) {
+            //     //     System.out.print(instr[i] + " ");
+            //     // }
+            //     // current += num;
+            //     // System.out.println();
+            // }
+            Opcode::L2I => {
+                match eval.pop() {
+                    JvmValue::Long { val: v } => eval.push(JvmValue::Int { val: v as i32 }),
+                    _ => panic!("Value not of long type found for L2I at {}", (current - 1)),
+                };
             }
-
             // FIXME TEMP
             Opcode::MONITORENTER => {
                 eval.pop();
