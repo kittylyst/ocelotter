@@ -24,7 +24,7 @@ use crate::constant_pool::ACC_NATIVE;
 
 //////////// RUNTIME VALUES
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum JvmValue {
     Boolean { val: bool },
     Byte { val: i8 },
@@ -477,16 +477,15 @@ impl SharedSimpleHeap {
             obj_count: AtomicUsize::new(1),
             alloc: Vec::new(),
         };
-        let null_obj = OtObj::of(0, 0, 0);
+        let null_obj = OtObj::get_null();
         out.alloc.push(null_obj);
         out
     }
 
     pub fn allocate_obj(&mut self, klass: &OtKlass) -> usize {
         let klass_id = klass.get_id();
-        let bytes_to_alloc = klass.obj_size();
         let obj_id: usize = self.obj_count.fetch_add(1, Ordering::SeqCst);
-        let out = OtObj::of(klass_id, obj_id, bytes_to_alloc);
+        let out = OtObj::of(klass_id, obj_id, klass.make_default());
         self.alloc.push(out);
         obj_id
     }

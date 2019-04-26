@@ -66,6 +66,16 @@ impl OtKlass {
         }
     }
 
+    pub fn make_default(&self) -> Vec<JvmValue> {
+        let mut out: Vec<JvmValue> = Vec::new();
+        let mut i = 0;
+        while i < self.fields.len() {
+            out.push(JvmValue::ObjRef { val: 0 });
+            i = i + 1;
+        }
+        out
+    }
+
     pub fn set_id(&mut self, id: usize) -> () {
         self.id = id
     }
@@ -97,11 +107,6 @@ impl OtKlass {
             Some(m2) => m2.set_native_code(n_code),
             None => panic!("Should be unreachable"),
         }
-    }
-
-    // FIXME The size in bytes of an object of this type
-    pub fn obj_size(&self) -> usize {
-        100
     }
 
     // NOTE: This is fully-qualified

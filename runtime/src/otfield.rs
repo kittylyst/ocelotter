@@ -38,7 +38,7 @@ impl OtField {
     pub fn set_attr(&self, _index: u16, _attr: CpAttr) -> () {}
 
     pub fn get_name(&self) -> String {
-        String::from("")
+        self.name.clone()
     }
 
     pub fn get_klass_name(&self) -> String {
@@ -59,9 +59,7 @@ impl OtField {
             "J" => JvmValue::Long { val: 0i64 },
             "F" => JvmValue::Float { val: 0.0 },
             "D" => JvmValue::Double { val: 0.0 },
-            _ => panic!("Quirkafleeg"),
-            // JvmValue::ObjRef { val: _ } => 'A',
-
+            _ => JvmValue::ObjRef { val: 0 },
         }
     }
 }

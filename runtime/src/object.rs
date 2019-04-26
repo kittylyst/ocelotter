@@ -9,7 +9,7 @@ pub enum OtObj {
         id: usize,
         mark: u64,
         klassid: usize,
-        fields: Vec<u8>, // Try storing as a slab
+        fields: Vec<JvmValue>,
     },
     vm_arr_int {
         id: usize,
@@ -28,12 +28,12 @@ pub enum OtObj {
 }
 
 impl OtObj {
-    pub fn of(klass_id: usize, obj_id: usize, obj_size: usize) -> OtObj {
+    pub fn of(klass_id: usize, obj_id: usize, fields: Vec<JvmValue>) -> OtObj {
         OtObj::vm_obj {
             id: obj_id,
             mark: 0u64,
             klassid: klass_id,
-            fields: Vec::new(), // FIXME size
+            fields: fields,
         }
     }
 
