@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::constant_pool::CpAttr;
 use crate::JvmValue;
+use crate::constant_pool::ACC_STATIC;
 
 #[derive(Debug, Clone)]
 pub struct OtField {
@@ -39,6 +40,10 @@ impl OtField {
 
     pub fn get_name(&self) -> String {
         self.name.clone()
+    }
+
+    pub fn is_static(&self) -> bool {
+        self.flags & ACC_STATIC == ACC_STATIC
     }
 
     pub fn get_klass_name(&self) -> String {

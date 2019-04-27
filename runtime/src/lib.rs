@@ -4,6 +4,15 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use std::path::Path;
 
+use std::sync::Mutex;
+
+#[macro_use]
+extern crate lazy_static;
+
+lazy_static! {
+    pub static ref CONTEXT: Mutex<VmContext> = Mutex::new(VmContext::of());
+}
+
 pub mod constant_pool;
 pub mod klass_parser;
 pub mod native_methods;
@@ -21,6 +30,8 @@ use otklass::OtKlass;
 use otmethod::OtMethod;
 
 use crate::constant_pool::ACC_NATIVE;
+
+
 
 //////////// RUNTIME VALUES
 
@@ -417,21 +428,17 @@ impl SharedKlassRepo {
         }
     }
 
-    pub fn lookup_method_virtual(&self, klass_name: &String, idx: u16) -> OtMethod {
+    // m_idx is IDX in CP of current class
+    pub fn lookup_method_virtual(&self, klass_name: &String, m_idx: u16) -> OtMethod {
+        // Get klass
         let kid = match self.klass_lookup.get(klass_name) {
             Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),
         };
-        let klass = self.id_lookup.get(kid);
-        // FIXME DUMMY
-        OtMethod::of(
-            "DUMMY_KLASS".to_string(),
-            "DUMMY_METH".to_string(),
-            "DUMMY_DESC".to_string(),
-            0,
-            1,
-            2,
-        )
+        match self.id_lookup.get(kid) {
+            Some(k) => k.get_method_by_offset_virtual(m_idx),
+            None => panic!("No klass with ID {} found in repo", kid),
+        }
     }
 
     pub fn lookup_klass(&self, klass_name: &String) -> &OtKlass {
@@ -485,7 +492,7 @@ impl SharedSimpleHeap {
     pub fn allocate_obj(&mut self, klass: &OtKlass) -> usize {
         let klass_id = klass.get_id();
         let obj_id: usize = self.obj_count.fetch_add(1, Ordering::SeqCst);
-        let out = OtObj::of(klass_id, obj_id, klass.make_default());
+        let out = OtObj::obj_of(klass_id, obj_id, klass.make_default());
         self.alloc.push(out);
         obj_id
     }
@@ -504,8 +511,24 @@ impl SharedSimpleHeap {
         }
     }
 
-    pub fn put_field(&self, obj_id: usize, f: OtField, v: JvmValue) -> () {
-        // FIXME Handle storage properly
+    // FIXME Handle storage properly
+    pub fn put_field(&self, id: usize, f: OtField, v: JvmValue) -> () {
+        // Get object from heap
+        let obj = match self.alloc.get(id) {
+            Some(val) => val,
+            None => panic!("Error: object {} not found", id),
+        };
+        // Update value in it
+        obj.put_field(f, v)
+    }
+
+    pub fn get_field(&self, id: usize, f: OtField) -> JvmValue {
+        // Get object from heap
+        let obj = match self.alloc.get(id) {
+            Some(val) => val,
+            None => panic!("Error: object {} not found", id),
+        };
+        obj.get_value(f).clone()
     }
 
     pub fn iastore(&mut self, id: usize, pos: i32, v: i32) -> () {

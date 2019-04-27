@@ -7,7 +7,7 @@ use ocelotter_runtime::JvmValue::*;
 use ocelotter_util::file_to_bytes;
 
 use ocelotter::exec_method;
-use ocelotter::CONTEXT;
+use ocelotter_runtime::CONTEXT;
 
 pub fn main() {
     let args: Vec<String> = env::args().collect();

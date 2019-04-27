@@ -17,7 +17,9 @@ pub struct OtKlass {
     flags: u16,
     cp_entries: Vec<CpEntry>,
     methods: Vec<OtMethod>,
-    fields: Vec<OtField>,
+    i_fields: Vec<OtField>,
+    s_fields: Vec<OtField>,
+    s_field_vals: Vec<JvmValue>,
     m_name_desc_lookup: HashMap<String, usize>,
     f_name_desc_lookup: HashMap<String, usize>,
 }
@@ -43,12 +45,20 @@ impl OtKlass {
         }
         i = 0;
         let mut f_lookup = HashMap::new();
+        let mut s_fields = Vec::new();
+        let mut i_fields = Vec::new();
         while i < fields.len() {
-            let f = match fields.get(i).clone() {
+            let f = match fields.get(i) {
                 Some(val) => val.clone(),
                 None => panic!("Error: field {} not found on {}", i, klass_name),
             };
-            f_lookup.insert(f.get_fq_name_desc().clone(), i);
+            let f_name = f.get_fq_name_desc();
+            if f.is_static() {
+                s_fields.push(f);
+            } else {
+                i_fields.push(f);
+            }
+            f_lookup.insert(f_name, i);
             i = i + 1;
         }
         // dbg!(m_lookup.clone());
@@ -60,7 +70,10 @@ impl OtKlass {
             flags: flags,
             cp_entries: cp_entries.to_vec(),
             methods: methods.to_vec(),
-            fields: fields.to_vec(),
+            i_fields: i_fields.to_vec(),
+            s_fields: s_fields.to_vec(),
+            // FIXME
+            s_field_vals: Vec::new(),
             m_name_desc_lookup: m_lookup,
             f_name_desc_lookup: f_lookup,
         }
@@ -69,8 +82,11 @@ impl OtKlass {
     pub fn make_default(&self) -> Vec<JvmValue> {
         let mut out: Vec<JvmValue> = Vec::new();
         let mut i = 0;
-        while i < self.fields.len() {
-            out.push(JvmValue::ObjRef { val: 0 });
+        while i < self.i_fields.len() {
+            match self.i_fields.get(i) {
+                Some(f) => out.push(f.get_default()),
+                None => panic!("Error: field {} not found on {}", i, self.name),
+            };
             i = i + 1;
         }
         out
@@ -107,6 +123,38 @@ impl OtKlass {
             Some(m2) => m2.set_native_code(n_code),
             None => panic!("Should be unreachable"),
         }
+    }
+
+    pub fn get_field_offset(&mut self, f: &OtField) -> usize {
+        let mut i = 0;
+        while i < self.i_fields.len() {
+            let c_f = match self.i_fields.get(i) {
+                Some(f) => f,
+                None => panic!("Should be unreachable, field should always exist"),
+            };
+            if c_f.get_fq_name_desc() == f.get_fq_name_desc() {
+                return i;
+            }
+            i = i + 1;
+        }
+        panic!("Field {} not found on {}", f, self)
+    }
+
+    pub fn get_method_by_offset_virtual(&self, m_idx: u16) -> OtMethod {
+        // If present, return value at specific offset
+        // let offset = self.get_method_offset(f);
+
+        // Otherwise walk up to subclass & retry
+
+        // FIXME DUMMY
+        OtMethod::of(
+            "DUMMY_KLASS".to_string(),
+            "DUMMY_METH".to_string(),
+            "DUMMY_DESC".to_string(),
+            0,
+            1,
+            2,
+        )
     }
 
     // NOTE: This is fully-qualified

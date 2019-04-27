@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::JvmValue;
 use crate::OtField;
+use crate::CONTEXT;
 
 #[derive(Clone, Debug)]
 pub enum OtObj {
@@ -28,7 +29,7 @@ pub enum OtObj {
 }
 
 impl OtObj {
-    pub fn of(klass_id: usize, obj_id: usize, fields: Vec<JvmValue>) -> OtObj {
+    pub fn obj_of(klass_id: usize, obj_id: usize, fields: Vec<JvmValue>) -> OtObj {
         OtObj::vm_obj {
             id: obj_id,
             mark: 0u64,
@@ -50,7 +51,38 @@ impl OtObj {
         }
     }
 
-    pub fn put_field(&self, _f: OtField, _val: JvmValue) -> () {}
+    pub fn put_field(&self, _f: OtField, _val: JvmValue) -> () {
+        //  FIXME
+    }
+
+    // NOTE: Returns a by-value copy of what's held, put should unconditionally overwrite
+    pub fn get_value(&self, f: OtField) -> JvmValue {
+        let (kid, fields) = match self {
+            OtObj::vm_obj {
+                id: _,
+                mark: _,
+                klassid: id,
+                fields: fs,
+            } => (id, fs),
+            _ => panic!("Not an object"),
+        };
+        // Get klass
+        let mut klass = match CONTEXT
+            .lock()
+            .unwrap()
+            .get_repo()
+            .id_lookup.get(&kid) {
+            Some(k) => k.clone(),
+            None => panic!("No klass with ID {} found in repo", kid),
+        };
+        // Lookup offset in klass
+        let offset = klass.get_field_offset(&f);
+        match fields.get(offset) {
+            Some(v) => v.clone(),
+            None => panic!("Fields should hold a value"),
+        }
+    }
+
 
     pub fn get_null() -> OtObj {
         OtObj::vm_obj {

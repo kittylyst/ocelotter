@@ -9,15 +9,6 @@ use ocelotter_runtime::*;
 pub mod opcode;
 use opcode::*;
 
-#[macro_use]
-extern crate lazy_static;
-
-use std::sync::Mutex;
-
-lazy_static! {
-    pub static ref CONTEXT: Mutex<VmContext> = Mutex::new(VmContext::of());
-}
-
 pub fn exec_method(meth: OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValue> {
     // dbg!(meth.clone());
     // dbg!(meth.get_flags());
@@ -113,14 +104,24 @@ pub fn exec_method2(
 
             Opcode::DUP_X1 => eval.dupX1(),
 
-            // GETFIELD => {
-            //     let cp_lookup = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     OtField field = context.get_repo().lookupField(klass_name, (short) cp_lookup);
-            //     JvmValue receiver = eval.pop();
-            //     // VERIFY: Should check to make sure receiver is an Opcode::A
-            //     OtObj obj = heap.findObject(receiver.value);
-            //     eval.push(obj.getField(field));
-            // },
+            Opcode::GETFIELD => {
+                let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
+                current += 2;
+
+                let getf: OtField = CONTEXT
+                    .lock()
+                    .unwrap()
+                    .get_repo()
+                    .lookup_field(&my_klass_name, cp_lookup);
+
+                let recvp: JvmValue = eval.pop();
+                let obj_id = match recvp {
+                    JvmValue::ObjRef { val: v } => v,
+                    _ => panic!("Not an object ref at {}", (current - 1)),
+                };
+                let ret: JvmValue = CONTEXT.lock().unwrap().get_heap().get_field(obj_id, getf);
+                eval.push(ret);
+            }
             // GETSTATIC => {
             //     let cp_lookup = ((int) instr[current++] << 8) + (int) instr[current++];
             //     OtField f = context.get_repo().lookupField(klass_name, (short) cp_lookup);
@@ -482,13 +483,9 @@ pub fn exec_method2(
                     .unwrap()
                     .get_repo()
                     .lookup_field(&my_klass_name, cp_lookup);
-                // let def = putf.get_default();
                 let val = eval.pop();
 
                 let recvp: JvmValue = eval.pop();
-                // VERIFY: Should check to make sure receiver is an A
-                // FIXME Match expression & destructure for recvp
-
                 let obj_id = match recvp {
                     JvmValue::ObjRef { val: v } => v,
                     _ => panic!("Not an object ref at {}", (current - 1)),
