@@ -51,8 +51,33 @@ impl OtObj {
         }
     }
 
-    pub fn put_field(&self, _f: OtField, _val: JvmValue) -> () {
-        //  FIXME
+    pub fn put_field(&mut self, f: OtField, val: JvmValue) -> () {
+        let (kid, fields) = match self {
+            OtObj::vm_obj {
+                id: _,
+                mark: _,
+                klassid: id,
+                fields: fs,
+            } => (id, fs),
+            _ => panic!("Not an object"),
+        };
+        // Get klass
+        dbg!("Made it to object get_field_offset");
+        // Lookup offset in klass
+        let offset = CONTEXT
+            .lock()
+            .unwrap()
+            .get_repo()
+            .get_field_offset(*kid, f);
+        match self {
+            OtObj::vm_obj {
+                id: _,
+                mark: _,
+                klassid: _,
+                fields: fs,
+            } => fs[offset] = val,
+            _ => panic!("Not an object"),
+        };
     }
 
     // NOTE: Returns a by-value copy of what's held, put should unconditionally overwrite
@@ -67,16 +92,14 @@ impl OtObj {
             _ => panic!("Not an object"),
         };
         // Get klass
-        let mut klass = match CONTEXT
+        dbg!("Made it to object get_field_offset");
+        // Lookup offset in klass
+        let offset = CONTEXT
             .lock()
             .unwrap()
             .get_repo()
-            .id_lookup.get(&kid) {
-            Some(k) => k.clone(),
-            None => panic!("No klass with ID {} found in repo", kid),
-        };
-        // Lookup offset in klass
-        let offset = klass.get_field_offset(&f);
+            .get_field_offset(*kid, f);
+        dbg!("Made it to object get_field_offset"); 
         match fields.get(offset) {
             Some(v) => v.clone(),
             None => panic!("Fields should hold a value"),

@@ -9,7 +9,7 @@ use crate::JvmValue;
 
 //////////// RUNTIME KLASS AND RELATED HANDLING
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct OtKlass {
     id: usize,
     name: String,
@@ -125,7 +125,7 @@ impl OtKlass {
         }
     }
 
-    pub fn get_field_offset(&mut self, f: &OtField) -> usize {
+    pub fn get_field_offset(&self, f: &OtField) -> usize {
         let mut i = 0;
         while i < self.i_fields.len() {
             let c_f = match self.i_fields.get(i) {

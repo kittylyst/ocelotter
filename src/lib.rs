@@ -32,7 +32,6 @@ pub fn exec_method2(
     let mut current = 0;
     let mut eval = InterpEvalStack::of();
 
-    // dbg!(instr);
     loop {
         let my_klass_name = klass_name.clone();
         let ins: u8 = match instr.get(current) {
@@ -42,6 +41,7 @@ pub fn exec_method2(
         };
         current += 1;
 
+        dbg!(ins);
         match ins {
             Opcode::ACONST_NULL => eval.aconst_null(),
 
@@ -119,7 +119,9 @@ pub fn exec_method2(
                     JvmValue::ObjRef { val: v } => v,
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
-                let ret: JvmValue = CONTEXT.lock().unwrap().get_heap().get_field(obj_id, getf);
+                let obj = CONTEXT.lock().unwrap().get_heap().get_obj(obj_id).clone();
+
+                let ret: JvmValue = obj.get_value(getf);
                 eval.push(ret);
             }
             // GETSTATIC => {
@@ -328,7 +330,7 @@ pub fn exec_method2(
                     .get_repo()
                     .lookup_klass(&klass_name)
                     .clone();
-                dbg!(current_klass.clone());
+                // dbg!(current_klass.clone());
                 dispatch_invoke(current_klass, cp_lookup, &mut eval, 1);
             }
             Opcode::INVOKESTATIC => {

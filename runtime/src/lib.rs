@@ -409,6 +409,11 @@ impl SharedKlassRepo {
         )
     }
 
+    // FIXME Lookup offset properly
+    pub fn get_field_offset(&self, kid: usize, f: OtField) -> usize {
+        0
+    }
+
     pub fn put_static(&self, klass_name: String, f: OtField, v: JvmValue) -> () {
         // FIXME Handle storage properly
     }
@@ -514,12 +519,10 @@ impl SharedSimpleHeap {
     // FIXME Handle storage properly
     pub fn put_field(&self, id: usize, f: OtField, v: JvmValue) -> () {
         // Get object from heap
-        let obj = match self.alloc.get(id) {
-            Some(val) => val,
-            None => panic!("Error: object {} not found", id),
-        };
-        // Update value in it
-        obj.put_field(f, v)
+        // match self.alloc.get(id) {
+        //     Some(val) => val.put_field(f, v),
+        //     None => panic!("Error: object {} not found", id),
+        // };
     }
 
     pub fn get_field(&self, id: usize, f: OtField) -> JvmValue {
@@ -528,7 +531,7 @@ impl SharedSimpleHeap {
             Some(val) => val,
             None => panic!("Error: object {} not found", id),
         };
-        obj.get_value(f).clone()
+        obj.get_value(f)
     }
 
     pub fn iastore(&mut self, id: usize, pos: i32, v: i32) -> () {
