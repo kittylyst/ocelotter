@@ -325,6 +325,3 @@ impl SharedSimpleHeap {
     }
 
 }
-
-#[cfg(test)]
-mod tests;
