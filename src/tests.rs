@@ -1,11 +1,10 @@
 use super::*;
 
-use ocelotter_runtime::constant_pool::ACC_PUBLIC;
 use ocelotter_util::file_to_bytes;
 
 use std::path::Path;
 
-// Helper fns
+// Helper fn
 
 fn execute_method(buf: &Vec<u8>) -> JvmValue {
     let mut lvt = InterpLocalVars::of(10); // FIXME
