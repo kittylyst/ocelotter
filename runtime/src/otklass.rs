@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
-use std::cell::RefCell;
+use std::cell::Cell;
 
 use crate::constant_pool::CpEntry;
 use crate::otfield::OtField;
@@ -12,7 +12,7 @@ use crate::JvmValue;
 
 #[derive(Debug, Clone)]
 pub struct OtKlass {
-    id: RefCell<usize>,
+    id: Cell<usize>,
     name: String,
     super_name: String,
     flags: u16,
@@ -65,7 +65,7 @@ impl OtKlass {
         // dbg!(m_lookup.clone());
         // dbg!(f_lookup.clone());
         OtKlass {
-            id: RefCell::new(0), // This indicates that the class has not yet been loaded into a repo
+            id: Cell::new(0), // This indicates that the class has not yet been loaded into a repo
             name: klass_name,
             super_name: super_klass,
             flags: flags,
@@ -93,12 +93,12 @@ impl OtKlass {
         out
     }
 
-    pub fn set_id(&self, id: usize) -> () {
-        *self.id.borrow_mut() = id
+    pub fn set_id(&self, new_id: usize) -> () {
+        self.id.set(new_id)
     }
 
     pub fn get_id(&self) -> usize {
-        *self.id.borrow()
+        self.id.get()
     }
 
     pub fn get_name(&self) -> String {
