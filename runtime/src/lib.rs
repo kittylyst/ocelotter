@@ -466,7 +466,7 @@ impl SharedKlassRepo {
         panic!("Klass not found")
     }
 
-    pub fn add_klass<'b>(&mut self, k: &'b mut OtKlass) -> () {
+    pub fn add_klass(&mut self, k: &OtKlass) -> () {
         k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
         let id = k.get_id();
         let k2: OtKlass = (*k).to_owned();
