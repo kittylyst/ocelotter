@@ -114,15 +114,15 @@ impl OtKlass {
     }
 
     pub fn set_native_method(
-        &mut self,
+        &self,
         name_desc: String,
         n_code: fn(&InterpLocalVars) -> Option<JvmValue>,
     ) {
         // dbg!("Setting native code");
         // dbg!(name_desc.clone());
-        match self.get_mutable_method(&name_desc) {
+        match self.get_method_by_name_and_desc(&name_desc) {
             Some(m2) => m2.set_native_code(n_code),
-            None => panic!("Should be unreachable"),
+            None => panic!("Should be unreachable - trying to store native code in a regular method"),
         }
     }
 
@@ -168,15 +168,6 @@ impl OtKlass {
             None => return None,
         };
         self.methods.get(idx)
-    }
-
-    pub fn get_mutable_method(&mut self, name_desc: &String) -> Option<&mut OtMethod> {
-        for m in &mut self.methods {
-            if *m.get_desc() == *name_desc {
-                return Some(m);
-            }
-        }
-        None
     }
 
     pub fn lookup_cp(&self, cp_idx: u16) -> CpEntry {

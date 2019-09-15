@@ -349,7 +349,7 @@ impl SharedKlassRepo {
 
         // Add j.l.O native methods (e.g. hashCode())
         k_obj.set_native_method(
-            "hashCode:()I".to_string(),
+            "java/lang/Object.hashCode:()I".to_string(),
             crate::native_methods::java_lang_Object__hashcode,
         );
 
@@ -369,7 +369,7 @@ impl SharedKlassRepo {
         // Add java.lang.System
         k_obj = self.add_bootstrap_class("java/lang/System".to_string());
         k_obj.set_native_method(
-            "currentTimeMillis:()J".to_string(),
+            "java/lang/System.currentTimeMillis:()J".to_string(),
             crate::native_methods::java_lang_System__currentTimeMillis,
         );
 
