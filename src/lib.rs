@@ -9,7 +9,7 @@ use ocelotter_runtime::*;
 pub mod opcode;
 use opcode::*;
 
-pub fn exec_method(meth: OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValue> {
+pub fn exec_method(meth: &OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValue> {
     // dbg!(meth.clone());
     // dbg!(meth.get_flags());
     if meth.is_native() {
@@ -20,11 +20,11 @@ pub fn exec_method(meth: OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValue
         // FIXME Parameter passing
         n_f(lvt)
     } else {
-        exec_method2(meth.get_klass_name(), &meth.get_code(), lvt)
+        exec_bytecode_method(meth.get_klass_name(), &meth.get_code(), lvt)
     }
 }
 
-pub fn exec_method2(
+pub fn exec_bytecode_method(
     klass_name: String,
     instr: &Vec<u8>,
     lvt: &mut InterpLocalVars,
@@ -612,7 +612,7 @@ fn dispatch_invoke(
     if additional_args > 0 {
         vars.store(0, eval.pop());
     }
-    match exec_method(callee, &mut vars) {
+    match exec_method(&callee, &mut vars) {
         Some(val) => eval.push(val),
         None => (),
     }

@@ -39,7 +39,7 @@ pub fn main() {
 
     // FIXME Parameter passing
     let mut vars = InterpLocalVars::of(5);
-    let opt_ret = exec_method(main, &mut vars);
+    let opt_ret = exec_method(&main, &mut vars);
     let ret = match opt_ret {
         Some(value) => value,
         None => panic!("Error executing ".to_owned() + &f_name + " - no value returned"),

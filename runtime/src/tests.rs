@@ -49,3 +49,21 @@ fn check_simple_fields_methods() {
     assert_eq!(2, k.get_methods().len());
     // assert_eq!(1, k.get_fields().len());
 }
+
+#[test]
+fn check_system_current_timemillis() {
+    let bytes = match file_to_bytes(Path::new(
+        "../resources/test/Main3.class",
+    )) {
+        Ok(buf) => buf,
+        _ => panic!("Error reading Main3"),
+    };
+    let mut parser =
+        klass_parser::OtKlassParser::of(bytes, "Main3.class".to_string());
+    parser.parse();
+    assert_eq!(20, parser.get_pool_size());
+    let k = parser.klass();
+    assert_eq!("Main3", k.get_name());
+    assert_eq!("java/lang/Object", k.get_super_name());
+
+}

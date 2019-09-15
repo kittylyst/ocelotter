@@ -9,7 +9,7 @@ use std::path::Path;
 
 fn execute_method(buf: &Vec<u8>) -> JvmValue {
     let mut lvt = InterpLocalVars::of(10); // FIXME
-    let opt_ret = exec_method2("DUMMY".to_string(), &buf, &mut lvt);
+    let opt_ret = exec_bytecode_method("DUMMY".to_string(), &buf, &mut lvt);
     match opt_ret {
         Some(value) => value,
         None => JvmValue::ObjRef {
@@ -267,12 +267,15 @@ fn test_invoke_simple() {
     let mut parser = klass_parser::OtKlassParser::of(bytes, "SampleInvoke.class".to_string());
     parser.parse();
     assert_eq!(21, parser.get_pool_size());
-    let mut k = parser.klass();
+    let k = parser.klass();
     assert_eq!("SampleInvoke", k.get_name());
     assert_eq!("java/lang/Object", k.get_super_name());
     assert_eq!(4, k.get_methods().len());
 
-    let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
+    // Bootstrap the equivalent of RT 
+    CONTEXT.lock().unwrap().get_repo().bootstrap();
+    // Add our klass
+    CONTEXT.lock().unwrap().get_repo().add_klass(&k);
 
     {
         let meth = match k.get_method_by_name_and_desc(&"SampleInvoke.bar:()I".to_string()) {
@@ -282,7 +285,7 @@ fn test_invoke_simple() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let opt_ret = exec_method(meth, &mut vars);
+        let opt_ret = exec_method(&meth, &mut vars);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing SampleInvoke.bar:()I - no value returned"),
@@ -303,7 +306,7 @@ fn test_invoke_simple() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let opt_ret = exec_method(meth, &mut vars);
+        let opt_ret = exec_method(&meth, &mut vars);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing SampleInvoke.foo:()I - no value returned"),
@@ -324,9 +327,12 @@ fn test_iffer() {
     };
     let mut parser = klass_parser::OtKlassParser::of(bytes, "Iffer.class".to_string());
     parser.parse();
-    let mut k = parser.klass();
+    let k = parser.klass();
 
-    let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
+    // Bootstrap the equivalent of RT 
+    CONTEXT.lock().unwrap().get_repo().bootstrap();
+    // Add our klass
+    CONTEXT.lock().unwrap().get_repo().add_klass(&k);
 
     {
         let meth = match k.get_method_by_name_and_desc(&"Iffer.baz:()I".to_string()) {
@@ -337,7 +343,7 @@ fn test_iffer() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let opt_ret = exec_method(meth, &mut vars);
+        let opt_ret = exec_method(&meth, &mut vars);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing Iffer.baz:()I - no value returned"),
@@ -358,9 +364,12 @@ fn test_array_simple() {
     };
     let mut parser = klass_parser::OtKlassParser::of(bytes, "ArraySimple.class".to_string());
     parser.parse();
-    let mut k = parser.klass();
+    let k = parser.klass();
 
-    let repo = CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
+    // Bootstrap the equivalent of RT 
+    CONTEXT.lock().unwrap().get_repo().bootstrap();
+    // Add our klass
+    CONTEXT.lock().unwrap().get_repo().add_klass(&k);
 
     {
         let meth = match k.get_method_by_name_and_desc(&"ArraySimple.baz:()I".to_string()) {
@@ -371,7 +380,7 @@ fn test_array_simple() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let opt_ret = exec_method(meth, &mut vars);
+        let opt_ret = exec_method(&meth, &mut vars);
         let ret = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing ArraySimple.baz:()I - no value returned"),
@@ -381,5 +390,53 @@ fn test_array_simple() {
             _ => panic!("Error executing ArraySimple.baz:()I - non-int value returned"),
         };
         assert_eq!(7, ret2);
+    }
+}
+
+#[test]
+#[ignore]
+fn test_system_current_timemillis() {
+    let bytes = match file_to_bytes(Path::new("./resources/test/Main3.class")) {
+        Ok(buf) => buf,
+        _ => panic!("Error reading Main3"),
+    };
+    let mut parser = klass_parser::OtKlassParser::of(bytes, "Main3.class".to_string());
+    parser.parse();
+    let k = parser.klass();
+
+    // Bootstrap the equivalent of RT 
+    CONTEXT.lock().unwrap().get_repo().bootstrap();
+    // Add our klass
+    CONTEXT.lock().unwrap().get_repo().add_klass(&k);
+
+    {
+        let meth = match k.get_method_by_name_and_desc(&"Main3.main2:([Ljava/lang/String;)I".to_string()) {
+            Some(value) => value.clone(),
+            None => panic!("Main3.main2:([Ljava/lang/String;)I not found"),
+        };
+
+        assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+
+        let mut vars = InterpLocalVars::of(5);
+        let opt_ret = exec_method(&meth, &mut vars);
+        let ret = match opt_ret {
+            Some(value) => value,
+            None => panic!("Error executing Main3.main2:([Ljava/lang/String;)I - no value returned"),
+        };
+        let ctm1 = match ret {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Error executing Main3.main2:([Ljava/lang/String;)I - non-int value returned"),
+        };
+        vars = InterpLocalVars::of(5);
+        let opt_ret = exec_method(&meth, &mut vars);
+        let ret2 = match opt_ret {
+            Some(value) => value,
+            None => panic!("Error executing Main3.main2:([Ljava/lang/String;)I - no value returned"),
+        };
+        let ctm2 = match ret2 {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Error executing Main3.main2:([Ljava/lang/String;)I - non-int value returned"),
+        };
+        assert_eq!(true, ctm2 >= ctm1, "System clock appears to go backwards");
     }
 }
