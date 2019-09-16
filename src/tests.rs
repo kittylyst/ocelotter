@@ -395,6 +395,44 @@ fn test_array_simple() {
 }
 
 #[test]
+fn test_field_set() {
+    let mut repo = SharedKlassRepo::of();
+    repo.bootstrap();
+    *REPO.lock().unwrap() = repo;
+
+    let bytes = match file_to_bytes(Path::new("./resources/test/FieldHaver.class")) {
+        Ok(buf) => buf,
+        _ => panic!("Error reading FieldHaver"),
+    };
+    let mut parser = klass_parser::OtKlassParser::of(bytes, "FieldHaver.class".to_string());
+    parser.parse();
+    let k = parser.klass();
+
+    REPO.lock().unwrap().add_klass(&k);
+
+    {
+        let meth = match k.get_method_by_name_and_desc(&"FieldHaver.main2:([Ljava/lang/String;)I".to_string()) {
+            Some(value) => value.clone(),
+            None => panic!("FieldHaver.main2:([Ljava/lang/String;)I not found"),
+        };
+
+        assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+
+        let mut vars = InterpLocalVars::of(5);
+        let opt_ret = exec_method(&meth, &mut vars);
+        let ret = match opt_ret {
+            Some(value) => value,
+            None => panic!("Error executing FieldHaver.main2:([Ljava/lang/String;)I - no value returned"),
+        };
+        let ret2 = match ret {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Error executing FieldHaver.main2:([Ljava/lang/String;)I - non-int value returned"),
+        };
+        assert_eq!(7, ret2);
+    }
+}
+
+#[test]
 fn test_system_current_timemillis() {
     let mut repo = SharedKlassRepo::of();
     repo.bootstrap();
