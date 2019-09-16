@@ -10,7 +10,7 @@ use std::sync::Mutex;
 extern crate lazy_static;
 
 lazy_static! {
-    pub static ref CONTEXT: Mutex<VmContext> = Mutex::new(VmContext::of());
+    pub static ref HEAP: Mutex<SharedSimpleHeap> = Mutex::new(SharedSimpleHeap::of());
 }
 
 lazy_static! {
@@ -296,32 +296,6 @@ impl InterpLocalVars {
 }
 
 //////////// SHARED RUNTIME STRUCTURES
-
-pub struct VmContext {
-    heap: SharedSimpleHeap,
-    // repo: RefCell<SharedKlassRepo>,
-}
-
-impl VmContext {
-    pub fn of() -> VmContext {
-        VmContext {
-            heap: SharedSimpleHeap::of(),
-            // repo: RefCell::new(SharedKlassRepo::of()),
-        }
-    }
-
-    // pub fn get_repo(&self) -> &SharedKlassRepo {
-    //     &*self.repo.borrow()
-    // }
-
-    // pub fn set_repo(&self, new_repo: SharedKlassRepo) -> () {
-    //     *self.repo.borrow_mut() = new_repo
-    // }
-
-    pub fn get_heap(&mut self) -> &mut SharedSimpleHeap {
-        &mut self.heap
-    }
-}
 
 #[derive(Debug)]
 pub struct SharedKlassRepo {

@@ -7,9 +7,9 @@ use ocelotter_runtime::JvmValue::*;
 use ocelotter_util::file_to_bytes;
 
 use ocelotter::exec_method;
-use ocelotter_runtime::CONTEXT;
-use ocelotter_runtime::REPO;
 use ocelotter_runtime::SharedKlassRepo;
+use ocelotter_runtime::HEAP;
+use ocelotter_runtime::REPO;
 
 pub fn main() {
     let args: Vec<String> = env::args().collect();
@@ -18,7 +18,6 @@ pub fn main() {
     // FIXME In reality, need to bootstrap rt.jar
     let mut repo = SharedKlassRepo::of();
     repo.bootstrap();
-
     *REPO.lock().unwrap() = repo;
 
     let f_name = args[1].clone();

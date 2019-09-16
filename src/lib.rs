@@ -115,7 +115,7 @@ pub fn exec_bytecode_method(
                     JvmValue::ObjRef { val: v } => v,
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
-                let obj = CONTEXT.lock().unwrap().get_heap().get_obj(obj_id).clone();
+                let obj = HEAP.lock().unwrap().get_obj(obj_id).clone();
 
                 let ret: JvmValue = obj.get_value(getf);
                 eval.push(ret);
@@ -145,7 +145,7 @@ pub fn exec_bytecode_method(
                 };
                 dbg!(arrayid.clone());
 
-                let unwrapped_val = match CONTEXT.lock().unwrap().get_heap().get_obj(arrayid) {
+                let unwrapped_val = match HEAP.lock().unwrap().get_obj(arrayid) {
                     ocelotter_runtime::object::OtObj::vm_arr_int {
                         id: _,
                         mark: _,
@@ -174,10 +174,8 @@ pub fn exec_bytecode_method(
                     _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
                 };
 
-                CONTEXT
-                    .lock()
+                HEAP.lock()
                     .unwrap()
-                    .get_heap()
                     .iastore(obj_id, pos_to_store, val_to_store);
             }
 
@@ -397,11 +395,7 @@ pub fn exec_bytecode_method(
                 dbg!(alloc_klass_name.clone());
                 let object_klass = REPO.lock().unwrap().lookup_klass(&alloc_klass_name).clone();
 
-                let obj_id = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_heap()
-                    .allocate_obj(&object_klass);
+                let obj_id = HEAP.lock().unwrap().allocate_obj(&object_klass);
                 eval.push(JvmValue::ObjRef { val: obj_id });
             }
             Opcode::NEWARRAY => {
@@ -419,11 +413,9 @@ pub fn exec_bytecode_method(
                     // int: 10
                     // long: 11
                     10 => match eval.pop() {
-                        JvmValue::Int { val: arr_size } => CONTEXT
-                            .lock()
-                            .unwrap()
-                            .get_heap()
-                            .allocate_int_arr(arr_size),
+                        JvmValue::Int { val: arr_size } => {
+                            HEAP.lock().unwrap().allocate_int_arr(arr_size)
+                        }
                         _ => panic!("Not an int on the stack at {}", (current - 1)),
                     },
                     _ => panic!("Unsupported primitive array type at {}", (current - 1)),
@@ -460,11 +452,7 @@ pub fn exec_bytecode_method(
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
 
-                CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_heap()
-                    .put_field(obj_id, putf, val);
+                HEAP.lock().unwrap().put_field(obj_id, putf, val);
             }
             Opcode::PUTSTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;

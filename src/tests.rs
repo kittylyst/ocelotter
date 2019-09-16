@@ -333,7 +333,7 @@ fn test_iffer() {
     parser.parse();
     let k = parser.klass();
 
-    REPO.lock().unwrap().add_klass(&k); 
+    REPO.lock().unwrap().add_klass(&k);
     {
         let meth = match k.get_method_by_name_and_desc(&"Iffer.baz:()I".to_string()) {
             Some(value) => value.clone(),
