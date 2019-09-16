@@ -108,11 +108,7 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let getf: OtField = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_field(&my_klass_name, cp_lookup);
+                let getf: OtField = REPO.lock().unwrap().lookup_field(&my_klass_name, cp_lookup);
 
                 let recvp: JvmValue = eval.pop();
                 let obj_id = match recvp {
@@ -324,24 +320,14 @@ pub fn exec_bytecode_method(
             Opcode::INVOKESPECIAL => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_klass(&klass_name)
-                    .clone();
+                let current_klass = REPO.lock().unwrap().lookup_klass(&klass_name).clone();
                 // dbg!(current_klass.clone());
                 dispatch_invoke(current_klass, cp_lookup, &mut eval, 1);
             }
             Opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_klass(&klass_name)
-                    .clone();
+                let current_klass = REPO.lock().unwrap().lookup_klass(&klass_name).clone();
                 dbg!(current_klass.clone());
                 dispatch_invoke(current_klass, cp_lookup, &mut eval, 0);
             }
@@ -349,12 +335,7 @@ pub fn exec_bytecode_method(
                 // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_klass(&klass_name)
-                    .clone();
+                let current_klass = REPO.lock().unwrap().lookup_klass(&klass_name).clone();
                 dbg!(current_klass.clone());
                 dispatch_invoke(current_klass, cp_lookup, &mut eval, 1);
             }
@@ -402,12 +383,7 @@ pub fn exec_bytecode_method(
             Opcode::NEW => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_klass(&klass_name)
-                    .clone();
+                let current_klass = REPO.lock().unwrap().lookup_klass(&klass_name).clone();
 
                 let alloc_klass_name = match current_klass.lookup_cp(cp_lookup) {
                     // FIXME Find class name from constant pool of the current class
@@ -419,12 +395,7 @@ pub fn exec_bytecode_method(
                     ),
                 };
                 dbg!(alloc_klass_name.clone());
-                let object_klass = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_klass(&alloc_klass_name)
-                    .clone();
+                let object_klass = REPO.lock().unwrap().lookup_klass(&alloc_klass_name).clone();
 
                 let obj_id = CONTEXT
                     .lock()
@@ -480,11 +451,7 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let putf: OtField = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_field(&my_klass_name, cp_lookup);
+                let putf: OtField = REPO.lock().unwrap().lookup_field(&my_klass_name, cp_lookup);
                 let val = eval.pop();
 
                 let recvp: JvmValue = eval.pop();
@@ -503,17 +470,11 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let puts: OtField = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_field(&my_klass_name, cp_lookup);
+                let puts: OtField = REPO.lock().unwrap().lookup_field(&my_klass_name, cp_lookup);
 
                 let klass_name = puts.get_klass_name();
-                CONTEXT
-                    .lock()
+                REPO.lock()
                     .unwrap()
-                    .get_repo()
                     .put_static(klass_name, puts, eval.pop());
                 // f_klass.set_static_field(puts.get_name(), eval.pop());
             }
@@ -601,10 +562,10 @@ fn dispatch_invoke(
         ),
     };
     let dispatch_klass_name = current_klass.cp_as_string(klz_idx);
-    let callee = CONTEXT
+
+    let callee = REPO
         .lock()
         .unwrap()
-        .get_repo()
         .lookup_method_exact(&dispatch_klass_name, fq_name_desc);
 
     // FIXME - General setup requires call args from the stack

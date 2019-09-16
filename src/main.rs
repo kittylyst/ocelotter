@@ -8,14 +8,18 @@ use ocelotter_util::file_to_bytes;
 
 use ocelotter::exec_method;
 use ocelotter_runtime::CONTEXT;
+use ocelotter_runtime::REPO;
+use ocelotter_runtime::SharedKlassRepo;
 
 pub fn main() {
     let args: Vec<String> = env::args().collect();
 
     println!("{:?}", args);
-
     // FIXME In reality, need to bootstrap rt.jar
-    CONTEXT.lock().unwrap().get_repo().bootstrap();
+    let mut repo = SharedKlassRepo::of();
+    repo.bootstrap();
+
+    *REPO.lock().unwrap() = repo;
 
     let f_name = args[1].clone();
 
@@ -27,7 +31,7 @@ pub fn main() {
     let mut parser = OtKlassParser::of(bytes, fq_klass_name.clone());
     parser.parse();
     let k = parser.klass();
-    CONTEXT.lock().unwrap().get_repo().add_klass(&k);
+    REPO.lock().unwrap().add_klass(&k);
 
     // FIXME Real main() signture required, dummying for ease of testing
     let main_str: String = f_name.clone() + ".main2:([Ljava/lang/String;)I";

@@ -260,6 +260,10 @@ fn test_goto() {
 
 #[test]
 fn test_invoke_simple() {
+    let mut repo = SharedKlassRepo::of();
+    repo.bootstrap();
+    *REPO.lock().unwrap() = repo;
+
     let bytes = match file_to_bytes(Path::new("./resources/test/SampleInvoke.class")) {
         Ok(buf) => buf,
         _ => panic!("Error reading SampleInvoke"),
@@ -272,11 +276,7 @@ fn test_invoke_simple() {
     assert_eq!("java/lang/Object", k.get_super_name());
     assert_eq!(4, k.get_methods().len());
 
-    // Bootstrap the equivalent of RT 
-    CONTEXT.lock().unwrap().get_repo().bootstrap();
-    // Add our klass
-    CONTEXT.lock().unwrap().get_repo().add_klass(&k);
-
+    REPO.lock().unwrap().add_klass(&k);
     {
         let meth = match k.get_method_by_name_and_desc(&"SampleInvoke.bar:()I".to_string()) {
             Some(value) => value.clone(),
@@ -321,6 +321,10 @@ fn test_invoke_simple() {
 
 #[test]
 fn test_iffer() {
+    let mut repo = SharedKlassRepo::of();
+    repo.bootstrap();
+    *REPO.lock().unwrap() = repo;
+
     let bytes = match file_to_bytes(Path::new("./resources/test/Iffer.class")) {
         Ok(buf) => buf,
         _ => panic!("Error reading Iffer"),
@@ -329,11 +333,7 @@ fn test_iffer() {
     parser.parse();
     let k = parser.klass();
 
-    // Bootstrap the equivalent of RT 
-    CONTEXT.lock().unwrap().get_repo().bootstrap();
-    // Add our klass
-    CONTEXT.lock().unwrap().get_repo().add_klass(&k);
-
+    REPO.lock().unwrap().add_klass(&k); 
     {
         let meth = match k.get_method_by_name_and_desc(&"Iffer.baz:()I".to_string()) {
             Some(value) => value.clone(),
@@ -358,6 +358,10 @@ fn test_iffer() {
 
 #[test]
 fn test_array_simple() {
+    let mut repo = SharedKlassRepo::of();
+    repo.bootstrap();
+    *REPO.lock().unwrap() = repo;
+
     let bytes = match file_to_bytes(Path::new("./resources/test/ArraySimple.class")) {
         Ok(buf) => buf,
         _ => panic!("Error reading ArraySimple"),
@@ -366,10 +370,7 @@ fn test_array_simple() {
     parser.parse();
     let k = parser.klass();
 
-    // Bootstrap the equivalent of RT 
-    CONTEXT.lock().unwrap().get_repo().bootstrap();
-    // Add our klass
-    CONTEXT.lock().unwrap().get_repo().add_klass(&k);
+    REPO.lock().unwrap().add_klass(&k);
 
     {
         let meth = match k.get_method_by_name_and_desc(&"ArraySimple.baz:()I".to_string()) {
@@ -394,8 +395,11 @@ fn test_array_simple() {
 }
 
 #[test]
-#[ignore]
 fn test_system_current_timemillis() {
+    let mut repo = SharedKlassRepo::of();
+    repo.bootstrap();
+    *REPO.lock().unwrap() = repo;
+
     let bytes = match file_to_bytes(Path::new("./resources/test/Main3.class")) {
         Ok(buf) => buf,
         _ => panic!("Error reading Main3"),
@@ -404,13 +408,13 @@ fn test_system_current_timemillis() {
     parser.parse();
     let k = parser.klass();
 
-    // Bootstrap the equivalent of RT 
-    CONTEXT.lock().unwrap().get_repo().bootstrap();
     // Add our klass
-    CONTEXT.lock().unwrap().get_repo().add_klass(&k);
+    REPO.lock().unwrap().add_klass(&k);
 
     {
-        let meth = match k.get_method_by_name_and_desc(&"Main3.main2:([Ljava/lang/String;)I".to_string()) {
+        let meth = match k
+            .get_method_by_name_and_desc(&"Main3.main2:([Ljava/lang/String;)I".to_string())
+        {
             Some(value) => value.clone(),
             None => panic!("Main3.main2:([Ljava/lang/String;)I not found"),
         };
@@ -421,21 +425,29 @@ fn test_system_current_timemillis() {
         let opt_ret = exec_method(&meth, &mut vars);
         let ret = match opt_ret {
             Some(value) => value,
-            None => panic!("Error executing Main3.main2:([Ljava/lang/String;)I - no value returned"),
+            None => {
+                panic!("Error executing Main3.main2:([Ljava/lang/String;)I - no value returned")
+            }
         };
         let ctm1 = match ret {
             JvmValue::Int { val: i } => i,
-            _ => panic!("Error executing Main3.main2:([Ljava/lang/String;)I - non-int value returned"),
+            _ => panic!(
+                "Error executing Main3.main2:([Ljava/lang/String;)I - non-int value returned"
+            ),
         };
         vars = InterpLocalVars::of(5);
         let opt_ret = exec_method(&meth, &mut vars);
         let ret2 = match opt_ret {
             Some(value) => value,
-            None => panic!("Error executing Main3.main2:([Ljava/lang/String;)I - no value returned"),
+            None => {
+                panic!("Error executing Main3.main2:([Ljava/lang/String;)I - no value returned")
+            }
         };
         let ctm2 = match ret2 {
             JvmValue::Int { val: i } => i,
-            _ => panic!("Error executing Main3.main2:([Ljava/lang/String;)I - non-int value returned"),
+            _ => panic!(
+                "Error executing Main3.main2:([Ljava/lang/String;)I - non-int value returned"
+            ),
         };
         assert_eq!(true, ctm2 >= ctm1, "System clock appears to go backwards");
     }

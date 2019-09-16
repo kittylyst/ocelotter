@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::atomic::{AtomicUsize, Ordering};
-
+use std::cell::RefCell;
 use std::path::Path;
 
 use std::sync::Mutex;
@@ -12,6 +12,11 @@ extern crate lazy_static;
 lazy_static! {
     pub static ref CONTEXT: Mutex<VmContext> = Mutex::new(VmContext::of());
 }
+
+lazy_static! {
+    pub static ref REPO: Mutex<SharedKlassRepo> = Mutex::new(SharedKlassRepo::of());
+}
+
 
 pub mod constant_pool;
 pub mod klass_parser;
@@ -294,20 +299,24 @@ impl InterpLocalVars {
 
 pub struct VmContext {
     heap: SharedSimpleHeap,
-    repo: SharedKlassRepo,
+    // repo: RefCell<SharedKlassRepo>,
 }
 
 impl VmContext {
     pub fn of() -> VmContext {
         VmContext {
             heap: SharedSimpleHeap::of(),
-            repo: SharedKlassRepo::of(),
+            // repo: RefCell::new(SharedKlassRepo::of()),
         }
     }
 
-    pub fn get_repo(&mut self) -> &mut SharedKlassRepo {
-        &mut self.repo
-    }
+    // pub fn get_repo(&self) -> &SharedKlassRepo {
+    //     &*self.repo.borrow()
+    // }
+
+    // pub fn set_repo(&self, new_repo: SharedKlassRepo) -> () {
+    //     *self.repo.borrow_mut() = new_repo
+    // }
 
     pub fn get_heap(&mut self) -> &mut SharedSimpleHeap {
         &mut self.heap

@@ -2,7 +2,8 @@ use std::fmt;
 
 use crate::JvmValue;
 use crate::OtField;
-use crate::CONTEXT;
+// use crate::CONTEXT;
+use crate::REPO;
 
 #[derive(Clone, Debug)]
 pub enum OtObj {
@@ -64,11 +65,7 @@ impl OtObj {
         // Get klass
         dbg!("Made it to object get_field_offset");
         // Lookup offset in klass
-        let offset = CONTEXT
-            .lock()
-            .unwrap()
-            .get_repo()
-            .get_field_offset(*kid, f);
+        let offset = REPO.lock().unwrap().get_field_offset(*kid, f);
         match self {
             OtObj::vm_obj {
                 id: _,
@@ -94,11 +91,7 @@ impl OtObj {
         // Get klass
         dbg!("Made it to object get_field_offset");
         // Lookup offset in klass
-        let offset = CONTEXT
-            .lock()
-            .unwrap()
-            .get_repo()
-            .get_field_offset(*kid, f);
+        let offset = REPO.lock().unwrap().get_field_offset(*kid, f);
         dbg!("Made it to object get_field_offset"); 
         match fields.get(offset) {
             Some(v) => v.clone(),
