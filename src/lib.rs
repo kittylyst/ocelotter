@@ -24,6 +24,11 @@ pub fn exec_method(meth: &OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValu
     }
 }
 
+fn lookup_field(klass_name : &String, cp : u16) -> OtField {
+    let repo = REPO.lock().unwrap();
+    repo.lookup_field(klass_name, cp)
+}
+
 pub fn exec_bytecode_method(
     klass_name: String,
     instr: &Vec<u8>,
@@ -108,9 +113,6 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let repo = REPO.lock().unwrap();
-                let getf: OtField = repo.lookup_field(&my_klass_name, cp_lookup);
-
                 let recvp: JvmValue = eval.pop();
                 let obj_id = match recvp {
                     JvmValue::ObjRef { val: v } => v,
@@ -119,6 +121,7 @@ pub fn exec_bytecode_method(
                 let heap = HEAP.lock().unwrap();
                 let obj = heap.get_obj(obj_id).clone();
 
+                let getf = lookup_field(&my_klass_name, cp_lookup);
                 let ret: JvmValue = obj.get_value(getf);
                 eval.push(ret);
             }
@@ -444,8 +447,7 @@ pub fn exec_bytecode_method(
             Opcode::PUTFIELD => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-
-                let putf: OtField = REPO.lock().unwrap().lookup_field(&my_klass_name, cp_lookup);
+                
                 let val = eval.pop();
 
                 let recvp: JvmValue = eval.pop();
@@ -454,6 +456,7 @@ pub fn exec_bytecode_method(
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
 
+                let putf = lookup_field(&my_klass_name, cp_lookup);
                 HEAP.lock().unwrap().put_field(obj_id, putf, val);
             }
             Opcode::PUTSTATIC => {

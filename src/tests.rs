@@ -407,7 +407,7 @@ fn test_array_simple() {
 #[test]
 fn test_field_set() {
     init_repo();
-    let k = simple_parse_klass("Main3".to_string());
+    let k = simple_parse_klass("FieldHaver".to_string());
 
     {
         let meth = match k
@@ -438,6 +438,7 @@ fn test_field_set() {
 }
 
 #[test]
+#[ignore]
 fn test_system_current_timemillis() {
     init_repo();
     let k = simple_parse_klass("Main3".to_string());

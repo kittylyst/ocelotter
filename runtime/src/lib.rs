@@ -459,6 +459,8 @@ impl SharedKlassRepo {
     }
 }
 
+/////////////////////////////////////////////////////////////////
+
 pub struct SharedSimpleHeap {
     obj_count: AtomicUsize,
     // Free list
