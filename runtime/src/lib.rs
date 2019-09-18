@@ -502,10 +502,10 @@ impl SharedSimpleHeap {
     // FIXME Handle storage properly
     pub fn put_field(&self, id: usize, f: OtField, v: JvmValue) -> () {
         // Get object from heap
-        // match self.alloc.get(id) {
-        //     Some(val) => val.put_field(f, v),
-        //     None => panic!("Error: object {} not found", id),
-        // };
+        match self.alloc.get(id) {
+            Some(val) => val.put_field(f, v),
+            None => panic!("Error: object {} not found", id),
+        };
     }
 
     pub fn get_field(&self, id: usize, f: OtField) -> JvmValue {

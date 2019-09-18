@@ -1,17 +1,17 @@
 use std::fmt;
+use std::sync::Mutex;
 
 use crate::JvmValue;
 use crate::OtField;
-// use crate::CONTEXT;
 use crate::REPO;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum OtObj {
     vm_obj {
         id: usize,
         mark: u64,
         klassid: usize,
-        fields: Vec<JvmValue>,
+        fields: Vec<Mutex<JvmValue>>,
     },
     vm_arr_int {
         id: usize,
@@ -30,7 +30,7 @@ pub enum OtObj {
 }
 
 impl OtObj {
-    pub fn obj_of(klass_id: usize, obj_id: usize, fields: Vec<JvmValue>) -> OtObj {
+    pub fn obj_of(klass_id: usize, obj_id: usize, fields: Vec<Mutex<JvmValue>>) -> OtObj {
         OtObj::vm_obj {
             id: obj_id,
             mark: 0u64,
@@ -52,7 +52,7 @@ impl OtObj {
         }
     }
 
-    pub fn put_field(&mut self, f: OtField, val: JvmValue) -> () {
+    pub fn put_field(&self, f: OtField, val: JvmValue) -> () {
         let (kid, fields) = match self {
             OtObj::vm_obj {
                 id: _,
@@ -72,12 +72,14 @@ impl OtObj {
                 mark: _,
                 klassid: _,
                 fields: fs,
-            } => fs[offset] = val,
+            } => {
+                let mut place = fs[offset].lock().unwrap();
+                *place = val;
+            },
             _ => panic!("Not an object"),
         };
     }
 
-    // NOTE: Returns a by-value copy of what's held, put should unconditionally overwrite
     pub fn get_value(&self, f: OtField) -> JvmValue {
         let (kid, fields) = match self {
             OtObj::vm_obj {
@@ -94,7 +96,10 @@ impl OtObj {
         let offset = REPO.lock().unwrap().get_field_offset(*kid, f);
         dbg!("Made it to object get_field_offset"); 
         match fields.get(offset) {
-            Some(v) => v.clone(),
+            Some(v) => {
+                let place = v.lock().unwrap();
+                place.clone()
+            }
             None => panic!("Fields should hold a value"),
         }
     }

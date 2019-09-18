@@ -108,14 +108,16 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let getf: OtField = REPO.lock().unwrap().lookup_field(&my_klass_name, cp_lookup);
+                let repo = REPO.lock().unwrap();
+                let getf: OtField = repo.lookup_field(&my_klass_name, cp_lookup);
 
                 let recvp: JvmValue = eval.pop();
                 let obj_id = match recvp {
                     JvmValue::ObjRef { val: v } => v,
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
-                let obj = HEAP.lock().unwrap().get_obj(obj_id).clone();
+                let heap = HEAP.lock().unwrap();
+                let obj = heap.get_obj(obj_id).clone();
 
                 let ret: JvmValue = obj.get_value(getf);
                 eval.push(ret);

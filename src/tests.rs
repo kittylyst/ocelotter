@@ -1,9 +1,10 @@
+use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use super::*;
 
 use ocelotter_runtime::constant_pool::ACC_PUBLIC;
 use ocelotter_util::file_to_bytes;
-
-use std::path::Path;
 
 // Helper fns
 
@@ -17,6 +18,19 @@ fn execute_method(buf: &Vec<u8>) -> JvmValue {
         },
     }
 }
+
+static initted: AtomicBool = AtomicBool::new(false);
+
+fn init_repo() {
+    if !initted.load(Ordering::Relaxed) {
+        initted.store(true, Ordering::Relaxed);
+        let mut repo = SharedKlassRepo::of();
+        repo.bootstrap();
+        *REPO.lock().unwrap() = repo;
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
 
 #[test]
 fn adds_to_two() {
@@ -260,9 +274,7 @@ fn test_goto() {
 
 #[test]
 fn test_invoke_simple() {
-    let mut repo = SharedKlassRepo::of();
-    repo.bootstrap();
-    *REPO.lock().unwrap() = repo;
+    init_repo();
 
     let bytes = match file_to_bytes(Path::new("./resources/test/SampleInvoke.class")) {
         Ok(buf) => buf,
@@ -321,9 +333,7 @@ fn test_invoke_simple() {
 
 #[test]
 fn test_iffer() {
-    let mut repo = SharedKlassRepo::of();
-    repo.bootstrap();
-    *REPO.lock().unwrap() = repo;
+    init_repo();
 
     let bytes = match file_to_bytes(Path::new("./resources/test/Iffer.class")) {
         Ok(buf) => buf,
@@ -358,9 +368,7 @@ fn test_iffer() {
 
 #[test]
 fn test_array_simple() {
-    let mut repo = SharedKlassRepo::of();
-    repo.bootstrap();
-    *REPO.lock().unwrap() = repo;
+    init_repo();
 
     let bytes = match file_to_bytes(Path::new("./resources/test/ArraySimple.class")) {
         Ok(buf) => buf,
@@ -396,9 +404,7 @@ fn test_array_simple() {
 
 #[test]
 fn test_field_set() {
-    let mut repo = SharedKlassRepo::of();
-    repo.bootstrap();
-    *REPO.lock().unwrap() = repo;
+    init_repo();
 
     let bytes = match file_to_bytes(Path::new("./resources/test/FieldHaver.class")) {
         Ok(buf) => buf,
@@ -411,7 +417,9 @@ fn test_field_set() {
     REPO.lock().unwrap().add_klass(&k);
 
     {
-        let meth = match k.get_method_by_name_and_desc(&"FieldHaver.main2:([Ljava/lang/String;)I".to_string()) {
+        let meth = match k
+            .get_method_by_name_and_desc(&"FieldHaver.main2:([Ljava/lang/String;)I".to_string())
+        {
             Some(value) => value.clone(),
             None => panic!("FieldHaver.main2:([Ljava/lang/String;)I not found"),
         };
@@ -422,32 +430,43 @@ fn test_field_set() {
         let opt_ret = exec_method(&meth, &mut vars);
         let ret = match opt_ret {
             Some(value) => value,
-            None => panic!("Error executing FieldHaver.main2:([Ljava/lang/String;)I - no value returned"),
+            None => panic!(
+                "Error executing FieldHaver.main2:([Ljava/lang/String;)I - no value returned"
+            ),
         };
         let ret2 = match ret {
             JvmValue::Int { val: i } => i,
-            _ => panic!("Error executing FieldHaver.main2:([Ljava/lang/String;)I - non-int value returned"),
+            _ => panic!(
+                "Error executing FieldHaver.main2:([Ljava/lang/String;)I - non-int value returned"
+            ),
         };
         assert_eq!(7, ret2);
     }
 }
 
-#[test]
-fn test_system_current_timemillis() {
-    let mut repo = SharedKlassRepo::of();
-    repo.bootstrap();
-    *REPO.lock().unwrap() = repo;
-
-    let bytes = match file_to_bytes(Path::new("./resources/test/Main3.class")) {
+fn simple_parse_klass(cname: String) -> OtKlass {
+    let mut path = "./resources/test/".to_string();
+    path.push_str(&cname);
+    path.push_str(".class");
+    let bytes = match file_to_bytes(Path::new(&path)) {
         Ok(buf) => buf,
-        _ => panic!("Error reading Main3"),
+        _ => panic!("Error reading {}", cname),
     };
-    let mut parser = klass_parser::OtKlassParser::of(bytes, "Main3.class".to_string());
+    let mut kname = cname;
+    kname.push_str(".class");
+    let mut parser = klass_parser::OtKlassParser::of(bytes, kname);
     parser.parse();
     let k = parser.klass();
 
     // Add our klass
     REPO.lock().unwrap().add_klass(&k);
+    k
+}
+
+#[test]
+fn test_system_current_timemillis() {
+    init_repo();
+    let k = simple_parse_klass("Main3".to_string());
 
     {
         let meth = match k

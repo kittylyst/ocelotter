@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::cell::Cell;
+use std::sync::Mutex;
 
 use crate::constant_pool::CpEntry;
 use crate::otfield::OtField;
@@ -80,12 +81,12 @@ impl OtKlass {
         }
     }
 
-    pub fn make_default(&self) -> Vec<JvmValue> {
-        let mut out: Vec<JvmValue> = Vec::new();
+    pub fn make_default(&self) -> Vec<Mutex<JvmValue>> {
+        let mut out: Vec<Mutex<JvmValue>> = Vec::new();
         let mut i = 0;
         while i < self.i_fields.len() {
             match self.i_fields.get(i) {
-                Some(f) => out.push(f.get_default()),
+                Some(f) => out.push(Mutex::new(f.get_default())),
                 None => panic!("Error: field {} not found on {}", i, self.name),
             };
             i = i + 1;
