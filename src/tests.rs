@@ -8,7 +8,7 @@ use ocelotter_util::file_to_bytes;
 
 // Helper fns
 
-fn execute_method(buf: &Vec<u8>) -> JvmValue {
+fn execute_simple_bytecode(buf: &Vec<u8>) -> JvmValue {
     let mut lvt = InterpLocalVars::of(10); // FIXME
     let opt_ret = exec_bytecode_method("DUMMY".to_string(), &buf, &mut lvt);
     match opt_ret {
@@ -30,6 +30,25 @@ fn init_repo() {
     }
 }
 
+fn simple_parse_klass(cname: String) -> OtKlass {
+    let mut path = "./resources/test/".to_string();
+    path.push_str(&cname);
+    path.push_str(".class");
+    let bytes = match file_to_bytes(Path::new(&path)) {
+        Ok(buf) => buf,
+        _ => panic!("Error reading {}", cname),
+    };
+    let mut kname = cname;
+    kname.push_str(".class");
+    let mut parser = klass_parser::OtKlassParser::of(bytes, kname);
+    parser.parse();
+    let k = parser.klass();
+
+    // Add our klass
+    REPO.lock().unwrap().add_klass(&k);
+    k
+}
+
 /////////////////////////////////////////////////////////////////////////////
 
 #[test]
@@ -40,7 +59,7 @@ fn adds_to_two() {
         opcode::Opcode::IADD,
         opcode::Opcode::IRETURN,
     ];
-    let ret = match execute_method(&first_test) {
+    let ret = match execute_simple_bytecode(&first_test) {
         JvmValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
@@ -58,7 +77,7 @@ fn iconst_dup() {
         opcode::Opcode::IADD,
         opcode::Opcode::IRETURN,
     ];
-    let ret = match execute_method(&buf) {
+    let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
@@ -75,7 +94,7 @@ fn iconst_dup() {
         opcode::Opcode::IADD,
         opcode::Opcode::IRETURN,
     ];
-    let ret2 = match execute_method(&buf2) {
+    let ret2 = match execute_simple_bytecode(&buf2) {
         JvmValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
@@ -93,7 +112,7 @@ fn irem_works() {
         opcode::Opcode::IREM,
         opcode::Opcode::IRETURN,
     ];
-    let ret = match execute_method(&buf) {
+    let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
@@ -111,7 +130,7 @@ fn idiv_works() {
         opcode::Opcode::IDIV,
         opcode::Opcode::IRETURN,
     ];
-    let ret = match execute_method(&buf) {
+    let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
@@ -130,7 +149,7 @@ fn iconst_dup_nop_pop() {
         opcode::Opcode::POP,
         opcode::Opcode::IRETURN,
     ];
-    let ret = match execute_method(&buf) {
+    let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
@@ -150,7 +169,7 @@ fn iconst_dup_x1() {
         opcode::Opcode::IADD,
         opcode::Opcode::IRETURN,
     ];
-    let ret = match execute_method(&buf) {
+    let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
@@ -169,7 +188,7 @@ fn iconst_dup_x1() {
         opcode::Opcode::IADD,
         opcode::Opcode::IRETURN,
     ];
-    let ret2 = match execute_method(&buf2) {
+    let ret2 = match execute_simple_bytecode(&buf2) {
         JvmValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
@@ -191,7 +210,7 @@ fn test_ifnonnull() {
         opcode::Opcode::ICONST_2,
         opcode::Opcode::IRETURN,
     ];
-    let ret = match execute_method(&buf) {
+    let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
@@ -213,7 +232,7 @@ fn test_ifnull() {
         opcode::Opcode::ICONST_2,
         opcode::Opcode::IRETURN,
     ];
-    let ret = match execute_method(&buf) {
+    let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
@@ -240,7 +259,7 @@ fn test_ifeq() {
         Opcode::ICONST_3,
         Opcode::IRETURN,
     ];
-    let ret = match execute_method(&buf) {
+    let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
@@ -262,7 +281,7 @@ fn test_goto() {
         0xff,
         opcode::Opcode::IRETURN,
     ];
-    let ret = match execute_method(&buf) {
+    let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
@@ -272,23 +291,22 @@ fn test_goto() {
     assert_eq!(2, ret);
 }
 
+/////////////////////////////////////////////////////////////////
+//
+// Tests that actually load classes
+
 #[test]
 fn test_invoke_simple() {
     init_repo();
 
-    let bytes = match file_to_bytes(Path::new("./resources/test/SampleInvoke.class")) {
-        Ok(buf) => buf,
-        _ => panic!("Error reading SampleInvoke"),
-    };
-    let mut parser = klass_parser::OtKlassParser::of(bytes, "SampleInvoke.class".to_string());
-    parser.parse();
-    assert_eq!(21, parser.get_pool_size());
-    let k = parser.klass();
-    assert_eq!("SampleInvoke", k.get_name());
-    assert_eq!("java/lang/Object", k.get_super_name());
-    assert_eq!(4, k.get_methods().len());
+    let k = simple_parse_klass("SampleInvoke".to_string());
+    
+    // FIXME Move to klass_parser tests
+    // assert_eq!(21, parser.get_pool_size());
+    // assert_eq!("SampleInvoke", k.get_name());
+    // assert_eq!("java/lang/Object", k.get_super_name());
+    // assert_eq!(4, k.get_methods().len());
 
-    REPO.lock().unwrap().add_klass(&k);
     {
         let meth = match k.get_method_by_name_and_desc(&"SampleInvoke.bar:()I".to_string()) {
             Some(value) => value.clone(),
@@ -335,15 +353,8 @@ fn test_invoke_simple() {
 fn test_iffer() {
     init_repo();
 
-    let bytes = match file_to_bytes(Path::new("./resources/test/Iffer.class")) {
-        Ok(buf) => buf,
-        _ => panic!("Error reading Iffer"),
-    };
-    let mut parser = klass_parser::OtKlassParser::of(bytes, "Iffer.class".to_string());
-    parser.parse();
-    let k = parser.klass();
-
-    REPO.lock().unwrap().add_klass(&k);
+    let k = simple_parse_klass("Iffer".to_string());
+    
     {
         let meth = match k.get_method_by_name_and_desc(&"Iffer.baz:()I".to_string()) {
             Some(value) => value.clone(),
@@ -369,16 +380,7 @@ fn test_iffer() {
 #[test]
 fn test_array_simple() {
     init_repo();
-
-    let bytes = match file_to_bytes(Path::new("./resources/test/ArraySimple.class")) {
-        Ok(buf) => buf,
-        _ => panic!("Error reading ArraySimple"),
-    };
-    let mut parser = klass_parser::OtKlassParser::of(bytes, "ArraySimple.class".to_string());
-    parser.parse();
-    let k = parser.klass();
-
-    REPO.lock().unwrap().add_klass(&k);
+    let k = simple_parse_klass("ArraySimple".to_string());
 
     {
         let meth = match k.get_method_by_name_and_desc(&"ArraySimple.baz:()I".to_string()) {
@@ -405,16 +407,7 @@ fn test_array_simple() {
 #[test]
 fn test_field_set() {
     init_repo();
-
-    let bytes = match file_to_bytes(Path::new("./resources/test/FieldHaver.class")) {
-        Ok(buf) => buf,
-        _ => panic!("Error reading FieldHaver"),
-    };
-    let mut parser = klass_parser::OtKlassParser::of(bytes, "FieldHaver.class".to_string());
-    parser.parse();
-    let k = parser.klass();
-
-    REPO.lock().unwrap().add_klass(&k);
+    let k = simple_parse_klass("Main3".to_string());
 
     {
         let meth = match k
@@ -442,25 +435,6 @@ fn test_field_set() {
         };
         assert_eq!(7, ret2);
     }
-}
-
-fn simple_parse_klass(cname: String) -> OtKlass {
-    let mut path = "./resources/test/".to_string();
-    path.push_str(&cname);
-    path.push_str(".class");
-    let bytes = match file_to_bytes(Path::new(&path)) {
-        Ok(buf) => buf,
-        _ => panic!("Error reading {}", cname),
-    };
-    let mut kname = cname;
-    kname.push_str(".class");
-    let mut parser = klass_parser::OtKlassParser::of(bytes, kname);
-    parser.parse();
-    let k = parser.klass();
-
-    // Add our klass
-    REPO.lock().unwrap().add_klass(&k);
-    k
 }
 
 #[test]
