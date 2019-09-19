@@ -1,6 +1,5 @@
 use std::path::Path;
-use std::sync::Mutex;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Once;
 
 use super::*;
 
@@ -20,15 +19,14 @@ fn execute_simple_bytecode(buf: &Vec<u8>) -> JvmValue {
     }
 }
 
-static initted: AtomicBool = AtomicBool::new(false);
+static INIT: Once = Once::new();
 
 fn init_repo() {
-    if !initted.load(Ordering::Relaxed) {
-        initted.store(true, Ordering::Relaxed);
+    INIT.call_once(|| {
         let mut repo = SharedKlassRepo::of();
         repo.bootstrap();
         *REPO.lock().unwrap() = repo;
-    }
+    });
 }
 
 fn simple_parse_klass(cname: String) -> OtKlass {
