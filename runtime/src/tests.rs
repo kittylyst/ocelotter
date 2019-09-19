@@ -67,3 +67,11 @@ fn check_system_current_timemillis() {
     assert_eq!("java/lang/Object", k.get_super_name());
 
 }
+
+    // FIXME Convert to klass_parser tests
+    // let k = simple_parse_klass("SampleInvoke".to_string());
+    // assert_eq!(21, parser.get_pool_size());
+    // assert_eq!("SampleInvoke", k.get_name());
+    // assert_eq!("java/lang/Object", k.get_super_name());
+    // assert_eq!(4, k.get_methods().len());
+

@@ -8,6 +8,16 @@ use ocelotter_util::file_to_bytes;
 
 // Helper fns
 
+static INIT: Once = Once::new();
+
+fn init_repo() {
+    INIT.call_once(|| {
+        let mut repo = SharedKlassRepo::of();
+        repo.bootstrap();
+        *REPO.lock().unwrap() = repo;
+    });
+}
+
 fn execute_simple_bytecode(buf: &Vec<u8>) -> JvmValue {
     let mut lvt = InterpLocalVars::of(10); // FIXME
     let opt_ret = exec_bytecode_method("DUMMY".to_string(), &buf, &mut lvt);
@@ -17,16 +27,6 @@ fn execute_simple_bytecode(buf: &Vec<u8>) -> JvmValue {
             val: 0, // object::OtObj::get_null(),
         },
     }
-}
-
-static INIT: Once = Once::new();
-
-fn init_repo() {
-    INIT.call_once(|| {
-        let mut repo = SharedKlassRepo::of();
-        repo.bootstrap();
-        *REPO.lock().unwrap() = repo;
-    });
 }
 
 fn simple_parse_klass(cname: String) -> OtKlass {
@@ -299,12 +299,6 @@ fn test_invoke_simple() {
     init_repo();
 
     let k = simple_parse_klass("SampleInvoke".to_string());
-    
-    // FIXME Move to klass_parser tests
-    // assert_eq!(21, parser.get_pool_size());
-    // assert_eq!("SampleInvoke", k.get_name());
-    // assert_eq!("java/lang/Object", k.get_super_name());
-    // assert_eq!(4, k.get_methods().len());
 
     {
         let meth = match k.get_method_by_name_and_desc(&"SampleInvoke.bar:()I".to_string()) {
@@ -314,7 +308,7 @@ fn test_invoke_simple() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&meth, &mut vars).unwrap();   
+        let ret = exec_method(&meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int { val: i } => i,
             _ => panic!("Error executing SampleInvoke.bar:()I - non-int value returned"),
@@ -345,7 +339,7 @@ fn test_iffer() {
     init_repo();
 
     let k = simple_parse_klass("Iffer".to_string());
-    
+
     {
         let meth = match k.get_method_by_name_and_desc(&"Iffer.baz:()I".to_string()) {
             Some(value) => value.clone(),

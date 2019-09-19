@@ -24,7 +24,7 @@ pub fn exec_method(meth: &OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValu
     }
 }
 
-fn lookup_field(klass_name : &String, cp : u16) -> OtField {
+fn lookup_field(klass_name: &String, cp: u16) -> OtField {
     let repo = REPO.lock().unwrap();
     repo.lookup_field(klass_name, cp)
 }
@@ -447,7 +447,7 @@ pub fn exec_bytecode_method(
             Opcode::PUTFIELD => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                
+
                 let val = eval.pop();
 
                 let recvp: JvmValue = eval.pop();
