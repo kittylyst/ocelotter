@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use super::*;
@@ -315,11 +316,7 @@ fn test_invoke_simple() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let opt_ret = exec_method(&meth, &mut vars);
-        let ret = match opt_ret {
-            Some(value) => value,
-            None => panic!("Error executing SampleInvoke.bar:()I - no value returned"),
-        };
+        let ret = exec_method(&meth, &mut vars).unwrap();   
         let ret2 = match ret {
             JvmValue::Int { val: i } => i,
             _ => panic!("Error executing SampleInvoke.bar:()I - non-int value returned"),
@@ -336,11 +333,7 @@ fn test_invoke_simple() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let opt_ret = exec_method(&meth, &mut vars);
-        let ret = match opt_ret {
-            Some(value) => value,
-            None => panic!("Error executing SampleInvoke.foo:()I - no value returned"),
-        };
+        let ret = exec_method(&meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int { val: i } => i,
             _ => panic!("Error executing SampleInvoke.foo:()I - non-int value returned"),
@@ -364,11 +357,7 @@ fn test_iffer() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let opt_ret = exec_method(&meth, &mut vars);
-        let ret = match opt_ret {
-            Some(value) => value,
-            None => panic!("Error executing Iffer.baz:()I - no value returned"),
-        };
+        let ret = exec_method(&meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int { val: i } => i,
             _ => panic!("Error executing Iffer.baz:()I - non-int value returned"),
@@ -378,27 +367,21 @@ fn test_iffer() {
 }
 
 #[test]
-fn test_array_simple() {
+fn test_array_set() {
     init_repo();
     let k = simple_parse_klass("ArraySimple".to_string());
 
     {
-        let meth = match k.get_method_by_name_and_desc(&"ArraySimple.baz:()I".to_string()) {
-            Some(value) => value.clone(),
-            None => panic!("ArraySimple.baz:()I not found"),
-        };
+        let fqname = "ArraySimple.baz:()I".to_string();
+        let meth = k.get_method_by_name_and_desc(&fqname).unwrap();
 
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let opt_ret = exec_method(&meth, &mut vars);
-        let ret = match opt_ret {
-            Some(value) => value,
-            None => panic!("Error executing ArraySimple.baz:()I - no value returned"),
-        };
+        let ret = exec_method(&meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int { val: i } => i,
-            _ => panic!("Error executing ArraySimple.baz:()I - non-int value returned"),
+            _ => panic!("Error executing {} - non-int value returned", fqname),
         };
         assert_eq!(7, ret2);
     }
@@ -410,35 +393,21 @@ fn test_field_set() {
     let k = simple_parse_klass("FieldHaver".to_string());
 
     {
-        let meth = match k
-            .get_method_by_name_and_desc(&"FieldHaver.main2:([Ljava/lang/String;)I".to_string())
-        {
-            Some(value) => value.clone(),
-            None => panic!("FieldHaver.main2:([Ljava/lang/String;)I not found"),
-        };
+        let fqname = "FieldHaver.main2:([Ljava/lang/String;)I".to_string();
+        let meth = k.get_method_by_name_and_desc(&fqname).unwrap();
 
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let opt_ret = exec_method(&meth, &mut vars);
-        let ret = match opt_ret {
-            Some(value) => value,
-            None => panic!(
-                "Error executing FieldHaver.main2:([Ljava/lang/String;)I - no value returned"
-            ),
-        };
-        let ret2 = match ret {
+        let ret = match exec_method(&meth, &mut vars).unwrap() {
             JvmValue::Int { val: i } => i,
-            _ => panic!(
-                "Error executing FieldHaver.main2:([Ljava/lang/String;)I - non-int value returned"
-            ),
+            _ => panic!("Error executing {} - non-int value returned", fqname),
         };
-        assert_eq!(7, ret2);
+        assert_eq!(7, ret);
     }
 }
 
 #[test]
-#[ignore]
 fn test_system_current_timemillis() {
     init_repo();
     let k = simple_parse_klass("Main3".to_string());
@@ -454,13 +423,7 @@ fn test_system_current_timemillis() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let opt_ret = exec_method(&meth, &mut vars);
-        let ret = match opt_ret {
-            Some(value) => value,
-            None => {
-                panic!("Error executing Main3.main2:([Ljava/lang/String;)I - no value returned")
-            }
-        };
+        let ret = exec_method(&meth, &mut vars).unwrap();
         let ctm1 = match ret {
             JvmValue::Int { val: i } => i,
             _ => panic!(
