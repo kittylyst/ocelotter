@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::atomic::{AtomicUsize, Ordering};
-
+use std::cell::RefCell;
 use std::path::Path;
 
 use std::sync::Mutex;
@@ -10,8 +10,13 @@ use std::sync::Mutex;
 extern crate lazy_static;
 
 lazy_static! {
-    pub static ref CONTEXT: Mutex<VmContext> = Mutex::new(VmContext::of());
+    pub static ref HEAP: Mutex<SharedSimpleHeap> = Mutex::new(SharedSimpleHeap::of());
 }
+
+lazy_static! {
+    pub static ref REPO: Mutex<SharedKlassRepo> = Mutex::new(SharedKlassRepo::of());
+}
+
 
 pub mod constant_pool;
 pub mod klass_parser;
@@ -292,28 +297,6 @@ impl InterpLocalVars {
 
 //////////// SHARED RUNTIME STRUCTURES
 
-pub struct VmContext {
-    heap: SharedSimpleHeap,
-    repo: SharedKlassRepo,
-}
-
-impl VmContext {
-    pub fn of() -> VmContext {
-        VmContext {
-            heap: SharedSimpleHeap::of(),
-            repo: SharedKlassRepo::of(),
-        }
-    }
-
-    pub fn get_repo(&mut self) -> &mut SharedKlassRepo {
-        &mut self.repo
-    }
-
-    pub fn get_heap(&mut self) -> &mut SharedSimpleHeap {
-        &mut self.heap
-    }
-}
-
 #[derive(Debug)]
 pub struct SharedKlassRepo {
     klass_count: AtomicUsize,
@@ -349,7 +332,7 @@ impl SharedKlassRepo {
 
         // Add j.l.O native methods (e.g. hashCode())
         k_obj.set_native_method(
-            "hashCode:()I".to_string(),
+            "java/lang/Object.hashCode:()I".to_string(),
             crate::native_methods::java_lang_Object__hashcode,
         );
 
@@ -369,7 +352,7 @@ impl SharedKlassRepo {
         // Add java.lang.System
         k_obj = self.add_bootstrap_class("java/lang/System".to_string());
         k_obj.set_native_method(
-            "currentTimeMillis:()J".to_string(),
+            "java/lang/System.currentTimeMillis:()J".to_string(),
             crate::native_methods::java_lang_System__currentTimeMillis,
         );
 
@@ -466,7 +449,7 @@ impl SharedKlassRepo {
         panic!("Klass not found")
     }
 
-    pub fn add_klass<'b>(&mut self, k: &'b mut OtKlass) -> () {
+    pub fn add_klass(&mut self, k: &OtKlass) -> () {
         k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
         let id = k.get_id();
         let k2: OtKlass = (*k).to_owned();
@@ -475,6 +458,8 @@ impl SharedKlassRepo {
         self.id_lookup.insert(id, k2);
     }
 }
+
+/////////////////////////////////////////////////////////////////
 
 pub struct SharedSimpleHeap {
     obj_count: AtomicUsize,
@@ -519,10 +504,10 @@ impl SharedSimpleHeap {
     // FIXME Handle storage properly
     pub fn put_field(&self, id: usize, f: OtField, v: JvmValue) -> () {
         // Get object from heap
-        // match self.alloc.get(id) {
-        //     Some(val) => val.put_field(f, v),
-        //     None => panic!("Error: object {} not found", id),
-        // };
+        match self.alloc.get(id) {
+            Some(val) => val.put_field(f, v),
+            None => panic!("Error: object {} not found", id),
+        };
     }
 
     pub fn get_field(&self, id: usize, f: OtField) -> JvmValue {

@@ -9,7 +9,7 @@ use ocelotter_runtime::*;
 pub mod opcode;
 use opcode::*;
 
-pub fn exec_method(meth: OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValue> {
+pub fn exec_method(meth: &OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValue> {
     // dbg!(meth.clone());
     // dbg!(meth.get_flags());
     if meth.is_native() {
@@ -20,11 +20,16 @@ pub fn exec_method(meth: OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValue
         // FIXME Parameter passing
         n_f(lvt)
     } else {
-        exec_method2(meth.get_klass_name(), &meth.get_code(), lvt)
+        exec_bytecode_method(meth.get_klass_name(), &meth.get_code(), lvt)
     }
 }
 
-pub fn exec_method2(
+fn lookup_field(klass_name : &String, cp : u16) -> OtField {
+    let repo = REPO.lock().unwrap();
+    repo.lookup_field(klass_name, cp)
+}
+
+pub fn exec_bytecode_method(
     klass_name: String,
     instr: &Vec<u8>,
     lvt: &mut InterpLocalVars,
@@ -108,19 +113,15 @@ pub fn exec_method2(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let getf: OtField = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_field(&my_klass_name, cp_lookup);
-
                 let recvp: JvmValue = eval.pop();
                 let obj_id = match recvp {
                     JvmValue::ObjRef { val: v } => v,
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
-                let obj = CONTEXT.lock().unwrap().get_heap().get_obj(obj_id).clone();
+                let heap = HEAP.lock().unwrap();
+                let obj = heap.get_obj(obj_id).clone();
 
+                let getf = lookup_field(&my_klass_name, cp_lookup);
                 let ret: JvmValue = obj.get_value(getf);
                 eval.push(ret);
             }
@@ -149,7 +150,7 @@ pub fn exec_method2(
                 };
                 dbg!(arrayid.clone());
 
-                let unwrapped_val = match CONTEXT.lock().unwrap().get_heap().get_obj(arrayid) {
+                let unwrapped_val = match HEAP.lock().unwrap().get_obj(arrayid) {
                     ocelotter_runtime::object::OtObj::vm_arr_int {
                         id: _,
                         mark: _,
@@ -178,10 +179,8 @@ pub fn exec_method2(
                     _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
                 };
 
-                CONTEXT
-                    .lock()
+                HEAP.lock()
                     .unwrap()
-                    .get_heap()
                     .iastore(obj_id, pos_to_store, val_to_store);
             }
 
@@ -324,24 +323,14 @@ pub fn exec_method2(
             Opcode::INVOKESPECIAL => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_klass(&klass_name)
-                    .clone();
+                let current_klass = REPO.lock().unwrap().lookup_klass(&klass_name).clone();
                 // dbg!(current_klass.clone());
                 dispatch_invoke(current_klass, cp_lookup, &mut eval, 1);
             }
             Opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_klass(&klass_name)
-                    .clone();
+                let current_klass = REPO.lock().unwrap().lookup_klass(&klass_name).clone();
                 dbg!(current_klass.clone());
                 dispatch_invoke(current_klass, cp_lookup, &mut eval, 0);
             }
@@ -349,12 +338,7 @@ pub fn exec_method2(
                 // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_klass(&klass_name)
-                    .clone();
+                let current_klass = REPO.lock().unwrap().lookup_klass(&klass_name).clone();
                 dbg!(current_klass.clone());
                 dispatch_invoke(current_klass, cp_lookup, &mut eval, 1);
             }
@@ -402,12 +386,7 @@ pub fn exec_method2(
             Opcode::NEW => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_klass(&klass_name)
-                    .clone();
+                let current_klass = REPO.lock().unwrap().lookup_klass(&klass_name).clone();
 
                 let alloc_klass_name = match current_klass.lookup_cp(cp_lookup) {
                     // FIXME Find class name from constant pool of the current class
@@ -419,18 +398,9 @@ pub fn exec_method2(
                     ),
                 };
                 dbg!(alloc_klass_name.clone());
-                let object_klass = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_klass(&alloc_klass_name)
-                    .clone();
+                let object_klass = REPO.lock().unwrap().lookup_klass(&alloc_klass_name).clone();
 
-                let obj_id = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_heap()
-                    .allocate_obj(&object_klass);
+                let obj_id = HEAP.lock().unwrap().allocate_obj(&object_klass);
                 eval.push(JvmValue::ObjRef { val: obj_id });
             }
             Opcode::NEWARRAY => {
@@ -448,11 +418,9 @@ pub fn exec_method2(
                     // int: 10
                     // long: 11
                     10 => match eval.pop() {
-                        JvmValue::Int { val: arr_size } => CONTEXT
-                            .lock()
-                            .unwrap()
-                            .get_heap()
-                            .allocate_int_arr(arr_size),
+                        JvmValue::Int { val: arr_size } => {
+                            HEAP.lock().unwrap().allocate_int_arr(arr_size)
+                        }
                         _ => panic!("Not an int on the stack at {}", (current - 1)),
                     },
                     _ => panic!("Unsupported primitive array type at {}", (current - 1)),
@@ -479,12 +447,7 @@ pub fn exec_method2(
             Opcode::PUTFIELD => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-
-                let putf: OtField = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_field(&my_klass_name, cp_lookup);
+                
                 let val = eval.pop();
 
                 let recvp: JvmValue = eval.pop();
@@ -493,27 +456,18 @@ pub fn exec_method2(
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
 
-                CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_heap()
-                    .put_field(obj_id, putf, val);
+                let putf = lookup_field(&my_klass_name, cp_lookup);
+                HEAP.lock().unwrap().put_field(obj_id, putf, val);
             }
             Opcode::PUTSTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let puts: OtField = CONTEXT
-                    .lock()
-                    .unwrap()
-                    .get_repo()
-                    .lookup_field(&my_klass_name, cp_lookup);
+                let puts: OtField = REPO.lock().unwrap().lookup_field(&my_klass_name, cp_lookup);
 
                 let klass_name = puts.get_klass_name();
-                CONTEXT
-                    .lock()
+                REPO.lock()
                     .unwrap()
-                    .get_repo()
                     .put_static(klass_name, puts, eval.pop());
                 // f_klass.set_static_field(puts.get_name(), eval.pop());
             }
@@ -601,10 +555,10 @@ fn dispatch_invoke(
         ),
     };
     let dispatch_klass_name = current_klass.cp_as_string(klz_idx);
-    let callee = CONTEXT
+
+    let callee = REPO
         .lock()
         .unwrap()
-        .get_repo()
         .lookup_method_exact(&dispatch_klass_name, fq_name_desc);
 
     // FIXME - General setup requires call args from the stack
@@ -612,7 +566,7 @@ fn dispatch_invoke(
     if additional_args > 0 {
         vars.store(0, eval.pop());
     }
-    match exec_method(callee, &mut vars) {
+    match exec_method(&callee, &mut vars) {
         Some(val) => eval.push(val),
         None => (),
     }

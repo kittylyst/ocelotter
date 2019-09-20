@@ -1,4 +1,5 @@
 use std::fmt;
+use std::cell::Cell;
 
 use crate::constant_pool::CpAttr;
 use crate::constant_pool::ACC_NATIVE;
@@ -14,7 +15,7 @@ pub struct OtMethod {
     name_idx: u16,
     desc_idx: u16,
     code: Vec<u8>,
-    native_code: Option<fn(&InterpLocalVars) -> Option<JvmValue>>,
+    native_code: Cell<Option<fn(&InterpLocalVars) -> Option<JvmValue>>>,
     attrs: Vec<CpAttr>,
 }
 
@@ -35,7 +36,7 @@ impl OtMethod {
             name_desc: name_and_desc,
             attrs: Vec::new(),
             code: Vec::new(),
-            native_code: None,
+            native_code: Cell::new(None),
             // FIXME
             name_idx: desc_idx,
             desc_idx: desc_idx,
@@ -72,12 +73,12 @@ impl OtMethod {
         self.flags & ACC_NATIVE == ACC_NATIVE
     }
 
-    pub fn set_native_code(&mut self, n_code: fn(&InterpLocalVars) -> Option<JvmValue>) {
-        self.native_code = Some(n_code);
+    pub fn set_native_code(&self, n_code: fn(&InterpLocalVars) -> Option<JvmValue>) {
+        self.native_code.set(Some(n_code));
     }
 
     pub fn get_native_code(&self) -> Option<fn(&InterpLocalVars) -> Option<JvmValue>> {
-        self.native_code
+        self.native_code.get()
     }
 
     // HACK Replace with proper local var size by parsing class attributes properly

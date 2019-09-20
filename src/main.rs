@@ -7,15 +7,18 @@ use ocelotter_runtime::JvmValue::*;
 use ocelotter_util::file_to_bytes;
 
 use ocelotter::exec_method;
-use ocelotter_runtime::CONTEXT;
+use ocelotter_runtime::SharedKlassRepo;
+use ocelotter_runtime::HEAP;
+use ocelotter_runtime::REPO;
 
 pub fn main() {
     let args: Vec<String> = env::args().collect();
 
     println!("{:?}", args);
-
     // FIXME In reality, need to bootstrap rt.jar
-    CONTEXT.lock().unwrap().get_repo().bootstrap();
+    let mut repo = SharedKlassRepo::of();
+    repo.bootstrap();
+    *REPO.lock().unwrap() = repo;
 
     let f_name = args[1].clone();
 
@@ -26,8 +29,8 @@ pub fn main() {
     };
     let mut parser = OtKlassParser::of(bytes, fq_klass_name.clone());
     parser.parse();
-    let mut k = parser.klass();
-    CONTEXT.lock().unwrap().get_repo().add_klass(&mut k);
+    let k = parser.klass();
+    REPO.lock().unwrap().add_klass(&k);
 
     // FIXME Real main() signture required, dummying for ease of testing
     let main_str: String = f_name.clone() + ".main2:([Ljava/lang/String;)I";
@@ -39,7 +42,7 @@ pub fn main() {
 
     // FIXME Parameter passing
     let mut vars = InterpLocalVars::of(5);
-    let opt_ret = exec_method(main, &mut vars);
+    let opt_ret = exec_method(&main, &mut vars);
     let ret = match opt_ret {
         Some(value) => value,
         None => panic!("Error executing ".to_owned() + &f_name + " - no value returned"),

@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::cell::Cell;
+use std::sync::Mutex;
 
 use crate::constant_pool::CpEntry;
 use crate::otfield::OtField;
@@ -11,7 +13,7 @@ use crate::JvmValue;
 
 #[derive(Debug, Clone)]
 pub struct OtKlass {
-    id: usize,
+    id: Cell<usize>,
     name: String,
     super_name: String,
     flags: u16,
@@ -64,7 +66,7 @@ impl OtKlass {
         // dbg!(m_lookup.clone());
         // dbg!(f_lookup.clone());
         OtKlass {
-            id: 0, // This indicates that the class has not yet been loaded into a repo
+            id: Cell::new(0), // This indicates that the class has not yet been loaded into a repo
             name: klass_name,
             super_name: super_klass,
             flags: flags,
@@ -79,12 +81,12 @@ impl OtKlass {
         }
     }
 
-    pub fn make_default(&self) -> Vec<JvmValue> {
-        let mut out: Vec<JvmValue> = Vec::new();
+    pub fn make_default(&self) -> Vec<Mutex<JvmValue>> {
+        let mut out: Vec<Mutex<JvmValue>> = Vec::new();
         let mut i = 0;
         while i < self.i_fields.len() {
             match self.i_fields.get(i) {
-                Some(f) => out.push(f.get_default()),
+                Some(f) => out.push(Mutex::new(f.get_default())),
                 None => panic!("Error: field {} not found on {}", i, self.name),
             };
             i = i + 1;
@@ -92,12 +94,12 @@ impl OtKlass {
         out
     }
 
-    pub fn set_id(&mut self, id: usize) -> () {
-        self.id = id
+    pub fn set_id(&self, new_id: usize) -> () {
+        self.id.set(new_id)
     }
 
     pub fn get_id(&self) -> usize {
-        self.id
+        self.id.get()
     }
 
     pub fn get_name(&self) -> String {
@@ -113,15 +115,15 @@ impl OtKlass {
     }
 
     pub fn set_native_method(
-        &mut self,
+        &self,
         name_desc: String,
         n_code: fn(&InterpLocalVars) -> Option<JvmValue>,
     ) {
         // dbg!("Setting native code");
         // dbg!(name_desc.clone());
-        match self.get_mutable_method(&name_desc) {
+        match self.get_method_by_name_and_desc(&name_desc) {
             Some(m2) => m2.set_native_code(n_code),
-            None => panic!("Should be unreachable"),
+            None => panic!("Should be unreachable - trying to store native code in a regular method"),
         }
     }
 
@@ -167,15 +169,6 @@ impl OtKlass {
             None => return None,
         };
         self.methods.get(idx)
-    }
-
-    pub fn get_mutable_method(&mut self, name_desc: &String) -> Option<&mut OtMethod> {
-        for m in &mut self.methods {
-            if *m.get_desc() == *name_desc {
-                return Some(m);
-            }
-        }
-        None
     }
 
     pub fn lookup_cp(&self, cp_idx: u16) -> CpEntry {
