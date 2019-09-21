@@ -338,6 +338,11 @@ impl SharedKlassRepo {
 
         // FIXME Add primitive arrays
 
+        // Add boxed classes
+        self.add_bootstrap_class("java/lang/Integer".to_string());
+        self.add_bootstrap_class("java/lang/Integer$IntegerCache".to_string());
+        // FIXME Other classes
+
         // Add java.lang.String
         self.add_bootstrap_class("java/lang/String".to_string());
         // FIXME String only has intern() as a native method, skip for now

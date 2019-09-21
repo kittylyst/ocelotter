@@ -70,7 +70,7 @@ pub fn exec_bytecode_method(
             Opcode::BIPUSH => {
                 eval.iconst(instr[current] as i32);
                 current += 1;
-            }
+            },
             Opcode::DADD => eval.dadd(),
 
             Opcode::DCONST_0 => eval.dconst(0.0),
@@ -80,7 +80,7 @@ pub fn exec_bytecode_method(
             Opcode::DLOAD => {
                 eval.push(lvt.load(instr[current]));
                 current += 1;
-            }
+            },
 
             Opcode::DLOAD_0 => eval.push(lvt.load(0)),
 
@@ -94,7 +94,7 @@ pub fn exec_bytecode_method(
             Opcode::DSTORE => {
                 lvt.store(instr[current], eval.pop());
                 current += 1;
-            }
+            },
             Opcode::DSTORE_0 => lvt.store(0, eval.pop()),
 
             Opcode::DSTORE_1 => lvt.store(1, eval.pop()),
@@ -125,12 +125,15 @@ pub fn exec_bytecode_method(
                 let ret: JvmValue = obj.get_value(getf);
                 eval.push(ret);
             }
-            // GETSTATIC => {
-            //     let cp_lookup = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     OtField f = context.get_repo().lookupField(klass_name, (short) cp_lookup);
-            //     OtKlass fgKlass = f.getKlass();
-            //     eval.push(fgKlass.getStaticField(f));
-            // },
+            Opcode::GETSTATIC => {
+                let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
+                current += 2;
+
+                let getf = lookup_field(&my_klass_name, cp_lookup);
+                // FIXME 
+                // let ret: JvmValue = obj.get_value(getf);
+                // eval.push(ret);
+            },
             Opcode::GOTO => {
                 current += ((instr[current] as usize) << 8) + instr[current + 1] as usize
             }
@@ -207,7 +210,26 @@ pub fn exec_bytecode_method(
                 } else {
                     current += 2;
                 }
-            }
+            },
+            Opcode::IF_ICMPGT => {
+                // FIXME 
+                let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+                if massage_to_jvm_int_and_equate(eval.pop(), eval.pop()) {
+                    current += jump_to;
+                } else {
+                    current += 2;
+                }
+            },
+
+            Opcode::IF_ICMPLT => {
+                // FIXME 
+                let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+                if massage_to_jvm_int_and_equate(eval.pop(), eval.pop()) {
+                    current += jump_to;
+                } else {
+                    current += 2;
+                }
+            },
             Opcode::IF_ICMPNE => {
                 let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
                 if massage_to_jvm_int_and_equate(eval.pop(), eval.pop()) {
@@ -215,7 +237,7 @@ pub fn exec_bytecode_method(
                 } else {
                     current += jump_to;
                 }
-            }
+            },
             // Opcode::IFEQ => {
             //     let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
             //     let i = match eval.pop() {
@@ -297,16 +319,16 @@ pub fn exec_bytecode_method(
                         (current - 1)
                     ),
                 };
-            }
+            },
             Opcode::IINC => {
                 lvt.iinc(instr[current], instr[current + 1]);
                 current += 2;
-            }
+            },
 
             Opcode::ILOAD => {
                 eval.push(lvt.load(instr[current]));
                 current += 1
-            }
+            },
 
             Opcode::ILOAD_0 => eval.push(lvt.load(0)),
 

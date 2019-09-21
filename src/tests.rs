@@ -300,7 +300,7 @@ fn test_invoke_simple() {
 
     let k = simple_parse_klass("SampleInvoke".to_string());
 
-    {
+    {   
         let meth = match k.get_method_by_name_and_desc(&"SampleInvoke.bar:()I".to_string()) {
             Some(value) => value.clone(),
             None => panic!("SampleInvoke.bar:()I not found"),
@@ -405,11 +405,12 @@ fn test_system_current_timemillis() {
     let k = simple_parse_klass("Main3".to_string());
 
     {
+        let fqname = "Main3.main2:([Ljava/lang/String;)I";
         let meth = match k
-            .get_method_by_name_and_desc(&"Main3.main2:([Ljava/lang/String;)I".to_string())
+            .get_method_by_name_and_desc(&fqname.to_string())
         {
             Some(value) => value.clone(),
-            None => panic!("Main3.main2:([Ljava/lang/String;)I not found"),
+            None => panic!("{} not found", fqname),
         };
 
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
@@ -419,7 +420,7 @@ fn test_system_current_timemillis() {
         let ctm1 = match ret {
             JvmValue::Int { val: i } => i,
             _ => panic!(
-                "Error executing Main3.main2:([Ljava/lang/String;)I - non-int value returned"
+                "Error executing {} - non-int value returned", fqname
             ),
         };
         vars = InterpLocalVars::of(5);
@@ -427,15 +428,36 @@ fn test_system_current_timemillis() {
         let ret2 = match opt_ret {
             Some(value) => value,
             None => {
-                panic!("Error executing Main3.main2:([Ljava/lang/String;)I - no value returned")
+                panic!("Error executing {} - no value returned", fqname)
             }
         };
         let ctm2 = match ret2 {
             JvmValue::Int { val: i } => i,
             _ => panic!(
-                "Error executing Main3.main2:([Ljava/lang/String;)I - non-int value returned"
+                "Error executing {} - non-int value returned", fqname
             ),
         };
         assert_eq!(true, ctm2 >= ctm1, "System clock appears to go backwards");
+    }
+}
+
+#[test]
+fn test_class_based_addition() {
+    init_repo();
+    let k = simple_parse_klass("AddFieldInteger".to_string());
+
+    {
+        let fqname = "AddFieldInteger.main2:([Ljava/lang/String;)I".to_string();
+        let meth = k.get_method_by_name_and_desc(&fqname).unwrap();
+
+        assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+
+        let mut vars = InterpLocalVars::of(5);
+        let ret = exec_method(&meth, &mut vars).unwrap();
+        let ret2 = match ret {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Error executing {} - non-int value returned", fqname),
+        };
+        assert_eq!(7, ret2);
     }
 }
