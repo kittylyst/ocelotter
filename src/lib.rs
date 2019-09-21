@@ -70,7 +70,7 @@ pub fn exec_bytecode_method(
             Opcode::BIPUSH => {
                 eval.iconst(instr[current] as i32);
                 current += 1;
-            },
+            }
             Opcode::DADD => eval.dadd(),
 
             Opcode::DCONST_0 => eval.dconst(0.0),
@@ -80,7 +80,7 @@ pub fn exec_bytecode_method(
             Opcode::DLOAD => {
                 eval.push(lvt.load(instr[current]));
                 current += 1;
-            },
+            }
 
             Opcode::DLOAD_0 => eval.push(lvt.load(0)),
 
@@ -94,7 +94,7 @@ pub fn exec_bytecode_method(
             Opcode::DSTORE => {
                 lvt.store(instr[current], eval.pop());
                 current += 1;
-            },
+            }
             Opcode::DSTORE_0 => lvt.store(0, eval.pop()),
 
             Opcode::DSTORE_1 => lvt.store(1, eval.pop()),
@@ -129,11 +129,13 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let getf = lookup_field(&my_klass_name, cp_lookup);
-                // FIXME 
-                // let ret: JvmValue = obj.get_value(getf);
-                // eval.push(ret);
-            },
+                let repo = REPO.lock().unwrap();
+                let getf = repo.lookup_field(&klass_name, cp_lookup);
+                let klass = repo.lookup_klass(&klass_name);
+                let ret = klass.get_static_field(&getf);
+
+                eval.push(ret.clone());
+            }
             Opcode::GOTO => {
                 current += ((instr[current] as usize) << 8) + instr[current + 1] as usize
             }
@@ -205,39 +207,45 @@ pub fn exec_bytecode_method(
 
             Opcode::IF_ICMPEQ => {
                 let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
-                if massage_to_jvm_int_and_equate(eval.pop(), eval.pop()) {
+                if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
+                    i == j
+                }) {
                     current += jump_to;
                 } else {
                     current += 2;
                 }
-            },
+            }
             Opcode::IF_ICMPGT => {
-                // FIXME 
                 let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
-                if massage_to_jvm_int_and_equate(eval.pop(), eval.pop()) {
+                if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
+                    i > j
+                }) {
                     current += jump_to;
                 } else {
                     current += 2;
                 }
-            },
+            }
 
             Opcode::IF_ICMPLT => {
-                // FIXME 
                 let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
-                if massage_to_jvm_int_and_equate(eval.pop(), eval.pop()) {
+                if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
+                    i < j
+                }) {
                     current += jump_to;
                 } else {
                     current += 2;
                 }
-            },
+            }
             Opcode::IF_ICMPNE => {
                 let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
-                if massage_to_jvm_int_and_equate(eval.pop(), eval.pop()) {
+                if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
+                    i == j
+                }) {
                     current += 2;
                 } else {
                     current += jump_to;
                 }
-            },
+            }
             // Opcode::IFEQ => {
             //     let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
             //     let i = match eval.pop() {
@@ -307,8 +315,6 @@ pub fn exec_bytecode_method(
                 match eval.pop() {
                     JvmValue::ObjRef { val: v } => {
                         if v == 0 {
-                            // println!("Ins[curr]: {} and {}", instr[current], instr[current + 1]);
-                            // println!("Attempting to jump by: {} from {}", jump_to, current);
                             current += jump_to;
                         } else {
                             current += 2;
@@ -319,16 +325,16 @@ pub fn exec_bytecode_method(
                         (current - 1)
                     ),
                 };
-            },
+            }
             Opcode::IINC => {
                 lvt.iinc(instr[current], instr[current + 1]);
                 current += 2;
-            },
+            }
 
             Opcode::ILOAD => {
                 eval.push(lvt.load(instr[current]));
                 current += 1
-            },
+            }
 
             Opcode::ILOAD_0 => eval.push(lvt.load(0)),
 
@@ -346,7 +352,6 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 let current_klass = REPO.lock().unwrap().lookup_klass(&klass_name).clone();
-                // dbg!(current_klass.clone());
                 dispatch_invoke(current_klass, cp_lookup, &mut eval, 1);
             }
             Opcode::INVOKESTATIC => {
@@ -522,41 +527,13 @@ pub fn exec_bytecode_method(
     }
 }
 
-fn massage_to_jvm_int_and_equate(v1: JvmValue, v2: JvmValue) -> bool {
+fn massage_to_int_and_compare(v1: JvmValue, v2: JvmValue, f: fn(i: i32, j: i32) -> bool) -> bool {
     match v1 {
-        JvmValue::Boolean { val: b } => match v2 {
-            JvmValue::Boolean { val: b1 } => b == b1,
-            _ => panic!("Values found to have differing type for IF_ICMP*"),
-        },
-        JvmValue::Byte { val: b } => match v2 {
-            JvmValue::Byte { val: b1 } => b == b1,
-            _ => panic!("Values found to have differing type for IF_ICMP*"),
-        },
-        JvmValue::Short { val: s } => match v2 {
-            JvmValue::Short { val: s1 } => s == s1,
-            _ => panic!("Values found to have differing type for IF_ICMP*"),
-        },
         JvmValue::Int { val: i } => match v2 {
-            JvmValue::Int { val: i1 } => i == i1,
+            JvmValue::Int { val: i1 } => f(i, i1),
             _ => panic!("Values found to have differing type for IF_ICMP*"),
         },
-        JvmValue::Long { val: i } => match v2 {
-            JvmValue::Long { val: i1 } => i == i1,
-            _ => panic!("Values found to have differing type for IF_ICMP*"),
-        },
-        JvmValue::Float { val: i } => match v2 {
-            JvmValue::Float { val: i1 } => i == i1,
-            _ => panic!("Values found to have differing type for IF_ICMP*"),
-        },
-        JvmValue::Double { val: i } => match v2 {
-            JvmValue::Double { val: i1 } => i == i1,
-            _ => panic!("Values found to have differing type for IF_ICMP*"),
-        },
-        JvmValue::Char { val: i } => match v2 {
-            JvmValue::Char { val: i1 } => i == i1,
-            _ => panic!("Values found to have differing type for IF_ICMP*"),
-        },
-        JvmValue::ObjRef { val: _ } => panic!("Values found to have differing type for IF_ICMP*"),
+        _ => panic!("Values found to have the wrong type for IF_ICMP*"),
     }
 }
 

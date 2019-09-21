@@ -74,8 +74,8 @@ impl OtKlass {
             methods: methods.to_vec(),
             i_fields: i_fields.to_vec(),
             s_fields: s_fields.to_vec(),
-            // FIXME
             s_field_vals: Vec::new(),
+            // FIXME
             m_name_desc_lookup: m_lookup,
             f_name_desc_lookup: f_lookup,
         }
@@ -140,6 +140,11 @@ impl OtKlass {
             i = i + 1;
         }
         panic!("Field {} not found on {}", f, self)
+    }
+
+    pub fn get_static_field(&self, f: &OtField) -> &JvmValue {
+        let idx = self.get_field_offset(f);
+        self.s_field_vals.get(idx).unwrap()
     }
 
     pub fn get_method_by_offset_virtual(&self, m_idx: u16) -> OtMethod {
