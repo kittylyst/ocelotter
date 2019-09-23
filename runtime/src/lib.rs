@@ -324,7 +324,6 @@ impl SharedKlassRepo {
         let mut k = parser.klass();
         self.add_klass(&mut k);
         self.lookup_klass(&cl_name)
-        // self.lookup_mutable_klass(&cl_name)
     }
 
     pub fn bootstrap(&mut self) -> () {
@@ -457,15 +456,6 @@ impl SharedKlassRepo {
             None => panic!("No klass with ID {} found in repo", kid),
         }
     }
-
-    // pub fn lookup_mutable_klass(&mut self, klass_name: &String) -> &mut OtKlass {
-    //     for (id, k) in &mut self.id_lookup {
-    //         if *k.get_name() == *klass_name {
-    //             return k;
-    //         }
-    //     }
-    //     panic!("Klass not found")
-    // }
 
     pub fn add_klass(&mut self, k: &OtKlass) -> () {
         k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
