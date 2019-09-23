@@ -75,7 +75,7 @@ impl OtObj {
             } => {
                 let mut place = fs[offset].lock().unwrap();
                 *place = val;
-            },
+            }
             _ => panic!("Not an object"),
         };
     }
@@ -94,7 +94,7 @@ impl OtObj {
         dbg!("Made it to object get_field_offset");
         // Lookup offset in klass
         let offset = REPO.lock().unwrap().get_field_offset(*kid, f);
-        dbg!("Made it to object get_field_offset"); 
+        dbg!("Made it to object get_field_offset");
         match fields.get(offset) {
             Some(v) => {
                 let place = v.lock().unwrap();
@@ -103,7 +103,6 @@ impl OtObj {
             None => panic!("Fields should hold a value"),
         }
     }
-
 
     pub fn get_null() -> OtObj {
         OtObj::vm_obj {

@@ -1,32 +1,25 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::cell::RefCell;
 use std::path::Path;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use std::sync::Mutex;
 
 #[macro_use]
 extern crate lazy_static;
 
-lazy_static! {
-    pub static ref HEAP: Mutex<SharedSimpleHeap> = Mutex::new(SharedSimpleHeap::of());
-}
-
-lazy_static! {
-    pub static ref REPO: Mutex<SharedKlassRepo> = Mutex::new(SharedKlassRepo::of());
-}
-
-
 pub mod constant_pool;
+pub mod interp_stack;
 pub mod klass_parser;
 pub mod native_methods;
 pub mod object;
 pub mod otfield;
 pub mod otklass;
 pub mod otmethod;
+pub mod simple_heap;
 
-// use constant_pool::CpAttr;
+use crate::simple_heap::SharedSimpleHeap;
 use constant_pool::CpEntry;
 use object::OtObj;
 use ocelotter_util::file_to_bytes;
@@ -36,7 +29,13 @@ use otmethod::OtMethod;
 
 use crate::constant_pool::ACC_NATIVE;
 
+lazy_static! {
+    pub static ref HEAP: Mutex<SharedSimpleHeap> = Mutex::new(SharedSimpleHeap::of());
+}
 
+lazy_static! {
+    pub static ref REPO: Mutex<SharedKlassRepo> = Mutex::new(SharedKlassRepo::of());
+}
 
 //////////// RUNTIME VALUES
 
@@ -92,176 +91,6 @@ impl Default for JvmValue {
 }
 
 //////////// RUNTIME STACKS AND LOCAL VARS
-
-pub struct InterpEvalStack {
-    stack: Vec<JvmValue>,
-}
-
-impl InterpEvalStack {
-    pub fn of() -> InterpEvalStack {
-        InterpEvalStack { stack: Vec::new() }
-    }
-
-    pub fn push(&mut self, val: JvmValue) -> () {
-        let s = &mut self.stack;
-        s.push(val);
-    }
-
-    pub fn pop(&mut self) -> JvmValue {
-        let s = &mut self.stack;
-        match s.pop() {
-            Some(value) => value,
-            None => panic!("pop() on empty stack"),
-        }
-    }
-
-    pub fn aconst_null(&mut self) -> () {
-        self.push(JvmValue::ObjRef {
-            val: 0, // OtObj::get_null(),
-        });
-    }
-
-    pub fn iconst(&mut self, v: i32) -> () {
-        self.push(JvmValue::Int { val: v });
-    }
-
-    pub fn iadd(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-
-        self.push(JvmValue::Int { val: i1 + i2 });
-    }
-
-    pub fn isub(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-
-        self.push(JvmValue::Int { val: i1 - i2 });
-    }
-    pub fn imul(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-
-        self.push(JvmValue::Int { val: i1 * i2 });
-    }
-
-    pub fn irem(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-
-        self.push(JvmValue::Int { val: i2 % i1 });
-    }
-    pub fn ixor(&self) -> () {}
-    pub fn idiv(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-
-        self.push(JvmValue::Int { val: i2 / i1 });
-    }
-    pub fn iand(&self) -> () {}
-    pub fn ineg(&mut self) -> () {
-        let i1 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-        self.push(JvmValue::Int { val: -i1 });
-    }
-    pub fn ior(&self) -> () {}
-
-    pub fn dadd(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Double { val: i } => i,
-            _ => panic!("Unexpected, non-double value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Double { val: i } => i,
-            _ => panic!("Unexpected, non-double value encountered"),
-        };
-
-        self.push(JvmValue::Double { val: i1 + i2 });
-    }
-    pub fn dsub(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Double { val: i } => i,
-            _ => panic!("Unexpected, non-double value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Double { val: i } => i,
-            _ => panic!("Unexpected, non-double value encountered"),
-        };
-
-        self.push(JvmValue::Double { val: i1 - i2 });
-    }
-    pub fn dmul(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Double { val: i } => i,
-            _ => panic!("Unexpected, non-double value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Double { val: i } => i,
-            _ => panic!("Unexpected, non-double value encountered"),
-        };
-
-        self.push(JvmValue::Double { val: i1 * i2 });
-    }
-
-    pub fn dconst(&mut self, v: f64) -> () {
-        self.push(JvmValue::Double { val: v });
-    }
-
-    pub fn i2d(&self) -> () {}
-    pub fn dup(&mut self) -> () {
-        let i1 = self.pop();
-        self.push(i1.to_owned());
-        self.push(i1.to_owned());
-    }
-    pub fn dupX1(&mut self) -> () {
-        let i1 = self.pop();
-        let i1c = i1.clone();
-        let i2 = self.pop();
-        self.push(i1);
-        self.push(i2);
-        self.push(i1c);
-    }
-}
 
 pub struct InterpLocalVars {
     lvt: Vec<JvmValue>,
@@ -382,7 +211,7 @@ impl SharedKlassRepo {
             None => panic!("No klass with ID {} found in repo", kid),
         }
     }
-    
+
     fn klass_name_from_fq(&self, klass_name: &String) -> String {
         // FIXME
         "DUMMY".to_string()
@@ -400,7 +229,11 @@ impl SharedKlassRepo {
 
         match opt_f {
             Some(f) => f.clone(),
-            None => panic!("No static field {} found on klass {} ", fq_name_desc.clone(), target_klass_name),
+            None => panic!(
+                "No static field {} found on klass {} ",
+                fq_name_desc.clone(),
+                target_klass_name
+            ),
         }
     }
 
@@ -416,7 +249,11 @@ impl SharedKlassRepo {
 
         match opt_f {
             Some(f) => f.clone(),
-            None => panic!("No instance field {} found on klass {} ", fq_name_desc.clone(), target_klass_name),
+            None => panic!(
+                "No instance field {} found on klass {} ",
+                fq_name_desc.clone(),
+                target_klass_name
+            ),
         }
     }
 
@@ -468,93 +305,6 @@ impl SharedKlassRepo {
 }
 
 /////////////////////////////////////////////////////////////////
-
-pub struct SharedSimpleHeap {
-    obj_count: AtomicUsize,
-    // Free list
-    // Alloc table
-    alloc: Vec<OtObj>,
-}
-
-impl SharedSimpleHeap {
-    pub fn of() -> SharedSimpleHeap {
-        let mut out = SharedSimpleHeap {
-            obj_count: AtomicUsize::new(1),
-            alloc: Vec::new(),
-        };
-        let null_obj = OtObj::get_null();
-        out.alloc.push(null_obj);
-        out
-    }
-
-    pub fn allocate_obj(&mut self, klass: &OtKlass) -> usize {
-        let klass_id = klass.get_id();
-        let obj_id: usize = self.obj_count.fetch_add(1, Ordering::SeqCst);
-        let out = OtObj::obj_of(klass_id, obj_id, klass.make_default());
-        self.alloc.push(out);
-        obj_id
-    }
-
-    pub fn allocate_int_arr(&mut self, size: i32) -> usize {
-        let obj_id = self.obj_count.fetch_add(1, Ordering::SeqCst);
-        let out = OtObj::int_arr_of(size, obj_id);
-        self.alloc.push(out);
-        obj_id
-    }
-
-    pub fn get_obj(&self, id: usize) -> &OtObj {
-        match self.alloc.get(id) {
-            Some(val) => val,
-            None => panic!("Error: object {} not found", id),
-        }
-    }
-
-    // FIXME Handle storage properly
-    pub fn put_field(&self, id: usize, f: OtField, v: JvmValue) -> () {
-        // Get object from heap
-        match self.alloc.get(id) {
-            Some(val) => val.put_field(f, v),
-            None => panic!("Error: object {} not found", id),
-        };
-    }
-
-    pub fn get_field(&self, id: usize, f: OtField) -> JvmValue {
-        // Get object from heap
-        let obj = match self.alloc.get(id) {
-            Some(val) => val,
-            None => panic!("Error: object {} not found", id),
-        };
-        obj.get_field_value(f)
-    }
-
-    pub fn iastore(&mut self, id: usize, pos: i32, v: i32) -> () {
-        let p = pos as usize;
-        let obj = match self.alloc.get(id) {
-            Some(val) => val,
-            None => panic!("Error: object {} not found", id),
-        };
-        let t = match obj {
-            OtObj::vm_arr_int {
-                id: i,
-                mark: m,
-                klassid: kid,
-                length: _,
-                elements: elts,
-            } => (i, m, kid, elts),
-            _ => panic!("Non-int[] seen in heap during IASTORE at {}", id),
-        };
-        let mut elts = t.3.clone();
-        elts[pos as usize] = v;
-        let obj = OtObj::vm_arr_int {
-            id: *t.0,
-            mark: *t.1,
-            klassid: *t.2,
-            length: elts.len() as i32,
-            elements: elts,
-        };
-        self.alloc[id] = obj;
-    }
-}
 
 #[cfg(test)]
 mod tests;

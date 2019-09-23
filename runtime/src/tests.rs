@@ -52,26 +52,21 @@ fn check_simple_fields_methods() {
 
 #[test]
 fn check_system_current_timemillis() {
-    let bytes = match file_to_bytes(Path::new(
-        "../resources/test/Main3.class",
-    )) {
+    let bytes = match file_to_bytes(Path::new("../resources/test/Main3.class")) {
         Ok(buf) => buf,
         _ => panic!("Error reading Main3"),
     };
-    let mut parser =
-        klass_parser::OtKlassParser::of(bytes, "Main3.class".to_string());
+    let mut parser = klass_parser::OtKlassParser::of(bytes, "Main3.class".to_string());
     parser.parse();
     assert_eq!(20, parser.get_pool_size());
     let k = parser.klass();
     assert_eq!("Main3", k.get_name());
     assert_eq!("java/lang/Object", k.get_super_name());
-
 }
 
-    // FIXME Convert to klass_parser tests
-    // let k = simple_parse_klass("SampleInvoke".to_string());
-    // assert_eq!(21, parser.get_pool_size());
-    // assert_eq!("SampleInvoke", k.get_name());
-    // assert_eq!("java/lang/Object", k.get_super_name());
-    // assert_eq!(4, k.get_methods().len());
-
+// FIXME Convert to klass_parser tests
+// let k = simple_parse_klass("SampleInvoke".to_string());
+// assert_eq!(21, parser.get_pool_size());
+// assert_eq!("SampleInvoke", k.get_name());
+// assert_eq!("java/lang/Object", k.get_super_name());
+// assert_eq!(4, k.get_methods().len());

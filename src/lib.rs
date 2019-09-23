@@ -1,6 +1,7 @@
 #![deny(unreachable_patterns)]
 
 use ocelotter_runtime::constant_pool::*;
+use ocelotter_runtime::interp_stack::InterpEvalStack;
 use ocelotter_runtime::otfield::OtField;
 use ocelotter_runtime::otklass::OtKlass;
 use ocelotter_runtime::otmethod::OtMethod;

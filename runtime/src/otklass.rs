@@ -1,6 +1,6 @@
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt;
-use std::cell::Cell;
 use std::sync::Mutex;
 
 use crate::constant_pool::CpEntry;
@@ -123,7 +123,9 @@ impl OtKlass {
         // dbg!(name_desc.clone());
         match self.get_method_by_name_and_desc(&name_desc) {
             Some(m2) => m2.set_native_code(n_code),
-            None => panic!("Should be unreachable - trying to store native code in a regular method"),
+            None => {
+                panic!("Should be unreachable - trying to store native code in a regular method")
+            }
         }
     }
 

@@ -1,5 +1,5 @@
-use std::fmt;
 use std::cell::Cell;
+use std::fmt;
 
 use crate::constant_pool::CpAttr;
 use crate::constant_pool::ACC_NATIVE;
