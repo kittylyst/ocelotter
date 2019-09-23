@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use std::fmt;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
-
 use std::sync::Mutex;
+
+use regex::Regex;
 
 #[macro_use]
 extern crate lazy_static;
@@ -37,7 +38,7 @@ lazy_static! {
     pub static ref REPO: Mutex<SharedKlassRepo> = Mutex::new(SharedKlassRepo::of());
 }
 
-//////////// RUNTIME VALUES
+//////////// RUNTIME JVM VALUES
 
 #[derive(Clone, Debug)]
 pub enum JvmValue {
@@ -90,7 +91,9 @@ impl Default for JvmValue {
     }
 }
 
-//////////// RUNTIME STACKS AND LOCAL VARS
+//////////// LOCAL VARS
+
+// Keep this here for now, move to separate file as and when it gets bigger
 
 pub struct InterpLocalVars {
     lvt: Vec<JvmValue>,
@@ -124,7 +127,7 @@ impl InterpLocalVars {
     }
 }
 
-//////////// SHARED RUNTIME STRUCTURES
+//////////// SHARED RUNTIME KLASS REPO
 
 #[derive(Debug)]
 pub struct SharedKlassRepo {
@@ -155,6 +158,8 @@ impl SharedKlassRepo {
         self.lookup_klass(&cl_name)
     }
 
+    // FIXME This should be changed to read in an ocelot-rt.jar (a cut down full RT)
+    // and add each class one by one before fixing up the native code that we have working
     pub fn bootstrap(&mut self) -> () {
         // Add java.lang.Object
         let mut k_obj = self.add_bootstrap_class("java/lang/Object".to_string());
@@ -212,9 +217,24 @@ impl SharedKlassRepo {
         }
     }
 
-    fn klass_name_from_fq(&self, klass_name: &String) -> String {
-        // FIXME
-        "DUMMY".to_string()
+    pub fn klass_name_from_fq(klass_name: &String) -> String {
+        lazy_static! {
+            static ref KLASS_NAME: Regex =
+                Regex::new("((?:([a-zA-Z_$][a-zA-Z\\d_$]*(?:/[a-zA-Z_$][a-zA-Z\\d_$]*)*)/)?([a-zA-Z_$][a-zA-Z\\d_$]*))\\.").unwrap();
+        }
+        let caps = KLASS_NAME.captures(klass_name).unwrap();
+        // Capture the package name and the class name via the use of a nexted group
+        caps.get(1).map_or("".to_string(), |m| m.as_str().to_string())
+    }
+
+    pub fn klass_name_from_dotted_fq(klass_name: &String) -> String {
+        lazy_static! {
+            static ref KLASS_NAME_DOTTED: Regex = 
+                Regex::new("(?:([a-zA-Z_$][a-zA-Z\\d_$]*(?:\\.[a-zA-Z_$][a-zA-Z\\d_$]*)*)\\.)?([a-zA-Z_$][a-zA-Z\\d_$]*)").unwrap();
+        }
+        let caps = KLASS_NAME_DOTTED.captures(klass_name).unwrap();
+        // In dotted syntax the field / method name comes after the final dot, hence no nested group
+        caps.get(1).map_or("".to_string(), |m| m.as_str().to_string())
     }
 
     pub fn lookup_static_field(&self, klass_name: &String, idx: u16) -> OtField {
@@ -222,7 +242,7 @@ impl SharedKlassRepo {
 
         // Lookup the Fully-Qualified field name from the CP index
         let fq_name_desc = current_klass.cp_as_string(idx);
-        let target_klass_name = self.klass_name_from_fq(&fq_name_desc);
+        let target_klass_name = &SharedKlassRepo::klass_name_from_fq(&fq_name_desc);
         let target_klass: &OtKlass = self.lookup_klass(&target_klass_name);
 
         let opt_f = target_klass.get_static_field_by_name_and_desc(&fq_name_desc);
@@ -242,7 +262,7 @@ impl SharedKlassRepo {
 
         // Lookup the Fully-Qualified field name from the CP index
         let fq_name_desc = current_klass.cp_as_string(idx);
-        let target_klass_name = self.klass_name_from_fq(&fq_name_desc);
+        let target_klass_name = &SharedKlassRepo::klass_name_from_fq(&fq_name_desc);
         let target_klass: &OtKlass = self.lookup_klass(&target_klass_name);
 
         let opt_f = target_klass.get_instance_field_by_name_and_desc(&fq_name_desc);

@@ -129,7 +129,7 @@ impl OtKlass {
         }
     }
 
-    pub fn get_field_offset(&self, f: &OtField) -> usize {
+    pub fn get_instance_field_offset(&self, f: &OtField) -> usize {
         let mut i = 0;
         while i < self.i_fields.len() {
             let c_f = match self.i_fields.get(i) {
@@ -144,8 +144,24 @@ impl OtKlass {
         panic!("Field {} not found on {}", f, self)
     }
 
+    pub fn get_static_field_offset(&self, f: &OtField) -> usize {
+        let mut i = 0;
+        while i < self.s_fields.len() {
+            let c_f = match self.s_fields.get(i) {
+                Some(f) => f,
+                None => panic!("Should be unreachable, field should always exist"),
+            };
+            if c_f.get_fq_name_desc() == f.get_fq_name_desc() {
+                return i;
+            }
+            i = i + 1;
+        }
+        panic!("Field {} not found on {}", f, self)
+    }
+
+
     pub fn get_static_field_value(&self, f: &OtField) -> &JvmValue {
-        let idx = self.get_field_offset(f);
+        let idx = self.get_static_field_offset(f);
         self.s_field_vals.get(idx).unwrap()
     }
 
@@ -218,6 +234,9 @@ impl OtKlass {
         match self.lookup_cp(i) {
             CpEntry::utf8 { val: s } => s,
             CpEntry::class { idx: utf_idx } => self.cp_as_string(utf_idx),
+            CpEntry::fieldref { clz_idx, nt_idx } => {
+                self.cp_as_string(clz_idx) + "." + &self.cp_as_string(nt_idx)
+            }
             CpEntry::methodref { clz_idx, nt_idx } => {
                 self.cp_as_string(clz_idx) + "." + &self.cp_as_string(nt_idx)
             }
