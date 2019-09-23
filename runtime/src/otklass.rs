@@ -142,7 +142,7 @@ impl OtKlass {
         panic!("Field {} not found on {}", f, self)
     }
 
-    pub fn get_static_field(&self, f: &OtField) -> &JvmValue {
+    pub fn get_static_field_value(&self, f: &OtField) -> &JvmValue {
         let idx = self.get_field_offset(f);
         self.s_field_vals.get(idx).unwrap()
     }
@@ -174,6 +174,30 @@ impl OtKlass {
             None => return None,
         };
         self.methods.get(idx)
+    }
+
+    // NOTE: This is fully-qualified
+    pub fn get_static_field_by_name_and_desc(&self, name_desc: &String) -> Option<&OtField> {
+        dbg!(&self.f_name_desc_lookup);
+        dbg!(&name_desc);
+        let opt_idx = self.f_name_desc_lookup.get(name_desc);
+        let idx: usize = match opt_idx {
+            Some(value) => value.clone(),
+            None => return None,
+        };
+        self.s_fields.get(idx)
+    }
+
+    // NOTE: This is fully-qualified
+    pub fn get_instance_field_by_name_and_desc(&self, name_desc: &String) -> Option<&OtField> {
+        dbg!(&self.f_name_desc_lookup);
+        dbg!(&name_desc);
+        let opt_idx = self.f_name_desc_lookup.get(name_desc);
+        let idx: usize = match opt_idx {
+            Some(value) => value.clone(),
+            None => return None,
+        };
+        self.i_fields.get(idx)
     }
 
     pub fn lookup_cp(&self, cp_idx: u16) -> CpEntry {

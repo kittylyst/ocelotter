@@ -80,7 +80,7 @@ impl OtObj {
         };
     }
 
-    pub fn get_value(&self, f: OtField) -> JvmValue {
+    pub fn get_field_value(&self, f: OtField) -> JvmValue {
         let (kid, fields) = match self {
             OtObj::vm_obj {
                 id: _,

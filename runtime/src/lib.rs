@@ -313,7 +313,7 @@ impl SharedKlassRepo {
         }
     }
 
-    fn add_bootstrap_class(&mut self, cl_name: String) -> &mut OtKlass {
+    fn add_bootstrap_class(&mut self, cl_name: String) -> &OtKlass {
         let fq_klass_fname = "./resources/lib/".to_owned() + &cl_name + ".class";
         let bytes = match file_to_bytes(Path::new(&fq_klass_fname)) {
             Ok(buf) => buf,
@@ -323,7 +323,8 @@ impl SharedKlassRepo {
         parser.parse();
         let mut k = parser.klass();
         self.add_klass(&mut k);
-        self.lookup_mutable_klass(&cl_name)
+        self.lookup_klass(&cl_name)
+        // self.lookup_mutable_klass(&cl_name)
     }
 
     pub fn bootstrap(&mut self) -> () {
@@ -372,29 +373,52 @@ impl SharedKlassRepo {
         ()
     }
 
-    // FIXME SHOULD THIS BE DONE BY INDEX OR DESC???
-    pub fn lookup_field(&self, klass_name: &String, _idx: u16) -> OtField {
+    pub fn lookup_klass(&self, klass_name: &String) -> &OtKlass {
         let kid = match self.klass_lookup.get(klass_name) {
             Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),
         };
-        // let opt_f : Option<&OtField> = match self.id_lookup.get(kid) {
-        //     Some(k) => k.get_field_by_name_and_desc(fq_name_desc.clone()),
-        //     None => panic!("No klass with ID {} found in repo", kid),
-        // };
-        // match opt_meth {
-        //     Some(k) => k.clone(),
-        //     None => panic!("No method {} found on klass {} ", fq_name_desc.clone(), kid),
-        // }
-        // FIXME DUMMY
-        OtField::of(
-            "DUMMY_KLASS".to_string(),
-            "DUMMY_FIELD".to_string(),
-            "I".to_string(),
-            0,
-            1,
-            2,
-        )
+        match self.id_lookup.get(kid) {
+            Some(value) => value,
+            None => panic!("No klass with ID {} found in repo", kid),
+        }
+    }
+    
+    fn klass_name_from_fq(&self, klass_name: &String) -> String {
+        // FIXME
+        "DUMMY".to_string()
+    }
+
+    pub fn lookup_static_field(&self, klass_name: &String, idx: u16) -> OtField {
+        let current_klass = self.lookup_klass(klass_name);
+
+        // Lookup the Fully-Qualified field name from the CP index
+        let fq_name_desc = current_klass.cp_as_string(idx);
+        let target_klass_name = self.klass_name_from_fq(&fq_name_desc);
+        let target_klass: &OtKlass = self.lookup_klass(&target_klass_name);
+
+        let opt_f = target_klass.get_static_field_by_name_and_desc(&fq_name_desc);
+
+        match opt_f {
+            Some(f) => f.clone(),
+            None => panic!("No static field {} found on klass {} ", fq_name_desc.clone(), target_klass_name),
+        }
+    }
+
+    pub fn lookup_instance_field(&self, klass_name: &String, idx: u16) -> OtField {
+        let current_klass = self.lookup_klass(klass_name);
+
+        // Lookup the Fully-Qualified field name from the CP index
+        let fq_name_desc = current_klass.cp_as_string(idx);
+        let target_klass_name = self.klass_name_from_fq(&fq_name_desc);
+        let target_klass: &OtKlass = self.lookup_klass(&target_klass_name);
+
+        let opt_f = target_klass.get_instance_field_by_name_and_desc(&fq_name_desc);
+
+        match opt_f {
+            Some(f) => f.clone(),
+            None => panic!("No instance field {} found on klass {} ", fq_name_desc.clone(), target_klass_name),
+        }
     }
 
     // FIXME Lookup offset properly
@@ -434,25 +458,14 @@ impl SharedKlassRepo {
         }
     }
 
-    pub fn lookup_klass(&self, klass_name: &String) -> &OtKlass {
-        let kid = match self.klass_lookup.get(klass_name) {
-            Some(id) => id,
-            None => panic!("No klass called {} found in repo", klass_name),
-        };
-        match self.id_lookup.get(kid) {
-            Some(value) => value,
-            None => panic!("No klass with ID {} found in repo", kid),
-        }
-    }
-
-    pub fn lookup_mutable_klass(&mut self, klass_name: &String) -> &mut OtKlass {
-        for (id, k) in &mut self.id_lookup {
-            if *k.get_name() == *klass_name {
-                return k;
-            }
-        }
-        panic!("Klass not found")
-    }
+    // pub fn lookup_mutable_klass(&mut self, klass_name: &String) -> &mut OtKlass {
+    //     for (id, k) in &mut self.id_lookup {
+    //         if *k.get_name() == *klass_name {
+    //             return k;
+    //         }
+    //     }
+    //     panic!("Klass not found")
+    // }
 
     pub fn add_klass(&mut self, k: &OtKlass) -> () {
         k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
@@ -521,7 +534,7 @@ impl SharedSimpleHeap {
             Some(val) => val,
             None => panic!("Error: object {} not found", id),
         };
-        obj.get_value(f)
+        obj.get_field_value(f)
     }
 
     pub fn iastore(&mut self, id: usize, pos: i32, v: i32) -> () {

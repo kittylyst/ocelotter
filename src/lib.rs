@@ -24,11 +24,6 @@ pub fn exec_method(meth: &OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValu
     }
 }
 
-fn lookup_field(klass_name: &String, cp: u16) -> OtField {
-    let repo = REPO.lock().unwrap();
-    repo.lookup_field(klass_name, cp)
-}
-
 pub fn exec_bytecode_method(
     klass_name: String,
     instr: &Vec<u8>,
@@ -38,7 +33,7 @@ pub fn exec_bytecode_method(
     let mut eval = InterpEvalStack::of();
 
     loop {
-        let my_klass_name = klass_name.clone();
+        // let my_klass_name = klass_name.clone();
         let ins: u8 = match instr.get(current) {
             Some(value) => *value,
             // FIXME We don't know the name of the currently executing method!
@@ -120,9 +115,10 @@ pub fn exec_bytecode_method(
                 };
                 let heap = HEAP.lock().unwrap();
                 let obj = heap.get_obj(obj_id).clone();
+                let repo = REPO.lock().unwrap();
+                let getf = repo.lookup_instance_field(&klass_name, cp_lookup);
 
-                let getf = lookup_field(&my_klass_name, cp_lookup);
-                let ret: JvmValue = obj.get_value(getf);
+                let ret = obj.get_field_value(getf);
                 eval.push(ret);
             }
             Opcode::GETSTATIC => {
@@ -130,10 +126,10 @@ pub fn exec_bytecode_method(
                 current += 2;
 
                 let repo = REPO.lock().unwrap();
-                let getf = repo.lookup_field(&klass_name, cp_lookup);
-                let klass = repo.lookup_klass(&klass_name);
-                let ret = klass.get_static_field(&getf);
+                let getf = repo.lookup_static_field(&klass_name, cp_lookup);
+                let klass = repo.lookup_klass(&getf.get_klass_name());
 
+                let ret = klass.get_static_field_value(&getf);
                 eval.push(ret.clone());
             }
             Opcode::GOTO => {
@@ -483,14 +479,17 @@ pub fn exec_bytecode_method(
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
 
-                let putf = lookup_field(&my_klass_name, cp_lookup);
+                let repo = REPO.lock().unwrap();
+                let putf = repo.lookup_instance_field(&klass_name, cp_lookup);
+
                 HEAP.lock().unwrap().put_field(obj_id, putf, val);
             }
             Opcode::PUTSTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let puts: OtField = REPO.lock().unwrap().lookup_field(&my_klass_name, cp_lookup);
+                let repo = REPO.lock().unwrap();
+                let puts = repo.lookup_static_field(&klass_name, cp_lookup);
 
                 let klass_name = puts.get_klass_name();
                 REPO.lock()
