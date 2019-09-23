@@ -16,9 +16,9 @@ pub fn main() {
 
     println!("{:?}", args);
     // FIXME In reality, need to bootstrap rt.jar
-    let mut repo = SharedKlassRepo::of();
-    repo.bootstrap();
-    *REPO.lock().unwrap() = repo;
+    let mut bare_repo = SharedKlassRepo::of();
+    bare_repo.bootstrap(ocelotter::exec_method);
+    *REPO.lock().unwrap() = bare_repo;
 
     let f_name = args[1].clone();
 

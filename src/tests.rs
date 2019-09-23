@@ -13,7 +13,7 @@ static INIT: Once = Once::new();
 fn init_repo() {
     INIT.call_once(|| {
         let mut repo = SharedKlassRepo::of();
-        repo.bootstrap();
+        repo.bootstrap(exec_method);
         *REPO.lock().unwrap() = repo;
     });
 }
@@ -51,7 +51,7 @@ fn simple_parse_klass(cname: String) -> OtKlass {
 /////////////////////////////////////////////////////////////////////////////
 
 #[test]
-fn adds_to_two() {
+fn bc_adds_to_two() {
     let first_test = vec![
         opcode::Opcode::ICONST_1,
         opcode::Opcode::ICONST_1,
@@ -69,7 +69,7 @@ fn adds_to_two() {
 }
 
 #[test]
-fn iconst_dup() {
+fn bc_iconst_dup() {
     let buf = vec![
         opcode::Opcode::ICONST_1,
         opcode::Opcode::DUP,
@@ -104,7 +104,7 @@ fn iconst_dup() {
 }
 
 #[test]
-fn irem_works() {
+fn bc_irem_works() {
     let buf = vec![
         opcode::Opcode::ICONST_5,
         opcode::Opcode::ICONST_3,
@@ -122,7 +122,7 @@ fn irem_works() {
 }
 
 #[test]
-fn idiv_works() {
+fn bc_idiv_works() {
     let buf = vec![
         opcode::Opcode::ICONST_5,
         opcode::Opcode::ICONST_3,
@@ -140,7 +140,7 @@ fn idiv_works() {
 }
 
 #[test]
-fn iconst_dup_nop_pop() {
+fn bc_iconst_dup_nop_pop() {
     let buf = vec![
         opcode::Opcode::ICONST_1,
         opcode::Opcode::DUP,
@@ -159,7 +159,7 @@ fn iconst_dup_nop_pop() {
 }
 
 #[test]
-fn iconst_dup_x1() {
+fn bc_iconst_dup_x1() {
     let buf = vec![
         opcode::Opcode::ICONST_1,
         opcode::Opcode::ICONST_2,
@@ -198,7 +198,7 @@ fn iconst_dup_x1() {
 }
 
 #[test]
-fn test_ifnonnull() {
+fn bc_ifnonnull() {
     let buf = vec![
         opcode::Opcode::ICONST_1,
         opcode::Opcode::ACONST_NULL,
@@ -220,7 +220,7 @@ fn test_ifnonnull() {
 }
 
 #[test]
-fn test_ifnull() {
+fn bc_ifnull() {
     let buf = vec![
         opcode::Opcode::ICONST_1,
         opcode::Opcode::ACONST_NULL,
@@ -242,7 +242,7 @@ fn test_ifnull() {
 }
 
 #[test]
-fn test_ifeq() {
+fn bc_ifeq() {
     let buf = vec![
         Opcode::ICONST_1,
         Opcode::ICONST_1,
@@ -269,7 +269,7 @@ fn test_ifeq() {
 }
 
 #[test]
-fn test_goto() {
+fn bc_goto() {
     let buf = vec![
         opcode::Opcode::ICONST_1,
         opcode::Opcode::ICONST_1,
@@ -295,7 +295,7 @@ fn test_goto() {
 // Tests that actually load classes
 
 #[test]
-fn test_invoke_simple() {
+fn interp_invoke_simple() {
     init_repo();
 
     let k = simple_parse_klass("SampleInvoke".to_string());
@@ -335,7 +335,7 @@ fn test_invoke_simple() {
 }
 
 #[test]
-fn test_iffer() {
+fn interp_iffer() {
     init_repo();
 
     let k = simple_parse_klass("Iffer".to_string());
@@ -359,7 +359,7 @@ fn test_iffer() {
 }
 
 #[test]
-fn test_array_set() {
+fn interp_array_set() {
     init_repo();
     let k = simple_parse_klass("ArraySimple".to_string());
 
@@ -380,7 +380,7 @@ fn test_array_set() {
 }
 
 #[test]
-fn test_field_set() {
+fn interp_field_set() {
     init_repo();
     let k = simple_parse_klass("FieldHaver".to_string());
 
@@ -400,7 +400,7 @@ fn test_field_set() {
 }
 
 #[test]
-fn test_system_current_timemillis() {
+fn interp_system_current_timemillis() {
     init_repo();
     let k = simple_parse_klass("Main3".to_string());
 
@@ -434,7 +434,7 @@ fn test_system_current_timemillis() {
 }
 
 #[test]
-fn test_class_based_addition() {
+fn interp_class_based_addition() {
     init_repo();
     let k = simple_parse_klass("AddFieldInteger".to_string());
 

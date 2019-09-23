@@ -27,7 +27,6 @@ use ocelotter_util::file_to_bytes;
 use otfield::OtField;
 use otklass::OtKlass;
 use otmethod::OtMethod;
-
 use crate::constant_pool::ACC_NATIVE;
 
 lazy_static! {
@@ -145,7 +144,30 @@ impl SharedKlassRepo {
         }
     }
 
-    fn add_bootstrap_class(&mut self, cl_name: String) -> &OtKlass {
+    pub fn lookup_klass(&self, klass_name: &String) -> &OtKlass {
+        let s = format!("{}", self);
+        dbg!(s);
+
+        let kid = match self.klass_lookup.get(klass_name) {
+            Some(id) => id,
+            None => panic!("No klass called {} found in repo", klass_name),
+        };
+        match self.id_lookup.get(kid) {
+            Some(value) => value,
+            None => panic!("No klass with ID {} found in repo", kid),
+        }
+    }
+
+    pub fn add_klass(&mut self, k: &OtKlass) -> () {
+        k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
+        let id = k.get_id();
+        let k2: OtKlass = (*k).to_owned();
+
+        self.klass_lookup.insert(k.get_name().clone(), id);
+        self.id_lookup.insert(id, k2);
+    }
+
+    fn add_bootstrap_class(&mut self, cl_name: String) {
         let fq_klass_fname = "./resources/lib/".to_owned() + &cl_name + ".class";
         let bytes = match file_to_bytes(Path::new(&fq_klass_fname)) {
             Ok(buf) => buf,
@@ -155,20 +177,41 @@ impl SharedKlassRepo {
         parser.parse();
         let mut k = parser.klass();
         self.add_klass(&mut k);
-        self.lookup_klass(&cl_name)
+        // self.lookup_klass(&cl_name)
+    }
+
+    fn run_clinit_method(k : &OtKlass, i_callback: fn(&OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) {
+        let klass_name = k.get_name();
+        let m_str: String = klass_name.clone() + ".<clinit>:()V";
+        let clinit = match k.get_method_by_name_and_desc(&m_str) {
+            Some(value) => value.clone(),
+            // FIXME Make this a clean exit
+            None => panic!("Error: Clinit method not found {}", klass_name),
+        };
+        // FIXME Parameter passing
+        let mut vars = InterpLocalVars::of(5);
+        i_callback(&clinit, &mut vars);
     }
 
     // FIXME This should be changed to read in an ocelot-rt.jar (a cut down full RT)
     // and add each class one by one before fixing up the native code that we have working
-    pub fn bootstrap(&mut self) -> () {
+    pub fn bootstrap(&mut self, i_callback: fn(&OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) -> () {
         // Add java.lang.Object
-        let mut k_obj = self.add_bootstrap_class("java/lang/Object".to_string());
+        self.add_bootstrap_class("java/lang/Object".to_string());
+        let s = format!("{}", self);
+        dbg!(s);
+        let k_obj = self.lookup_klass(&"java/lang/Object".to_string());
 
         // Add j.l.O native methods (e.g. hashCode())
         k_obj.set_native_method(
             "java/lang/Object.hashCode:()I".to_string(),
             crate::native_methods::java_lang_Object__hashcode,
         );
+        k_obj.set_native_method(
+            "java/lang/Object.registerNatives:()V".to_string(),
+            crate::native_methods::java_lang_Object__registerNatives,
+        );
+        &SharedKlassRepo::run_clinit_method(k_obj, i_callback);
 
         // FIXME Add primitive arrays
 
@@ -189,8 +232,9 @@ impl SharedKlassRepo {
         // FIXME Add class objects for already bootstrapped classes
 
         // Add java.lang.System
-        k_obj = self.add_bootstrap_class("java/lang/System".to_string());
-        k_obj.set_native_method(
+        self.add_bootstrap_class("java/lang/System".to_string());
+        let k_sys = self.lookup_klass(&"java/lang/System".to_string());
+        k_sys.set_native_method(
             "java/lang/System.currentTimeMillis:()J".to_string(),
             crate::native_methods::java_lang_System__currentTimeMillis,
         );
@@ -202,19 +246,6 @@ impl SharedKlassRepo {
         //     "println:(Ljava/lang/Object;)V".to_string(),
         //     crate::native_methods::java_io_PrintStream__println,
         // );
-
-        ()
-    }
-
-    pub fn lookup_klass(&self, klass_name: &String) -> &OtKlass {
-        let kid = match self.klass_lookup.get(klass_name) {
-            Some(id) => id,
-            None => panic!("No klass called {} found in repo", klass_name),
-        };
-        match self.id_lookup.get(kid) {
-            Some(value) => value,
-            None => panic!("No klass with ID {} found in repo", kid),
-        }
     }
 
     pub fn klass_name_from_fq(klass_name: &String) -> String {
@@ -314,15 +345,20 @@ impl SharedKlassRepo {
         }
     }
 
-    pub fn add_klass(&mut self, k: &OtKlass) -> () {
-        k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
-        let id = k.get_id();
-        let k2: OtKlass = (*k).to_owned();
+}
 
-        self.klass_lookup.insert(k.get_name().clone(), id);
-        self.id_lookup.insert(id, k2);
+//     klass_lookup: HashMap<String, usize>,
+//    id_lookup: HashMap<usize, OtKlass>,
+impl fmt::Display for SharedKlassRepo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{:?} with klasses {:?}",
+            self.klass_count, self.id_lookup
+        )
     }
 }
+
 
 /////////////////////////////////////////////////////////////////
 
