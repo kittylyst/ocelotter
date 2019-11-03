@@ -217,12 +217,17 @@ impl SharedKlassRepo {
 
         // FIXME Add primitive arrays
 
-        // Add boxed classes
+        // FIXME Add java.lang.Class
+
+        // Add wrapper classes
         let k_jli = self.add_bootstrap_class("java/lang/Integer".to_string());
         self.add_klass(&k_jli);
+        // Needs j.l.Class to run (set up primitive type .class object)
+        // self.run_clinit_method(&k_jli, i_callback);
 
         let k_jlic = self.add_bootstrap_class("java/lang/Integer$IntegerCache".to_string());
         self.add_klass(&k_jlic);
+        // Needs j.l.Class and uses sun.* classes to do VM-protected stuff
         // self.run_clinit_method(&k_jlic, i_callback);
 
         // FIXME Other classes
@@ -235,8 +240,6 @@ impl SharedKlassRepo {
         // Add java.lang.StringBuilder
         let k_jlsb = self.add_bootstrap_class("java/lang/StringBuilder".to_string());
         self.add_klass(&k_jlsb);
-
-        // FIXME Add java.lang.Class
 
         // FIXME Add class objects for already bootstrapped classes
 

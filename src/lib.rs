@@ -386,20 +386,28 @@ pub fn exec_bytecode_method(
             Opcode::ISTORE_3 => lvt.store(3, eval.pop()),
 
             Opcode::ISUB => eval.isub(),
-            // Dummy implementation
-            // Opcode::LDC => {
-            //     // System.out.print("Executing " + op + " with param bytes: ");
-            //     // for (int i = current; i < current + num; i++) {
-            //     //     System.out.print(instr[i] + " ");
-            //     // }
-            //     // current += num;
-            //     // System.out.println();
-            // }
             Opcode::L2I => {
                 match eval.pop() {
                     JvmValue::Long { val: v } => eval.push(JvmValue::Int { val: v as i32 }),
                     _ => panic!("Value not of long type found for L2I at {}", (current - 1)),
                 };
+            }
+            Opcode::LDC => {
+                let cp_lookup = instr[current] as u16;
+                current += 1;
+                let current_klass = repo.lookup_klass(&klass_name).clone();
+
+                match current_klass.lookup_cp(cp_lookup) {
+                    // FIXME Actually look up the class object properly
+                    CpEntry::class { idx: _ } => eval.aconst_null(),
+                    CpEntry::double { val: dcon } => eval.dconst(dcon),
+                    CpEntry::integer { val: icon } => eval.iconst(icon),
+                    _ => panic!(
+                        "Non-handled entry found in LDC op {} at CP index {}",
+                        current_klass.get_name(),
+                        cp_lookup
+                    ),
+                }
             }
             // FIXME TEMP
             Opcode::MONITORENTER => {

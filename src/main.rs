@@ -8,7 +8,6 @@ use ocelotter_util::file_to_bytes;
 
 use ocelotter::exec_method;
 use ocelotter_runtime::SharedKlassRepo;
-use ocelotter_runtime::HEAP;
 
 pub fn main() {
     let args: Vec<String> = env::args().collect();
