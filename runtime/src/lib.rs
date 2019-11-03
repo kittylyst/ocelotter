@@ -223,6 +223,7 @@ impl SharedKlassRepo {
 
         let k_jlic = self.add_bootstrap_class("java/lang/Integer$IntegerCache".to_string());
         self.add_klass(&k_jlic);
+        // self.run_clinit_method(&k_jlic, i_callback);
 
         // FIXME Other classes
 

@@ -14,7 +14,7 @@ pub fn exec_method(
     meth: &OtMethod,
     lvt: &mut InterpLocalVars,
 ) -> Option<JvmValue> {
-    // dbg!(meth.clone());
+    dbg!(meth.clone());
     // dbg!(meth.get_flags());
     if meth.is_native() {
         let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = match meth.get_native_code() {
