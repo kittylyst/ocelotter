@@ -4,9 +4,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Mutex;
-
-use parking_lot::ReentrantMutex;
+use std::sync::{Mutex};
 
 use regex::Regex;
 
@@ -34,10 +32,6 @@ use crate::constant_pool::ACC_NATIVE;
 
 lazy_static! {
     pub static ref HEAP: Mutex<SharedSimpleHeap> = Mutex::new(SharedSimpleHeap::of());
-}
-
-lazy_static! {
-    pub static ref REPO: Mutex<RefCell<SharedKlassRepo>> = Mutex::new(RefCell::new(SharedKlassRepo::of()));
 }
 
 //////////// RUNTIME JVM VALUES
@@ -148,8 +142,8 @@ impl SharedKlassRepo {
     }
 
     pub fn lookup_klass(&self, klass_name: &String) -> OtKlass {
-        let s = format!("{}", self);
-        dbg!(s);
+        // let s = format!("{}", self);
+        // dbg!(s);
 
         let m = self.klass_lookup.borrow();
         let kid = match m.get(klass_name) {
@@ -185,7 +179,7 @@ impl SharedKlassRepo {
         parser.klass()
     }
 
-    fn run_clinit_method(k : &OtKlass, i_callback: fn(&OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) {
+    fn run_clinit_method(&mut self, k : &OtKlass, i_callback: fn(&mut SharedKlassRepo, &OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) {
         let klass_name = k.get_name();
         let m_str: String = klass_name.clone() + ".<clinit>:()V";
         let clinit = match k.get_method_by_name_and_desc(&m_str) {
@@ -195,16 +189,18 @@ impl SharedKlassRepo {
         };
         // FIXME Parameter passing
         let mut vars = InterpLocalVars::of(5);
-        i_callback(&clinit, &mut vars);
+        i_callback(self, &clinit, &mut vars);
     }
 
     // FIXME This should be changed to read in an ocelot-rt.jar (a cut down full RT)
     // and add each class one by one before fixing up the native code that we have working
-    pub fn bootstrap(&mut self, i_callback: fn(&OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) -> () {
+//  (repo: SharedKlassRepo, meth: &OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValue>
+
+    pub fn bootstrap(&mut self, i_callback: fn(&mut SharedKlassRepo, &OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) -> () {
         // Add java.lang.Object
         let k_obj = self.add_bootstrap_class("java/lang/Object".to_string());
-        let s = format!("{}", self);
-        dbg!(s);
+        // let s = format!("{}", self);
+        // dbg!(s);
 
         // Add j.l.O native methods (e.g. hashCode())
         k_obj.set_native_method(
@@ -216,20 +212,17 @@ impl SharedKlassRepo {
             crate::native_methods::java_lang_Object__registerNatives,
         );
         self.add_klass(&k_obj);
-        *REPO.lock().unwrap() = RefCell::new(self.clone());
         // FIXME Must reset the value set for the klass repo before clinit
-        &SharedKlassRepo::run_clinit_method(&k_obj, i_callback);
+        self.run_clinit_method(&k_obj, i_callback);
 
         // FIXME Add primitive arrays
 
         // Add boxed classes
         let k_jli = self.add_bootstrap_class("java/lang/Integer".to_string());
         self.add_klass(&k_jli);
-        *REPO.lock().unwrap() = RefCell::new(self.clone());
 
         let k_jlic = self.add_bootstrap_class("java/lang/Integer$IntegerCache".to_string());
         self.add_klass(&k_jlic);
-        *REPO.lock().unwrap() = RefCell::new(self.clone());
 
         // FIXME Other classes
 
@@ -237,12 +230,10 @@ impl SharedKlassRepo {
         let k_jls = self.add_bootstrap_class("java/lang/String".to_string());
         // FIXME String only has intern() as a native method, skip for now
         self.add_klass(&k_jls);
-        *REPO.lock().unwrap() = RefCell::new(self.clone());
 
         // Add java.lang.StringBuilder
         let k_jlsb = self.add_bootstrap_class("java/lang/StringBuilder".to_string());
         self.add_klass(&k_jlsb);
-        *REPO.lock().unwrap() = RefCell::new(self.clone());
 
         // FIXME Add java.lang.Class
 
@@ -255,7 +246,6 @@ impl SharedKlassRepo {
             crate::native_methods::java_lang_System__currentTimeMillis,
         );
         self.add_klass(&k_sys);
-        *REPO.lock().unwrap() = RefCell::new(self.clone());
 
         // TODO Dummy up enough of java.io.PrintStream to get System.out.println() to work
         // By faking up the class so that println(Ljava/lang/Object;) fwds to native code
