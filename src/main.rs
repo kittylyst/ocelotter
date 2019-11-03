@@ -15,10 +15,11 @@ pub fn main() {
     let args: Vec<String> = env::args().collect();
 
     println!("{:?}", args);
-    // FIXME In reality, need to bootstrap rt.jar
-    let mut bare_repo = SharedKlassRepo::of();
-    bare_repo.bootstrap(ocelotter::exec_method);
-    *REPO.lock().unwrap() = bare_repo;
+    // FIXME In reality, will need to bootstrap a full rt.jar
+    REPO.lock()
+        .unwrap()
+        .borrow_mut()
+        .bootstrap(ocelotter::exec_method);
 
     let f_name = args[1].clone();
 
@@ -30,7 +31,7 @@ pub fn main() {
     let mut parser = OtKlassParser::of(bytes, fq_klass_name.clone());
     parser.parse();
     let k = parser.klass();
-    REPO.lock().unwrap().add_klass(&k);
+    REPO.lock().unwrap().borrow_mut().add_klass(&k);
 
     // FIXME Real main() signture required, dummying for ease of testing
     let main_str: String = f_name.clone() + ".main2:([Ljava/lang/String;)I";

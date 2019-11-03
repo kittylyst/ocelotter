@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::path::Path;
 use std::sync::Once;
 
@@ -14,7 +15,7 @@ fn init_repo() {
     INIT.call_once(|| {
         let mut repo = SharedKlassRepo::of();
         repo.bootstrap(exec_method);
-        *REPO.lock().unwrap() = repo;
+        *REPO.lock().unwrap() = RefCell::new(repo);
     });
 }
 
@@ -44,7 +45,7 @@ fn simple_parse_klass(cname: String) -> OtKlass {
     let k = parser.klass();
 
     // Add our klass
-    REPO.lock().unwrap().add_klass(&k);
+    REPO.lock().unwrap().borrow_mut().add_klass(&k);
     k
 }
 

@@ -65,7 +65,7 @@ impl OtObj {
         // Get klass
         dbg!("Made it to object get_field_offset");
         // Lookup offset in klass
-        let offset = REPO.lock().unwrap().get_field_offset(*kid, f);
+        let offset = REPO.lock().unwrap().borrow().get_field_offset(*kid, f);
         match self {
             OtObj::vm_obj {
                 id: _,
@@ -93,7 +93,7 @@ impl OtObj {
         // Get klass
         dbg!("Made it to object get_field_offset");
         // Lookup offset in klass
-        let offset = REPO.lock().unwrap().get_field_offset(*kid, f);
+        let offset = REPO.lock().unwrap().borrow().get_field_offset(*kid, f);
         dbg!("Made it to object get_field_offset");
         match fields.get(offset) {
             Some(v) => {
