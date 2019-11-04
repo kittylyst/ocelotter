@@ -454,3 +454,25 @@ fn interp_class_based_addition() {
         assert_eq!(7, ret2);
     }
 }
+
+#[test]
+fn interp_ldc_based_addition() {
+    let mut repo = init_repo();
+    let k = simple_parse_klass("AddLdc".to_string());
+    repo.add_klass(&k);
+
+    {
+        let fqname = "AddLdc.main2:([Ljava/lang/String;)I".to_string();
+        let meth = k.get_method_by_name_and_desc(&fqname).unwrap();
+
+        assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+
+        let mut vars = InterpLocalVars::of(5);
+        let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
+        let ret2 = match ret {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Error executing {} - non-int value returned", fqname),
+        };
+        assert_eq!(44451, ret2);
+    }
+}
