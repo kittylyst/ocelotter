@@ -1,7 +1,7 @@
 #![deny(unreachable_patterns)]
 
 use ocelotter_runtime::constant_pool::*;
-use ocelotter_runtime::otfield::OtField;
+use ocelotter_runtime::interp_stack::InterpEvalStack;
 use ocelotter_runtime::otklass::OtKlass;
 use ocelotter_runtime::otmethod::OtMethod;
 use ocelotter_runtime::*;
@@ -9,8 +9,12 @@ use ocelotter_runtime::*;
 pub mod opcode;
 use opcode::*;
 
-pub fn exec_method(meth: &OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValue> {
-    // dbg!(meth.clone());
+pub fn exec_method(
+    repo: &mut SharedKlassRepo,
+    meth: &OtMethod,
+    lvt: &mut InterpLocalVars,
+) -> Option<JvmValue> {
+    dbg!(meth.clone());
     // dbg!(meth.get_flags());
     if meth.is_native() {
         let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = match meth.get_native_code() {
@@ -20,16 +24,12 @@ pub fn exec_method(meth: &OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValu
         // FIXME Parameter passing
         n_f(lvt)
     } else {
-        exec_bytecode_method(meth.get_klass_name(), &meth.get_code(), lvt)
+        exec_bytecode_method(repo, meth.get_klass_name(), &meth.get_code(), lvt)
     }
 }
 
-fn lookup_field(klass_name : &String, cp : u16) -> OtField {
-    let repo = REPO.lock().unwrap();
-    repo.lookup_field(klass_name, cp)
-}
-
 pub fn exec_bytecode_method(
+    repo: &mut SharedKlassRepo,
     klass_name: String,
     instr: &Vec<u8>,
     lvt: &mut InterpLocalVars,
@@ -38,7 +38,7 @@ pub fn exec_bytecode_method(
     let mut eval = InterpEvalStack::of();
 
     loop {
-        let my_klass_name = klass_name.clone();
+        // let my_klass_name = klass_name.clone();
         let ins: u8 = match instr.get(current) {
             Some(value) => *value,
             // FIXME We don't know the name of the currently executing method!
@@ -120,17 +120,21 @@ pub fn exec_bytecode_method(
                 };
                 let heap = HEAP.lock().unwrap();
                 let obj = heap.get_obj(obj_id).clone();
+                let getf = repo.lookup_instance_field(&klass_name, cp_lookup);
 
-                let getf = lookup_field(&my_klass_name, cp_lookup);
-                let ret: JvmValue = obj.get_value(getf);
+                let ret = obj.get_field_value(getf.get_offset() as usize);
                 eval.push(ret);
             }
-            // GETSTATIC => {
-            //     let cp_lookup = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     OtField f = context.get_repo().lookupField(klass_name, (short) cp_lookup);
-            //     OtKlass fgKlass = f.getKlass();
-            //     eval.push(fgKlass.getStaticField(f));
-            // },
+            Opcode::GETSTATIC => {
+                let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
+                current += 2;
+
+                let getf = repo.lookup_static_field(&klass_name, cp_lookup).clone();
+                let klass = repo.lookup_klass(&getf.get_klass_name()).clone();
+
+                let ret = klass.get_static_field_value(&getf);
+                eval.push(ret.clone());
+            }
             Opcode::GOTO => {
                 current += ((instr[current] as usize) << 8) + instr[current + 1] as usize
             }
@@ -202,7 +206,30 @@ pub fn exec_bytecode_method(
 
             Opcode::IF_ICMPEQ => {
                 let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
-                if massage_to_jvm_int_and_equate(eval.pop(), eval.pop()) {
+                if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
+                    i == j
+                }) {
+                    current += jump_to;
+                } else {
+                    current += 2;
+                }
+            }
+            Opcode::IF_ICMPGT => {
+                let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+                if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
+                    i > j
+                }) {
+                    current += jump_to;
+                } else {
+                    current += 2;
+                }
+            }
+
+            Opcode::IF_ICMPLT => {
+                let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+                if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
+                    i < j
+                }) {
                     current += jump_to;
                 } else {
                     current += 2;
@@ -210,7 +237,9 @@ pub fn exec_bytecode_method(
             }
             Opcode::IF_ICMPNE => {
                 let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
-                if massage_to_jvm_int_and_equate(eval.pop(), eval.pop()) {
+                if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
+                    i == j
+                }) {
                     current += 2;
                 } else {
                     current += jump_to;
@@ -285,8 +314,6 @@ pub fn exec_bytecode_method(
                 match eval.pop() {
                     JvmValue::ObjRef { val: v } => {
                         if v == 0 {
-                            // println!("Ins[curr]: {} and {}", instr[current], instr[current + 1]);
-                            // println!("Attempting to jump by: {} from {}", jump_to, current);
                             current += jump_to;
                         } else {
                             current += 2;
@@ -323,24 +350,23 @@ pub fn exec_bytecode_method(
             Opcode::INVOKESPECIAL => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = REPO.lock().unwrap().lookup_klass(&klass_name).clone();
-                // dbg!(current_klass.clone());
-                dispatch_invoke(current_klass, cp_lookup, &mut eval, 1);
+                let current_klass = repo.lookup_klass(&klass_name).clone();
+                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 1);
             }
             Opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = REPO.lock().unwrap().lookup_klass(&klass_name).clone();
+                let current_klass = repo.lookup_klass(&klass_name).clone();
                 dbg!(current_klass.clone());
-                dispatch_invoke(current_klass, cp_lookup, &mut eval, 0);
+                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 0);
             }
             Opcode::INVOKEVIRTUAL => {
                 // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = REPO.lock().unwrap().lookup_klass(&klass_name).clone();
+                let current_klass = repo.lookup_klass(&klass_name).clone();
                 dbg!(current_klass.clone());
-                dispatch_invoke(current_klass, cp_lookup, &mut eval, 1);
+                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 1);
             }
             Opcode::IOR => eval.ior(),
 
@@ -360,20 +386,28 @@ pub fn exec_bytecode_method(
             Opcode::ISTORE_3 => lvt.store(3, eval.pop()),
 
             Opcode::ISUB => eval.isub(),
-            // Dummy implementation
-            // Opcode::LDC => {
-            //     // System.out.print("Executing " + op + " with param bytes: ");
-            //     // for (int i = current; i < current + num; i++) {
-            //     //     System.out.print(instr[i] + " ");
-            //     // }
-            //     // current += num;
-            //     // System.out.println();
-            // }
             Opcode::L2I => {
                 match eval.pop() {
                     JvmValue::Long { val: v } => eval.push(JvmValue::Int { val: v as i32 }),
                     _ => panic!("Value not of long type found for L2I at {}", (current - 1)),
                 };
+            }
+            Opcode::LDC => {
+                let cp_lookup = instr[current] as u16;
+                current += 1;
+                let current_klass = repo.lookup_klass(&klass_name).clone();
+
+                match current_klass.lookup_cp(cp_lookup) {
+                    // FIXME Actually look up the class object properly
+                    CpEntry::class { idx: _ } => eval.aconst_null(),
+                    CpEntry::double { val: dcon } => eval.dconst(dcon),
+                    CpEntry::integer { val: icon } => eval.iconst(icon),
+                    _ => panic!(
+                        "Non-handled entry found in LDC op {} at CP index {}",
+                        current_klass.get_name(),
+                        cp_lookup
+                    ),
+                }
             }
             // FIXME TEMP
             Opcode::MONITORENTER => {
@@ -386,7 +420,7 @@ pub fn exec_bytecode_method(
             Opcode::NEW => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = REPO.lock().unwrap().lookup_klass(&klass_name).clone();
+                let current_klass = repo.lookup_klass(&klass_name).clone();
 
                 let alloc_klass_name = match current_klass.lookup_cp(cp_lookup) {
                     // FIXME Find class name from constant pool of the current class
@@ -398,7 +432,7 @@ pub fn exec_bytecode_method(
                     ),
                 };
                 dbg!(alloc_klass_name.clone());
-                let object_klass = REPO.lock().unwrap().lookup_klass(&alloc_klass_name).clone();
+                let object_klass = repo.lookup_klass(&alloc_klass_name).clone();
 
                 let obj_id = HEAP.lock().unwrap().allocate_obj(&object_klass);
                 eval.push(JvmValue::ObjRef { val: obj_id });
@@ -447,7 +481,7 @@ pub fn exec_bytecode_method(
             Opcode::PUTFIELD => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                
+
                 let val = eval.pop();
 
                 let recvp: JvmValue = eval.pop();
@@ -456,20 +490,18 @@ pub fn exec_bytecode_method(
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
 
-                let putf = lookup_field(&my_klass_name, cp_lookup);
+                let putf = repo.lookup_instance_field(&klass_name, cp_lookup);
+
                 HEAP.lock().unwrap().put_field(obj_id, putf, val);
             }
             Opcode::PUTSTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let puts: OtField = REPO.lock().unwrap().lookup_field(&my_klass_name, cp_lookup);
-
+                let puts = repo.lookup_static_field(&klass_name, cp_lookup);
                 let klass_name = puts.get_klass_name();
-                REPO.lock()
-                    .unwrap()
-                    .put_static(klass_name, puts, eval.pop());
-                // f_klass.set_static_field(puts.get_name(), eval.pop());
+                // FIXME IMPL IS BROKEN
+                repo.put_static(klass_name, puts, eval.pop());
             }
             Opcode::RETURN => break None,
             Opcode::SIPUSH => {
@@ -500,48 +532,20 @@ pub fn exec_bytecode_method(
     }
 }
 
-fn massage_to_jvm_int_and_equate(v1: JvmValue, v2: JvmValue) -> bool {
+fn massage_to_int_and_compare(v1: JvmValue, v2: JvmValue, f: fn(i: i32, j: i32) -> bool) -> bool {
     match v1 {
-        JvmValue::Boolean { val: b } => match v2 {
-            JvmValue::Boolean { val: b1 } => b == b1,
-            _ => panic!("Values found to have differing type for IF_ICMP*"),
-        },
-        JvmValue::Byte { val: b } => match v2 {
-            JvmValue::Byte { val: b1 } => b == b1,
-            _ => panic!("Values found to have differing type for IF_ICMP*"),
-        },
-        JvmValue::Short { val: s } => match v2 {
-            JvmValue::Short { val: s1 } => s == s1,
-            _ => panic!("Values found to have differing type for IF_ICMP*"),
-        },
         JvmValue::Int { val: i } => match v2 {
-            JvmValue::Int { val: i1 } => i == i1,
+            JvmValue::Int { val: i1 } => f(i, i1),
             _ => panic!("Values found to have differing type for IF_ICMP*"),
         },
-        JvmValue::Long { val: i } => match v2 {
-            JvmValue::Long { val: i1 } => i == i1,
-            _ => panic!("Values found to have differing type for IF_ICMP*"),
-        },
-        JvmValue::Float { val: i } => match v2 {
-            JvmValue::Float { val: i1 } => i == i1,
-            _ => panic!("Values found to have differing type for IF_ICMP*"),
-        },
-        JvmValue::Double { val: i } => match v2 {
-            JvmValue::Double { val: i1 } => i == i1,
-            _ => panic!("Values found to have differing type for IF_ICMP*"),
-        },
-        JvmValue::Char { val: i } => match v2 {
-            JvmValue::Char { val: i1 } => i == i1,
-            _ => panic!("Values found to have differing type for IF_ICMP*"),
-        },
-        JvmValue::ObjRef { val: _ } => panic!("Values found to have differing type for IF_ICMP*"),
+        _ => panic!("Values found to have the wrong type for IF_ICMP*"),
     }
 }
 
 fn dispatch_invoke(
+    repo: &mut SharedKlassRepo,
     current_klass: OtKlass,
     cp_lookup: u16,
-
     eval: &mut InterpEvalStack,
     additional_args: u8,
 ) -> () {
@@ -556,17 +560,14 @@ fn dispatch_invoke(
     };
     let dispatch_klass_name = current_klass.cp_as_string(klz_idx);
 
-    let callee = REPO
-        .lock()
-        .unwrap()
-        .lookup_method_exact(&dispatch_klass_name, fq_name_desc);
+    let callee = repo.lookup_method_exact(&dispatch_klass_name, fq_name_desc);
 
     // FIXME - General setup requires call args from the stack
     let mut vars = InterpLocalVars::of(255);
     if additional_args > 0 {
         vars.store(0, eval.pop());
     }
-    match exec_method(&callee, &mut vars) {
+    match exec_method(repo, &callee, &mut vars) {
         Some(val) => eval.push(val),
         None => (),
     }

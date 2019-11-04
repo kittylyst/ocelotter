@@ -1,44 +1,40 @@
+use std::cell::RefCell;
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::cell::RefCell;
 use std::path::Path;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Mutex};
 
-use std::sync::Mutex;
+use regex::Regex;
 
 #[macro_use]
 extern crate lazy_static;
 
-lazy_static! {
-    pub static ref HEAP: Mutex<SharedSimpleHeap> = Mutex::new(SharedSimpleHeap::of());
-}
-
-lazy_static! {
-    pub static ref REPO: Mutex<SharedKlassRepo> = Mutex::new(SharedKlassRepo::of());
-}
-
-
 pub mod constant_pool;
+pub mod interp_stack;
 pub mod klass_parser;
 pub mod native_methods;
 pub mod object;
 pub mod otfield;
 pub mod otklass;
 pub mod otmethod;
+pub mod simple_heap;
 
-// use constant_pool::CpAttr;
+use crate::simple_heap::SharedSimpleHeap;
 use constant_pool::CpEntry;
 use object::OtObj;
 use ocelotter_util::file_to_bytes;
 use otfield::OtField;
 use otklass::OtKlass;
 use otmethod::OtMethod;
-
 use crate::constant_pool::ACC_NATIVE;
 
+lazy_static! {
+    pub static ref HEAP: Mutex<SharedSimpleHeap> = Mutex::new(SharedSimpleHeap::of());
+}
 
-
-//////////// RUNTIME VALUES
+//////////// RUNTIME JVM VALUES
 
 #[derive(Clone, Debug)]
 pub enum JvmValue {
@@ -91,177 +87,9 @@ impl Default for JvmValue {
     }
 }
 
-//////////// RUNTIME STACKS AND LOCAL VARS
+//////////// LOCAL VARS
 
-pub struct InterpEvalStack {
-    stack: Vec<JvmValue>,
-}
-
-impl InterpEvalStack {
-    pub fn of() -> InterpEvalStack {
-        InterpEvalStack { stack: Vec::new() }
-    }
-
-    pub fn push(&mut self, val: JvmValue) -> () {
-        let s = &mut self.stack;
-        s.push(val);
-    }
-
-    pub fn pop(&mut self) -> JvmValue {
-        let s = &mut self.stack;
-        match s.pop() {
-            Some(value) => value,
-            None => panic!("pop() on empty stack"),
-        }
-    }
-
-    pub fn aconst_null(&mut self) -> () {
-        self.push(JvmValue::ObjRef {
-            val: 0, // OtObj::get_null(),
-        });
-    }
-
-    pub fn iconst(&mut self, v: i32) -> () {
-        self.push(JvmValue::Int { val: v });
-    }
-
-    pub fn iadd(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-
-        self.push(JvmValue::Int { val: i1 + i2 });
-    }
-
-    pub fn isub(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-
-        self.push(JvmValue::Int { val: i1 - i2 });
-    }
-    pub fn imul(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-
-        self.push(JvmValue::Int { val: i1 * i2 });
-    }
-
-    pub fn irem(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-
-        self.push(JvmValue::Int { val: i2 % i1 });
-    }
-    pub fn ixor(&self) -> () {}
-    pub fn idiv(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-
-        self.push(JvmValue::Int { val: i2 / i1 });
-    }
-    pub fn iand(&self) -> () {}
-    pub fn ineg(&mut self) -> () {
-        let i1 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-        self.push(JvmValue::Int { val: -i1 });
-    }
-    pub fn ior(&self) -> () {}
-
-    pub fn dadd(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Double { val: i } => i,
-            _ => panic!("Unexpected, non-double value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Double { val: i } => i,
-            _ => panic!("Unexpected, non-double value encountered"),
-        };
-
-        self.push(JvmValue::Double { val: i1 + i2 });
-    }
-    pub fn dsub(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Double { val: i } => i,
-            _ => panic!("Unexpected, non-double value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Double { val: i } => i,
-            _ => panic!("Unexpected, non-double value encountered"),
-        };
-
-        self.push(JvmValue::Double { val: i1 - i2 });
-    }
-    pub fn dmul(&mut self) -> () {
-        // For a runtime checking interpreter - type checks would go here...
-        let i1 = match self.pop() {
-            JvmValue::Double { val: i } => i,
-            _ => panic!("Unexpected, non-double value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Double { val: i } => i,
-            _ => panic!("Unexpected, non-double value encountered"),
-        };
-
-        self.push(JvmValue::Double { val: i1 * i2 });
-    }
-
-    pub fn dconst(&mut self, v: f64) -> () {
-        self.push(JvmValue::Double { val: v });
-    }
-
-    pub fn i2d(&self) -> () {}
-    pub fn dup(&mut self) -> () {
-        let i1 = self.pop();
-        self.push(i1.to_owned());
-        self.push(i1.to_owned());
-    }
-    pub fn dupX1(&mut self) -> () {
-        let i1 = self.pop();
-        let i1c = i1.clone();
-        let i2 = self.pop();
-        self.push(i1);
-        self.push(i2);
-        self.push(i1c);
-    }
-}
+// Keep this here for now, move to separate file as and when it gets bigger
 
 pub struct InterpLocalVars {
     lvt: Vec<JvmValue>,
@@ -295,25 +123,52 @@ impl InterpLocalVars {
     }
 }
 
-//////////// SHARED RUNTIME STRUCTURES
+//////////// SHARED RUNTIME KLASS REPO
 
 #[derive(Debug)]
 pub struct SharedKlassRepo {
     klass_count: AtomicUsize,
-    klass_lookup: HashMap<String, usize>,
-    id_lookup: HashMap<usize, OtKlass>,
+    klass_lookup: RefCell<HashMap<String, usize>>,
+    id_lookup: RefCell<HashMap<usize, OtKlass>>,
 }
 
 impl SharedKlassRepo {
     pub fn of() -> SharedKlassRepo {
         SharedKlassRepo {
-            klass_lookup: HashMap::new(),
-            id_lookup: HashMap::new(),
+            klass_lookup: RefCell::new(HashMap::new()),
+            id_lookup: RefCell::new(HashMap::new()),
             klass_count: AtomicUsize::new(1),
         }
     }
 
-    fn add_bootstrap_class(&mut self, cl_name: String) -> &mut OtKlass {
+    pub fn lookup_klass(&self, klass_name: &String) -> OtKlass {
+        // let s = format!("{}", self);
+        // dbg!(s);
+
+        let m = self.klass_lookup.borrow();
+        let kid = match m.get(klass_name) {
+            Some(id) => id,
+            None => panic!("No klass called {} found in repo", klass_name),
+        };
+        let mi = self.id_lookup.borrow();
+        match mi.get(kid) {
+            Some(value) => value.clone(),
+            None => panic!("No klass with ID {} found in repo", kid),
+        }
+    }
+
+    pub fn add_klass(&self, k: &OtKlass) -> () {
+        k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
+        let id = k.get_id();
+        let k2: OtKlass = (*k).to_owned();
+
+        let mut m = self.klass_lookup.borrow_mut();
+        m.insert(k.get_name().clone(), id);
+        let mut mi = self.id_lookup.borrow_mut();
+        mi.insert(id, k2);
+    }
+
+    fn add_bootstrap_class(&self, cl_name: String) -> OtKlass {
         let fq_klass_fname = "./resources/lib/".to_owned() + &cl_name + ".class";
         let bytes = match file_to_bytes(Path::new(&fq_klass_fname)) {
             Ok(buf) => buf,
@@ -321,40 +176,80 @@ impl SharedKlassRepo {
         };
         let mut parser = crate::klass_parser::OtKlassParser::of(bytes, cl_name.clone());
         parser.parse();
-        let mut k = parser.klass();
-        self.add_klass(&mut k);
-        self.lookup_mutable_klass(&cl_name)
+        parser.klass()
     }
 
-    pub fn bootstrap(&mut self) -> () {
+    fn run_clinit_method(&mut self, k : &OtKlass, i_callback: fn(&mut SharedKlassRepo, &OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) {
+        let klass_name = k.get_name();
+        let m_str: String = klass_name.clone() + ".<clinit>:()V";
+        let clinit = match k.get_method_by_name_and_desc(&m_str) {
+            Some(value) => value.clone(),
+            // FIXME Make this a clean exit
+            None => panic!("Error: Clinit method not found {}", klass_name),
+        };
+        // FIXME Parameter passing
+        let mut vars = InterpLocalVars::of(5);
+        i_callback(self, &clinit, &mut vars);
+    }
+
+    // FIXME This should be changed to read in an ocelot-rt.jar (a cut down full RT)
+    // and add each class one by one before fixing up the native code that we have working
+//  (repo: SharedKlassRepo, meth: &OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValue>
+
+    pub fn bootstrap(&mut self, i_callback: fn(&mut SharedKlassRepo, &OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) -> () {
         // Add java.lang.Object
-        let mut k_obj = self.add_bootstrap_class("java/lang/Object".to_string());
+        let k_obj = self.add_bootstrap_class("java/lang/Object".to_string());
+        // let s = format!("{}", self);
+        // dbg!(s);
 
         // Add j.l.O native methods (e.g. hashCode())
         k_obj.set_native_method(
             "java/lang/Object.hashCode:()I".to_string(),
             crate::native_methods::java_lang_Object__hashcode,
         );
+        k_obj.set_native_method(
+            "java/lang/Object.registerNatives:()V".to_string(),
+            crate::native_methods::java_lang_Object__registerNatives,
+        );
+        self.add_klass(&k_obj);
+        // FIXME Must reset the value set for the klass repo before clinit
+        self.run_clinit_method(&k_obj, i_callback);
 
         // FIXME Add primitive arrays
 
+        // FIXME Add java.lang.Class
+
+        // Add wrapper classes
+        let k_jli = self.add_bootstrap_class("java/lang/Integer".to_string());
+        self.add_klass(&k_jli);
+        // Needs j.l.Class to run (set up primitive type .class object)
+        // self.run_clinit_method(&k_jli, i_callback);
+
+        let k_jlic = self.add_bootstrap_class("java/lang/Integer$IntegerCache".to_string());
+        self.add_klass(&k_jlic);
+        // Needs j.l.Class and uses sun.* classes to do VM-protected stuff
+        // self.run_clinit_method(&k_jlic, i_callback);
+
+        // FIXME Other classes
+
         // Add java.lang.String
-        self.add_bootstrap_class("java/lang/String".to_string());
+        let k_jls = self.add_bootstrap_class("java/lang/String".to_string());
         // FIXME String only has intern() as a native method, skip for now
+        self.add_klass(&k_jls);
 
         // Add java.lang.StringBuilder
-        self.add_bootstrap_class("java/lang/StringBuilder".to_string());
-
-        // FIXME Add java.lang.Class
+        let k_jlsb = self.add_bootstrap_class("java/lang/StringBuilder".to_string());
+        self.add_klass(&k_jlsb);
 
         // FIXME Add class objects for already bootstrapped classes
 
         // Add java.lang.System
-        k_obj = self.add_bootstrap_class("java/lang/System".to_string());
-        k_obj.set_native_method(
+        let k_sys = self.add_bootstrap_class("java/lang/System".to_string());
+        k_sys.set_native_method(
             "java/lang/System.currentTimeMillis:()J".to_string(),
             crate::native_methods::java_lang_System__currentTimeMillis,
         );
+        self.add_klass(&k_sys);
 
         // TODO Dummy up enough of java.io.PrintStream to get System.out.println() to work
         // By faking up the class so that println(Ljava/lang/Object;) fwds to native code
@@ -363,33 +258,66 @@ impl SharedKlassRepo {
         //     "println:(Ljava/lang/Object;)V".to_string(),
         //     crate::native_methods::java_io_PrintStream__println,
         // );
-
-        ()
     }
 
-    // FIXME SHOULD THIS BE DONE BY INDEX OR DESC???
-    pub fn lookup_field(&self, klass_name: &String, _idx: u16) -> OtField {
-        let kid = match self.klass_lookup.get(klass_name) {
-            Some(id) => id,
-            None => panic!("No klass called {} found in repo", klass_name),
-        };
-        // let opt_f : Option<&OtField> = match self.id_lookup.get(kid) {
-        //     Some(k) => k.get_field_by_name_and_desc(fq_name_desc.clone()),
-        //     None => panic!("No klass with ID {} found in repo", kid),
-        // };
-        // match opt_meth {
-        //     Some(k) => k.clone(),
-        //     None => panic!("No method {} found on klass {} ", fq_name_desc.clone(), kid),
-        // }
-        // FIXME DUMMY
-        OtField::of(
-            "DUMMY_KLASS".to_string(),
-            "DUMMY_FIELD".to_string(),
-            "I".to_string(),
-            0,
-            1,
-            2,
-        )
+    pub fn klass_name_from_fq(klass_name: &String) -> String {
+        lazy_static! {
+            static ref KLASS_NAME: Regex =
+                Regex::new("((?:([a-zA-Z_$][a-zA-Z\\d_$]*(?:/[a-zA-Z_$][a-zA-Z\\d_$]*)*)/)?([a-zA-Z_$][a-zA-Z\\d_$]*))\\.").unwrap();
+        }
+        let caps = KLASS_NAME.captures(klass_name).unwrap();
+        // Capture the package name and the class name via the use of a nexted group
+        caps.get(1).map_or("".to_string(), |m| m.as_str().to_string())
+    }
+
+    pub fn klass_name_from_dotted_fq(klass_name: &String) -> String {
+        lazy_static! {
+            static ref KLASS_NAME_DOTTED: Regex = 
+                Regex::new("(?:([a-zA-Z_$][a-zA-Z\\d_$]*(?:\\.[a-zA-Z_$][a-zA-Z\\d_$]*)*)\\.)?([a-zA-Z_$][a-zA-Z\\d_$]*)").unwrap();
+        }
+        let caps = KLASS_NAME_DOTTED.captures(klass_name).unwrap();
+        // In dotted syntax the field / method name comes after the final dot, hence no nested group
+        caps.get(1).map_or("".to_string(), |m| m.as_str().to_string())
+    }
+
+    pub fn lookup_static_field(&self, klass_name: &String, idx: u16) -> OtField {
+        let current_klass = self.lookup_klass(klass_name);
+
+        // Lookup the Fully-Qualified field name from the CP index
+        let fq_name_desc = current_klass.cp_as_string(idx);
+        let target_klass_name = &SharedKlassRepo::klass_name_from_fq(&fq_name_desc);
+        let target_klass = self.lookup_klass(&target_klass_name);
+
+        let opt_f = target_klass.get_static_field_by_name_and_desc(&fq_name_desc);
+
+        match opt_f {
+            Some(f) => f.clone(),
+            None => panic!(
+                "No static field {} found on klass {} ",
+                fq_name_desc.clone(),
+                target_klass_name
+            ),
+        }
+    }
+
+    pub fn lookup_instance_field(&self, klass_name: &String, idx: u16) -> OtField {
+        let current_klass = self.lookup_klass(klass_name);
+
+        // Lookup the Fully-Qualified field name from the CP index
+        let fq_name_desc = current_klass.cp_as_string(idx);
+        let target_klass_name = &SharedKlassRepo::klass_name_from_fq(&fq_name_desc);
+        let target_klass = self.lookup_klass(&target_klass_name);
+
+        let opt_f = target_klass.get_instance_field_by_name_and_desc(&fq_name_desc);
+
+        match opt_f {
+            Some(f) => f.clone(),
+            None => panic!(
+                "No instance field {} found on klass {} ",
+                fq_name_desc.clone(),
+                target_klass_name
+            ),
+        }
     }
 
     // FIXME Lookup offset properly
@@ -402,11 +330,13 @@ impl SharedKlassRepo {
     }
 
     pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {
-        let kid = match self.klass_lookup.get(klass_name) {
+        let m = self.klass_lookup.borrow();
+        let kid = match m.get(klass_name) {
             Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),
         };
-        let opt_meth = match self.id_lookup.get(kid) {
+        let mi = self.id_lookup.borrow();
+        let opt_meth = match mi.get(kid) {
             Some(k) => k.get_method_by_name_and_desc(&fq_name_desc),
             None => panic!("No klass with ID {} found in repo", kid),
         };
@@ -419,134 +349,44 @@ impl SharedKlassRepo {
     // m_idx is IDX in CP of current class
     pub fn lookup_method_virtual(&self, klass_name: &String, m_idx: u16) -> OtMethod {
         // Get klass
-        let kid = match self.klass_lookup.get(klass_name) {
+        let m = self.klass_lookup.borrow();
+        let kid = match m.get(klass_name) {
             Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),
         };
-        match self.id_lookup.get(kid) {
+        let mi = self.id_lookup.borrow();
+        match mi.get(kid) {
             Some(k) => k.get_method_by_offset_virtual(m_idx),
             None => panic!("No klass with ID {} found in repo", kid),
         }
     }
 
-    pub fn lookup_klass(&self, klass_name: &String) -> &OtKlass {
-        let kid = match self.klass_lookup.get(klass_name) {
-            Some(id) => id,
-            None => panic!("No klass called {} found in repo", klass_name),
-        };
-        match self.id_lookup.get(kid) {
-            Some(value) => value,
-            None => panic!("No klass with ID {} found in repo", kid),
-        }
-    }
+}
 
-    pub fn lookup_mutable_klass(&mut self, klass_name: &String) -> &mut OtKlass {
-        for (id, k) in &mut self.id_lookup {
-            if *k.get_name() == *klass_name {
-                return k;
-            }
-        }
-        panic!("Klass not found")
-    }
-
-    pub fn add_klass(&mut self, k: &OtKlass) -> () {
-        k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
-        let id = k.get_id();
-        let k2: OtKlass = (*k).to_owned();
-
-        self.klass_lookup.insert(k.get_name().clone(), id);
-        self.id_lookup.insert(id, k2);
+//     klass_lookup: HashMap<String, usize>,
+//    id_lookup: HashMap<usize, OtKlass>,
+impl fmt::Display for SharedKlassRepo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{:?} with klasses {:?}",
+            self.klass_count, self.id_lookup
+        )
     }
 }
+
+impl Clone for SharedKlassRepo {
+    fn clone(&self) -> SharedKlassRepo {
+        SharedKlassRepo {
+            klass_lookup: self.klass_lookup.clone(),
+            id_lookup: self.id_lookup.clone(),
+            klass_count: AtomicUsize::new(self.klass_count.fetch_add(0, Ordering::SeqCst)),
+        }
+    }
+}
+
 
 /////////////////////////////////////////////////////////////////
-
-pub struct SharedSimpleHeap {
-    obj_count: AtomicUsize,
-    // Free list
-    // Alloc table
-    alloc: Vec<OtObj>,
-}
-
-impl SharedSimpleHeap {
-    pub fn of() -> SharedSimpleHeap {
-        let mut out = SharedSimpleHeap {
-            obj_count: AtomicUsize::new(1),
-            alloc: Vec::new(),
-        };
-        let null_obj = OtObj::get_null();
-        out.alloc.push(null_obj);
-        out
-    }
-
-    pub fn allocate_obj(&mut self, klass: &OtKlass) -> usize {
-        let klass_id = klass.get_id();
-        let obj_id: usize = self.obj_count.fetch_add(1, Ordering::SeqCst);
-        let out = OtObj::obj_of(klass_id, obj_id, klass.make_default());
-        self.alloc.push(out);
-        obj_id
-    }
-
-    pub fn allocate_int_arr(&mut self, size: i32) -> usize {
-        let obj_id = self.obj_count.fetch_add(1, Ordering::SeqCst);
-        let out = OtObj::int_arr_of(size, obj_id);
-        self.alloc.push(out);
-        obj_id
-    }
-
-    pub fn get_obj(&self, id: usize) -> &OtObj {
-        match self.alloc.get(id) {
-            Some(val) => val,
-            None => panic!("Error: object {} not found", id),
-        }
-    }
-
-    // FIXME Handle storage properly
-    pub fn put_field(&self, id: usize, f: OtField, v: JvmValue) -> () {
-        // Get object from heap
-        match self.alloc.get(id) {
-            Some(val) => val.put_field(f, v),
-            None => panic!("Error: object {} not found", id),
-        };
-    }
-
-    pub fn get_field(&self, id: usize, f: OtField) -> JvmValue {
-        // Get object from heap
-        let obj = match self.alloc.get(id) {
-            Some(val) => val,
-            None => panic!("Error: object {} not found", id),
-        };
-        obj.get_value(f)
-    }
-
-    pub fn iastore(&mut self, id: usize, pos: i32, v: i32) -> () {
-        let p = pos as usize;
-        let obj = match self.alloc.get(id) {
-            Some(val) => val,
-            None => panic!("Error: object {} not found", id),
-        };
-        let t = match obj {
-            OtObj::vm_arr_int {
-                id: i,
-                mark: m,
-                klassid: kid,
-                length: _,
-                elements: elts,
-            } => (i, m, kid, elts),
-            _ => panic!("Non-int[] seen in heap during IASTORE at {}", id),
-        };
-        let mut elts = t.3.clone();
-        elts[pos as usize] = v;
-        let obj = OtObj::vm_arr_int {
-            id: *t.0,
-            mark: *t.1,
-            klassid: *t.2,
-            length: elts.len() as i32,
-            elements: elts,
-        };
-        self.alloc[id] = obj;
-    }
-}
 
 #[cfg(test)]
 mod tests;

@@ -3,7 +3,6 @@ use std::sync::Mutex;
 
 use crate::JvmValue;
 use crate::OtField;
-use crate::REPO;
 
 #[derive(Debug)]
 pub enum OtObj {
@@ -52,7 +51,7 @@ impl OtObj {
         }
     }
 
-    pub fn put_field(&self, f: OtField, val: JvmValue) -> () {
+    pub fn put_field(&self, offset : usize, val: JvmValue) -> () {
         let (kid, fields) = match self {
             OtObj::vm_obj {
                 id: _,
@@ -65,7 +64,7 @@ impl OtObj {
         // Get klass
         dbg!("Made it to object get_field_offset");
         // Lookup offset in klass
-        let offset = REPO.lock().unwrap().get_field_offset(*kid, f);
+        // let offset = REPO.lock().get_field_offset(*kid, f);
         match self {
             OtObj::vm_obj {
                 id: _,
@@ -75,12 +74,12 @@ impl OtObj {
             } => {
                 let mut place = fs[offset].lock().unwrap();
                 *place = val;
-            },
+            }
             _ => panic!("Not an object"),
         };
     }
 
-    pub fn get_value(&self, f: OtField) -> JvmValue {
+    pub fn get_field_value(&self, offset : usize) -> JvmValue {
         let (kid, fields) = match self {
             OtObj::vm_obj {
                 id: _,
@@ -93,8 +92,8 @@ impl OtObj {
         // Get klass
         dbg!("Made it to object get_field_offset");
         // Lookup offset in klass
-        let offset = REPO.lock().unwrap().get_field_offset(*kid, f);
-        dbg!("Made it to object get_field_offset"); 
+        // let offset = REPO.lock().get_field_offset(*kid, f);
+        // dbg!("Made it to object get_field_offset");
         match fields.get(offset) {
             Some(v) => {
                 let place = v.lock().unwrap();
@@ -103,7 +102,6 @@ impl OtObj {
             None => panic!("Fields should hold a value"),
         }
     }
-
 
     pub fn get_null() -> OtObj {
         OtObj::vm_obj {

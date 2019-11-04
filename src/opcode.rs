@@ -44,6 +44,8 @@ pub mod Opcode {
     pub const ICONST_5: u8 = 0x08;
     pub const IDIV: u8 = 0x6c;
     pub const IF_ICMPEQ: u8 = 0x9f;
+    pub const IF_ICMPGT: u8 = 0xa3;
+    pub const IF_ICMPLT: u8 = 0xa1;
     pub const IF_ICMPNE: u8 = 0xa0;
     pub const IFEQ: u8 = 0x99;
     pub const IFGE: u8 = 0x9c;

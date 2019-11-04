@@ -1,6 +1,6 @@
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt;
-use std::cell::Cell;
 use std::sync::Mutex;
 
 use crate::constant_pool::CpEntry;
@@ -74,8 +74,8 @@ impl OtKlass {
             methods: methods.to_vec(),
             i_fields: i_fields.to_vec(),
             s_fields: s_fields.to_vec(),
-            // FIXME
             s_field_vals: Vec::new(),
+            // FIXME
             m_name_desc_lookup: m_lookup,
             f_name_desc_lookup: f_lookup,
         }
@@ -123,11 +123,13 @@ impl OtKlass {
         // dbg!(name_desc.clone());
         match self.get_method_by_name_and_desc(&name_desc) {
             Some(m2) => m2.set_native_code(n_code),
-            None => panic!("Should be unreachable - trying to store native code in a regular method"),
+            None => {
+                panic!("Should be unreachable - trying to store native code in a regular method")
+            }
         }
     }
 
-    pub fn get_field_offset(&self, f: &OtField) -> usize {
+    pub fn get_instance_field_offset(&self, f: &OtField) -> usize {
         let mut i = 0;
         while i < self.i_fields.len() {
             let c_f = match self.i_fields.get(i) {
@@ -140,6 +142,27 @@ impl OtKlass {
             i = i + 1;
         }
         panic!("Field {} not found on {}", f, self)
+    }
+
+    pub fn get_static_field_offset(&self, f: &OtField) -> usize {
+        let mut i = 0;
+        while i < self.s_fields.len() {
+            let c_f = match self.s_fields.get(i) {
+                Some(f) => f,
+                None => panic!("Should be unreachable, field should always exist"),
+            };
+            if c_f.get_fq_name_desc() == f.get_fq_name_desc() {
+                return i;
+            }
+            i = i + 1;
+        }
+        panic!("Field {} not found on {}", f, self)
+    }
+
+
+    pub fn get_static_field_value(&self, f: &OtField) -> &JvmValue {
+        let idx = self.get_static_field_offset(f);
+        self.s_field_vals.get(idx).unwrap()
     }
 
     pub fn get_method_by_offset_virtual(&self, m_idx: u16) -> OtMethod {
@@ -171,6 +194,30 @@ impl OtKlass {
         self.methods.get(idx)
     }
 
+    // NOTE: This is fully-qualified
+    pub fn get_static_field_by_name_and_desc(&self, name_desc: &String) -> Option<&OtField> {
+        dbg!(&self.f_name_desc_lookup);
+        dbg!(&name_desc);
+        let opt_idx = self.f_name_desc_lookup.get(name_desc);
+        let idx: usize = match opt_idx {
+            Some(value) => value.clone(),
+            None => return None,
+        };
+        self.s_fields.get(idx)
+    }
+
+    // NOTE: This is fully-qualified
+    pub fn get_instance_field_by_name_and_desc(&self, name_desc: &String) -> Option<&OtField> {
+        dbg!(&self.f_name_desc_lookup);
+        dbg!(&name_desc);
+        let opt_idx = self.f_name_desc_lookup.get(name_desc);
+        let idx: usize = match opt_idx {
+            Some(value) => value.clone(),
+            None => return None,
+        };
+        self.i_fields.get(idx)
+    }
+
     pub fn lookup_cp(&self, cp_idx: u16) -> CpEntry {
         let idx = cp_idx as usize;
         // dbg!(&self.cp_entries);
@@ -187,6 +234,9 @@ impl OtKlass {
         match self.lookup_cp(i) {
             CpEntry::utf8 { val: s } => s,
             CpEntry::class { idx: utf_idx } => self.cp_as_string(utf_idx),
+            CpEntry::fieldref { clz_idx, nt_idx } => {
+                self.cp_as_string(clz_idx) + "." + &self.cp_as_string(nt_idx)
+            }
             CpEntry::methodref { clz_idx, nt_idx } => {
                 self.cp_as_string(clz_idx) + "." + &self.cp_as_string(nt_idx)
             }

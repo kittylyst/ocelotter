@@ -1,11 +1,15 @@
 use std::fmt;
 
 use crate::constant_pool::CpAttr;
-use crate::JvmValue;
 use crate::constant_pool::ACC_STATIC;
+use crate::JvmValue;
 
 #[derive(Debug, Clone)]
 pub struct OtField {
+    // We store the klass_name rather than the klass's id because when
+    // the OtField is created, it is too early - the klass doesn't have
+    // an id yet
+    offset: u16,
     klass_name: String,
     flags: u16,
     name_idx: u16,
@@ -17,6 +21,7 @@ pub struct OtField {
 
 impl OtField {
     pub fn of(
+        offset: u16,
         klass_name: String,
         field_name: String,
         field_desc: String,
@@ -25,6 +30,7 @@ impl OtField {
         desc: u16,
     ) -> OtField {
         OtField {
+            offset: offset,
             klass_name: klass_name.to_string(),
             // FIXME
             flags: field_flags,
@@ -34,6 +40,10 @@ impl OtField {
             desc: field_desc,
             attrs: Vec::new(),
         }
+    }
+
+    pub fn get_offset(&self) -> u16 {
+        self.offset
     }
 
     pub fn set_attr(&self, _index: u16, _attr: CpAttr) -> () {}
