@@ -39,11 +39,8 @@ pub fn exec_bytecode_method(
 
     loop {
         // let my_klass_name = klass_name.clone();
-        let ins: u8 = match instr.get(current) {
-            Some(value) => *value,
-            // FIXME We don't know the name of the currently executing method!
-            None => panic!("Byte {} has no value", current),
-        };
+        let ins: u8 = *instr.get(current).expect(&format!("Byte {} has no value", current));
+        
         current += 1;
 
         dbg!(ins);
