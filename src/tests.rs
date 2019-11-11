@@ -16,13 +16,10 @@ fn init_repo() -> SharedKlassRepo {
 fn execute_simple_bytecode(buf: &Vec<u8>) -> JvmValue {
     let mut repo = init_repo();
     let mut lvt = InterpLocalVars::of(10); // FIXME
-    let opt_ret = exec_bytecode_method(&mut repo, "DUMMY".to_string(), &buf, &mut lvt);
-    match opt_ret {
-        Some(value) => value,
-        None => JvmValue::ObjRef {
+    exec_bytecode_method(&mut repo, "DUMMY".to_string(), &buf, &mut lvt)
+        .unwrap_or_else(|| JvmValue::ObjRef {
             val: 0, // object::OtObj::get_null(),
-        },
-    }
+        })
 }
 
 fn simple_parse_klass(cname: String) -> OtKlass {
