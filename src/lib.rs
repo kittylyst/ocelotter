@@ -17,10 +17,11 @@ pub fn exec_method(
     dbg!(meth.clone());
     // dbg!(meth.get_flags());
     if meth.is_native() {
-        let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = match meth.get_native_code() {
-            Some(f) => f,
-            None => panic!("Native code not found {}", meth.get_fq_name_desc()),
-        };
+        // Explicit type annotation here to document the type of n_f
+        let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = meth.get_native_code().expect(
+            &format!("Native code not found {}", meth.get_fq_name_desc()),
+        );
+
         // FIXME Parameter passing
         n_f(lvt)
     } else {
@@ -39,8 +40,10 @@ pub fn exec_bytecode_method(
 
     loop {
         // let my_klass_name = klass_name.clone();
-        let ins: u8 = *instr.get(current).expect(&format!("Byte {} has no value", current));
-        
+        let ins: u8 = *instr
+            .get(current)
+            .expect(&format!("Byte {} has no value", current));
+
         current += 1;
 
         dbg!(ins);
@@ -564,6 +567,7 @@ fn dispatch_invoke(
     if additional_args > 0 {
         vars.store(0, eval.pop());
     }
+    // Explicit use of match expression to be clear about the semantics
     match exec_method(repo, &callee, &mut vars) {
         Some(val) => eval.push(val),
         None => (),
