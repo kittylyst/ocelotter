@@ -5,4 +5,5 @@ authors = ["Ben Evans <benjamin.john.evans@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+zip = "0.5.3"
 
