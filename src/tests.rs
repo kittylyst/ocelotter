@@ -24,6 +24,7 @@ fn execute_simple_bytecode(buf: &Vec<u8>) -> JvmValue {
     match opt_ret {
         Some(value) => value,
         None => JvmValue::ObjRef {
+            // FIXME ????
             val: 0, // object::OtObj::get_null(),
         },
     }
@@ -301,10 +302,8 @@ fn interp_invoke_simple() {
     let k = simple_parse_klass("SampleInvoke".to_string());
 
     {
-        let meth = match k.get_method_by_name_and_desc(&"SampleInvoke.bar:()I".to_string()) {
-            Some(value) => value.clone(),
-            None => panic!("SampleInvoke.bar:()I not found"),
-        };
+        let fq_meth = "SampleInvoke.bar:()I";
+        let meth = k.get_method_by_name_and_desc(&fq_meth.to_string()).expect(&format!("{} not found", fq_meth));
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
@@ -317,11 +316,8 @@ fn interp_invoke_simple() {
     }
 
     {
-        let meth = match k.get_method_by_name_and_desc(&"SampleInvoke.foo:()I".to_string()) {
-            Some(value) => value.clone(),
-            None => panic!("SampleInvoke.bar:()I not found"),
-        };
-
+        let fq_meth = "SampleInvoke.foo:()I";
+        let meth = k.get_method_by_name_and_desc(&fq_meth.to_string()).expect(&format!("{} not found", fq_meth));
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
@@ -341,11 +337,8 @@ fn interp_iffer() {
     let k = simple_parse_klass("Iffer".to_string());
 
     {
-        let meth = match k.get_method_by_name_and_desc(&"Iffer.baz:()I".to_string()) {
-            Some(value) => value.clone(),
-            None => panic!("Iffer.baz:()I not found"),
-        };
-
+        let fq_meth = "Iffer.baz:()I";
+        let meth = k.get_method_by_name_and_desc(&fq_meth.to_string()).expect(&format!("{} not found", fq_meth));
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
@@ -406,11 +399,7 @@ fn interp_system_current_timemillis() {
 
     {
         let fqname = "Main3.main2:([Ljava/lang/String;)I";
-        let meth = match k.get_method_by_name_and_desc(&fqname.to_string()) {
-            Some(value) => value.clone(),
-            None => panic!("{} not found", fqname),
-        };
-
+        let meth = k.get_method_by_name_and_desc(&fqname.to_string()).expect(&format!("{} not found", fqname));
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
