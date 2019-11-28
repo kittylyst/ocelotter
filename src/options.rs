@@ -21,7 +21,6 @@ impl Options {
         self.classname
             .get(0)
             .expect("Classname should be specified")
-            .as_str()
             .into()
     }
 }
