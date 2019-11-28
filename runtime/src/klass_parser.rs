@@ -344,7 +344,7 @@ impl OtKlassParser {
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         self.current += 2;
 
-        for _idx in 0..f_count {
+        for idx in 0..f_count {
             let f_flags = ((self.clz_read[self.current] as u16) << 8)
                 + self.clz_read[self.current + 1] as u16;
             let name_idx = ((self.clz_read[self.current + 2] as u16) << 8)
@@ -372,6 +372,7 @@ impl OtKlassParser {
 
             let k_name = &self.klass_name();
             let f = OtField::of(
+                idx,
                 k_name.to_string(),
                 f_name.to_string(),
                 f_desc.to_string(),

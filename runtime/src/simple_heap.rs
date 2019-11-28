@@ -51,18 +51,18 @@ impl SharedSimpleHeap {
     pub fn put_field(&self, id: usize, f: OtField, v: JvmValue) -> () {
         // Get object from heap
         match self.alloc.get(id) {
-            Some(val) => val.put_field(f, v),
+            Some(val) => val.put_field(f.get_offset() as usize, v),
             None => panic!("Error: object {} not found", id),
         };
     }
 
-    pub fn get_field(&self, id: usize, f: OtField) -> JvmValue {
+    pub fn get_field(&self, id: usize, offset: u16) -> JvmValue {
         // Get object from heap
         let obj = match self.alloc.get(id) {
             Some(val) => val,
             None => panic!("Error: object {} not found", id),
         };
-        obj.get_field_value(f)
+        obj.get_field_value(offset as usize)
     }
 
     pub fn iastore(&mut self, id: usize, pos: i32, v: i32) -> () {
