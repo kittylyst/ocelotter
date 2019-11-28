@@ -14,7 +14,9 @@ pub fn exec_method(meth: &OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValu
     // dbg!(meth.clone());
     // dbg!(meth.get_flags());
     if meth.is_native() {
-        let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = meth.get_native_code().expect(&format!("Native code not found {}", meth.get_fq_name_desc()));
+        let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = meth.get_native_code().expect(
+            &format!("Native code not found {}", meth.get_fq_name_desc()),
+        );
         // FIXME Parameter passing
         n_f(lvt)
     } else {
@@ -32,7 +34,9 @@ pub fn exec_bytecode_method(
 
     loop {
         // FIXME We don't know the name of the currently executing method!
-        let ins: u8 = *instr.get(current).expect(&format!("Byte {} has no value", current));
+        let ins: u8 = *instr
+            .get(current)
+            .expect(&format!("Byte {} has no value", current));
         current += 1;
 
         dbg!(ins);

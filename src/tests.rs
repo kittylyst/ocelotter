@@ -303,7 +303,9 @@ fn interp_invoke_simple() {
 
     {
         let fq_meth = "SampleInvoke.bar:()I";
-        let meth = k.get_method_by_name_and_desc(&fq_meth.to_string()).expect(&format!("{} not found", fq_meth));
+        let meth = k
+            .get_method_by_name_and_desc(&fq_meth.to_string())
+            .expect(&format!("{} not found", fq_meth));
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
@@ -317,7 +319,9 @@ fn interp_invoke_simple() {
 
     {
         let fq_meth = "SampleInvoke.foo:()I";
-        let meth = k.get_method_by_name_and_desc(&fq_meth.to_string()).expect(&format!("{} not found", fq_meth));
+        let meth = k
+            .get_method_by_name_and_desc(&fq_meth.to_string())
+            .expect(&format!("{} not found", fq_meth));
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
@@ -338,7 +342,9 @@ fn interp_iffer() {
 
     {
         let fq_meth = "Iffer.baz:()I";
-        let meth = k.get_method_by_name_and_desc(&fq_meth.to_string()).expect(&format!("{} not found", fq_meth));
+        let meth = k
+            .get_method_by_name_and_desc(&fq_meth.to_string())
+            .expect(&format!("{} not found", fq_meth));
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
@@ -399,7 +405,9 @@ fn interp_system_current_timemillis() {
 
     {
         let fqname = "Main3.main2:([Ljava/lang/String;)I";
-        let meth = k.get_method_by_name_and_desc(&fqname.to_string()).expect(&format!("{} not found", fqname));
+        let meth = k
+            .get_method_by_name_and_desc(&fqname.to_string())
+            .expect(&format!("{} not found", fqname));
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);

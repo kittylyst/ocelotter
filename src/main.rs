@@ -34,12 +34,20 @@ pub fn main() {
 
     // FIXME Real main() signture required, dummying for ease of testing
     let main_str: String = f_name.clone() + ".main2:([Ljava/lang/String;)I";
-    let main = k.get_method_by_name_and_desc(&main_str)
-                      .expect(&format!("Error: Main method not found {}", main_str.clone())).clone();
+    let main = k
+        .get_method_by_name_and_desc(&main_str)
+        .expect(&format!(
+            "Error: Main method not found {}",
+            main_str.clone()
+        ))
+        .clone();
 
     // FIXME Parameter passing
     let mut vars = InterpLocalVars::of(5);
-    let ret = exec_method(&main, &mut vars).expect(&format!("Error: When executing {} - no value returned", f_name));
+    let ret = exec_method(&main, &mut vars).expect(&format!(
+        "Error: When executing {} - no value returned",
+        f_name
+    ));
     let ret_i = match ret {
         Int { val: i } => i,
         _ => panic!("Error executing ".to_owned() + &f_name + " - non-int value returned"),
