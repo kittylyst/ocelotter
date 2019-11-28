@@ -1,9 +1,12 @@
 use std::cell::RefCell;
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
+
+use parking_lot::ReentrantMutex;
 
 use regex::Regex;
 
@@ -34,7 +37,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub static ref REPO: Mutex<SharedKlassRepo> = Mutex::new(SharedKlassRepo::of());
+    pub static ref REPO: Mutex<RefCell<SharedKlassRepo>> = Mutex::new(RefCell::new(SharedKlassRepo::of()));
 }
 
 //////////// RUNTIME JVM VALUES
@@ -131,43 +134,47 @@ impl InterpLocalVars {
 #[derive(Debug)]
 pub struct SharedKlassRepo {
     klass_count: AtomicUsize,
-    klass_lookup: HashMap<String, usize>,
-    id_lookup: HashMap<usize, OtKlass>,
+    klass_lookup: RefCell<HashMap<String, usize>>,
+    id_lookup: RefCell<HashMap<usize, OtKlass>>,
 }
 
 impl SharedKlassRepo {
     pub fn of() -> SharedKlassRepo {
         SharedKlassRepo {
-            klass_lookup: HashMap::new(),
-            id_lookup: HashMap::new(),
+            klass_lookup: RefCell::new(HashMap::new()),
+            id_lookup: RefCell::new(HashMap::new()),
             klass_count: AtomicUsize::new(1),
         }
     }
 
-    pub fn lookup_klass(&self, klass_name: &String) -> &OtKlass {
+    pub fn lookup_klass(&self, klass_name: &String) -> OtKlass {
         let s = format!("{}", self);
         dbg!(s);
 
-        let kid = match self.klass_lookup.get(klass_name) {
+        let m = self.klass_lookup.borrow();
+        let kid = match m.get(klass_name) {
             Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),
         };
-        match self.id_lookup.get(kid) {
-            Some(value) => value,
+        let mi = self.id_lookup.borrow();
+        match mi.get(kid) {
+            Some(value) => value.clone(),
             None => panic!("No klass with ID {} found in repo", kid),
         }
     }
 
-    pub fn add_klass(&mut self, k: &OtKlass) -> () {
+    pub fn add_klass(&self, k: &OtKlass) -> () {
         k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
         let id = k.get_id();
         let k2: OtKlass = (*k).to_owned();
 
-        self.klass_lookup.insert(k.get_name().clone(), id);
-        self.id_lookup.insert(id, k2);
+        let mut m = self.klass_lookup.borrow_mut();
+        m.insert(k.get_name().clone(), id);
+        let mut mi = self.id_lookup.borrow_mut();
+        mi.insert(id, k2);
     }
 
-    fn add_bootstrap_class(&mut self, cl_name: String) {
+    fn add_bootstrap_class(&self, cl_name: String) -> OtKlass {
         let fq_klass_fname = "./resources/lib/".to_owned() + &cl_name + ".class";
         let bytes = match file_to_bytes(Path::new(&fq_klass_fname)) {
             Ok(buf) => buf,
@@ -175,9 +182,7 @@ impl SharedKlassRepo {
         };
         let mut parser = crate::klass_parser::OtKlassParser::of(bytes, cl_name.clone());
         parser.parse();
-        let mut k = parser.klass();
-        self.add_klass(&mut k);
-        // self.lookup_klass(&cl_name)
+        parser.klass()
     }
 
     fn run_clinit_method(k : &OtKlass, i_callback: fn(&OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) {
@@ -197,10 +202,9 @@ impl SharedKlassRepo {
     // and add each class one by one before fixing up the native code that we have working
     pub fn bootstrap(&mut self, i_callback: fn(&OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) -> () {
         // Add java.lang.Object
-        self.add_bootstrap_class("java/lang/Object".to_string());
+        let k_obj = self.add_bootstrap_class("java/lang/Object".to_string());
         let s = format!("{}", self);
         dbg!(s);
-        let k_obj = self.lookup_klass(&"java/lang/Object".to_string());
 
         // Add j.l.O native methods (e.g. hashCode())
         k_obj.set_native_method(
@@ -211,33 +215,47 @@ impl SharedKlassRepo {
             "java/lang/Object.registerNatives:()V".to_string(),
             crate::native_methods::java_lang_Object__registerNatives,
         );
-        &SharedKlassRepo::run_clinit_method(k_obj, i_callback);
+        self.add_klass(&k_obj);
+        *REPO.lock().unwrap() = RefCell::new(self.clone());
+        // FIXME Must reset the value set for the klass repo before clinit
+        &SharedKlassRepo::run_clinit_method(&k_obj, i_callback);
 
         // FIXME Add primitive arrays
 
         // Add boxed classes
-        self.add_bootstrap_class("java/lang/Integer".to_string());
-        self.add_bootstrap_class("java/lang/Integer$IntegerCache".to_string());
+        let k_jli = self.add_bootstrap_class("java/lang/Integer".to_string());
+        self.add_klass(&k_jli);
+        *REPO.lock().unwrap() = RefCell::new(self.clone());
+
+        let k_jlic = self.add_bootstrap_class("java/lang/Integer$IntegerCache".to_string());
+        self.add_klass(&k_jlic);
+        *REPO.lock().unwrap() = RefCell::new(self.clone());
+
         // FIXME Other classes
 
         // Add java.lang.String
-        self.add_bootstrap_class("java/lang/String".to_string());
+        let k_jls = self.add_bootstrap_class("java/lang/String".to_string());
         // FIXME String only has intern() as a native method, skip for now
+        self.add_klass(&k_jls);
+        *REPO.lock().unwrap() = RefCell::new(self.clone());
 
         // Add java.lang.StringBuilder
-        self.add_bootstrap_class("java/lang/StringBuilder".to_string());
+        let k_jlsb = self.add_bootstrap_class("java/lang/StringBuilder".to_string());
+        self.add_klass(&k_jlsb);
+        *REPO.lock().unwrap() = RefCell::new(self.clone());
 
         // FIXME Add java.lang.Class
 
         // FIXME Add class objects for already bootstrapped classes
 
         // Add java.lang.System
-        self.add_bootstrap_class("java/lang/System".to_string());
-        let k_sys = self.lookup_klass(&"java/lang/System".to_string());
+        let k_sys = self.add_bootstrap_class("java/lang/System".to_string());
         k_sys.set_native_method(
             "java/lang/System.currentTimeMillis:()J".to_string(),
             crate::native_methods::java_lang_System__currentTimeMillis,
         );
+        self.add_klass(&k_sys);
+        *REPO.lock().unwrap() = RefCell::new(self.clone());
 
         // TODO Dummy up enough of java.io.PrintStream to get System.out.println() to work
         // By faking up the class so that println(Ljava/lang/Object;) fwds to native code
@@ -274,7 +292,7 @@ impl SharedKlassRepo {
         // Lookup the Fully-Qualified field name from the CP index
         let fq_name_desc = current_klass.cp_as_string(idx);
         let target_klass_name = &SharedKlassRepo::klass_name_from_fq(&fq_name_desc);
-        let target_klass: &OtKlass = self.lookup_klass(&target_klass_name);
+        let target_klass = self.lookup_klass(&target_klass_name);
 
         let opt_f = target_klass.get_static_field_by_name_and_desc(&fq_name_desc);
 
@@ -294,7 +312,7 @@ impl SharedKlassRepo {
         // Lookup the Fully-Qualified field name from the CP index
         let fq_name_desc = current_klass.cp_as_string(idx);
         let target_klass_name = &SharedKlassRepo::klass_name_from_fq(&fq_name_desc);
-        let target_klass: &OtKlass = self.lookup_klass(&target_klass_name);
+        let target_klass = self.lookup_klass(&target_klass_name);
 
         let opt_f = target_klass.get_instance_field_by_name_and_desc(&fq_name_desc);
 
@@ -318,11 +336,13 @@ impl SharedKlassRepo {
     }
 
     pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {
-        let kid = match self.klass_lookup.get(klass_name) {
+        let m = self.klass_lookup.borrow();
+        let kid = match m.get(klass_name) {
             Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),
         };
-        let opt_meth = match self.id_lookup.get(kid) {
+        let mi = self.id_lookup.borrow();
+        let opt_meth = match mi.get(kid) {
             Some(k) => k.get_method_by_name_and_desc(&fq_name_desc),
             None => panic!("No klass with ID {} found in repo", kid),
         };
@@ -335,11 +355,13 @@ impl SharedKlassRepo {
     // m_idx is IDX in CP of current class
     pub fn lookup_method_virtual(&self, klass_name: &String, m_idx: u16) -> OtMethod {
         // Get klass
-        let kid = match self.klass_lookup.get(klass_name) {
+        let m = self.klass_lookup.borrow();
+        let kid = match m.get(klass_name) {
             Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),
         };
-        match self.id_lookup.get(kid) {
+        let mi = self.id_lookup.borrow();
+        match mi.get(kid) {
             Some(k) => k.get_method_by_offset_virtual(m_idx),
             None => panic!("No klass with ID {} found in repo", kid),
         }
@@ -356,6 +378,16 @@ impl fmt::Display for SharedKlassRepo {
             "{:?} with klasses {:?}",
             self.klass_count, self.id_lookup
         )
+    }
+}
+
+impl Clone for SharedKlassRepo {
+    fn clone(&self) -> SharedKlassRepo {
+        SharedKlassRepo {
+            klass_lookup: self.klass_lookup.clone(),
+            id_lookup: self.id_lookup.clone(),
+            klass_count: AtomicUsize::new(self.klass_count.fetch_add(0, Ordering::SeqCst)),
+        }
     }
 }
 
