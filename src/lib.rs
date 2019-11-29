@@ -17,7 +17,7 @@ pub fn exec_method(
     dbg!(meth.clone());
     // dbg!(meth.get_flags());
     if meth.is_native() {
-        // Explicit type annotation here to document the type of n_f
+        // Explicit type hint here to document the type of n_f
         let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = meth.get_native_code().expect(
             &format!("Native code not found {}", meth.get_fq_name_desc()),
         );
@@ -402,6 +402,8 @@ pub fn exec_bytecode_method(
                     CpEntry::class { idx: _ } => eval.aconst_null(),
                     CpEntry::double { val: dcon } => eval.dconst(dcon),
                     CpEntry::integer { val: icon } => eval.iconst(icon),
+                    // FIXME Actually look up the class object properly
+                    CpEntry::string { idx: _ } => eval.aconst_null(),
                     _ => panic!(
                         "Non-handled entry found in LDC op {} at CP index {}",
                         current_klass.get_name(),
