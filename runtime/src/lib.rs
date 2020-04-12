@@ -128,15 +128,15 @@ impl InterpLocalVars {
 #[derive(Debug)]
 pub struct SharedKlassRepo {
     klass_count: AtomicUsize,
-    klass_lookup: RefCell<HashMap<String, usize>>,
-    id_lookup: RefCell<HashMap<usize, OtKlass>>,
+    klass_lookup: HashMap<String, usize>,
+    id_lookup: HashMap<usize, OtKlass>,
 }
 
 impl SharedKlassRepo {
     pub fn of() -> SharedKlassRepo {
         SharedKlassRepo {
-            klass_lookup: RefCell::new(HashMap::new()),
-            id_lookup: RefCell::new(HashMap::new()),
+            klass_lookup: HashMap::new(),
+            id_lookup: HashMap::new(),
             klass_count: AtomicUsize::new(1),
         }
     }
@@ -145,27 +145,23 @@ impl SharedKlassRepo {
         // let s = format!("{}", self);
         // dbg!(s);
 
-        let m = self.klass_lookup.borrow();
-        let kid = match m.get(klass_name) {
+        let kid = match self.klass_lookup.get(klass_name) {
             Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),
         };
-        let mi = self.id_lookup.borrow();
-        match mi.get(kid) {
+        match self.id_lookup.get(kid) {
             Some(value) => value.clone(),
             None => panic!("No klass with ID {} found in repo", kid),
         }
     }
 
-    pub fn add_klass(&self, k: &OtKlass) -> () {
+    pub fn add_klass(&mut self, k: &OtKlass) -> () {
         k.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
         let id = k.get_id();
         let k2: OtKlass = (*k).to_owned();
 
-        let mut m = self.klass_lookup.borrow_mut();
-        m.insert(k.get_name().clone(), id);
-        let mut mi = self.id_lookup.borrow_mut();
-        mi.insert(id, k2);
+        self.klass_lookup.insert(k.get_name().clone(), id);
+        self.id_lookup.insert(id, k2);
     }
 
     fn add_bootstrap_class(&self, cl_name: String) -> OtKlass {
@@ -330,13 +326,11 @@ impl SharedKlassRepo {
     }
 
     pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {
-        let m = self.klass_lookup.borrow();
-        let kid = match m.get(klass_name) {
+        let kid = match self.klass_lookup.get(klass_name) {
             Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),
         };
-        let mi = self.id_lookup.borrow();
-        let opt_meth = match mi.get(kid) {
+        let opt_meth = match self.id_lookup.get(kid) {
             Some(k) => k.get_method_by_name_and_desc(&fq_name_desc),
             None => panic!("No klass with ID {} found in repo", kid),
         };
@@ -349,13 +343,11 @@ impl SharedKlassRepo {
     // m_idx is IDX in CP of current class
     pub fn lookup_method_virtual(&self, klass_name: &String, m_idx: u16) -> OtMethod {
         // Get klass
-        let m = self.klass_lookup.borrow();
-        let kid = match m.get(klass_name) {
+        let kid = match self.klass_lookup.get(klass_name) {
             Some(id) => id,
             None => panic!("No klass called {} found in repo", klass_name),
         };
-        let mi = self.id_lookup.borrow();
-        match mi.get(kid) {
+        match self.id_lookup.get(kid) {
             Some(k) => k.get_method_by_offset_virtual(m_idx),
             None => panic!("No klass with ID {} found in repo", kid),
         }
