@@ -1,9 +1,9 @@
 use std::path::Path;
 
 use ocelotter_runtime::klass_parser::*;
+use ocelotter_runtime::klass_repo::SharedKlassRepo;
 use ocelotter_runtime::InterpLocalVars;
 use ocelotter_runtime::JvmValue::*;
-use ocelotter_runtime::klass_repo::SharedKlassRepo;
 use ocelotter_util::file_to_bytes;
 use structopt::StructOpt;
 

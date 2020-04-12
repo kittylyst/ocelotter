@@ -2,9 +2,9 @@
 
 use ocelotter_runtime::constant_pool::*;
 use ocelotter_runtime::interp_stack::InterpEvalStack;
+use ocelotter_runtime::klass_repo::SharedKlassRepo;
 use ocelotter_runtime::otklass::OtKlass;
 use ocelotter_runtime::otmethod::OtMethod;
-use ocelotter_runtime::klass_repo::SharedKlassRepo;
 use ocelotter_runtime::*;
 
 pub mod opcode;
