@@ -120,7 +120,7 @@ impl SharedKlassRepo {
                 let id = k2.get_id();
 
                 self.klass_lookup.insert(k.get_name().clone(), id);
-                self.id_lookup.get(&id).unwrap().replace(KlassLoadingStatus::Loaded{ klass: k2 });
+                self.id_lookup.insert(id, RefCell::new(KlassLoadingStatus::Loaded{ klass: k2 }));
             }
         };
 
