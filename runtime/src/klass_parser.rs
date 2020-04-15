@@ -141,8 +141,8 @@ impl OtKlassParser {
 
     fn parse_constant_pool(&mut self) -> () {
         self.current = 10;
-        dbg!("Pool size:");
-        dbg!(self.get_pool_size());
+        // dbg!("Pool size:");
+        // dbg!(self.get_pool_size());
         self.cp_entries.resize(
             (self.pool_item_count as usize) + 1,
             CpEntry::integer { val: 0 },
@@ -150,12 +150,9 @@ impl OtKlassParser {
         let mut current_cp = 1;
         while current_cp < self.pool_item_count {
             let tag = self.clz_read[self.current];
-            dbg!(tag);
-            dbg!(current_cp);
             self.current += 1;
             let item = match tag {
                 CP_UTF8 => {
-                    dbg!("Parsing a utf8");
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
                     self.current += 2;
@@ -173,7 +170,7 @@ impl OtKlassParser {
                                 Err(e) => panic!("{}", e),
                             }
                             .to_owned();
-                            dbg!(str_c.clone());
+                            // dbg!(str_c.clone());
                             CpEntry::utf8 { val: str_c }
                         }
                         Err(e) => panic!("error parsing constant pool: {:?}", e),
@@ -242,7 +239,6 @@ impl OtKlassParser {
                     }
                 }
                 CP_CLASS => {
-                    // println!("Parsing a class");
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
                     self.current += 2;
@@ -469,7 +465,6 @@ impl OtKlassParser {
                 desc_idx,
             );
             for aidx in 0..attr_count {
-                dbg!(aidx);
                 let att = self.parse_method_attribute(&mut m);
                 m.set_attr(aidx, att.clone());
             }
@@ -490,7 +485,6 @@ impl OtKlassParser {
         // FIXME - is this actually a u32 (check spec)
         let attr_len = BigEndian::read_u32(buf);
         let end_index = self.current + attr_len as usize;
-        dbg!(attr_len);
 
         let s = self.stringref_from_cp(name_idx);
         match s.as_str() {
