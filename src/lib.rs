@@ -47,7 +47,7 @@ pub fn exec_bytecode_method(
 
         current += 1;
 
-        dbg!(ins);
+        // dbg!(ins);
         match ins {
             Opcode::ACONST_NULL => eval.aconst_null(),
 
@@ -358,7 +358,7 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 let current_klass = repo.lookup_klass(&klass_name).clone();
-                dbg!(current_klass.clone());
+                // dbg!(current_klass.clone());
                 dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 0);
             }
             Opcode::INVOKEVIRTUAL => {

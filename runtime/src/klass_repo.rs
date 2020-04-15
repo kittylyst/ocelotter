@@ -2,7 +2,6 @@ use std::fmt;
 use std::path::Path;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 use regex::Regex;
 
@@ -25,9 +24,7 @@ pub enum KlassLoadingStatus {
 
 #[derive(Debug)]
 pub struct SharedKlassRepo {
-    klass_count: AtomicUsize,
-    klass_lookup: HashMap<String, usize>,
-    id_lookup: HashMap<usize, RefCell<KlassLoadingStatus>>,
+    klass_lookup: HashMap<String, RefCell<KlassLoadingStatus>>,
 }
 
 impl SharedKlassRepo {
@@ -72,8 +69,6 @@ impl SharedKlassRepo {
     pub fn of() -> SharedKlassRepo {
         SharedKlassRepo {
             klass_lookup: HashMap::new(),
-            id_lookup: HashMap::new(),
-            klass_count: AtomicUsize::new(1),
         }
     }
 
@@ -81,18 +76,13 @@ impl SharedKlassRepo {
         // let s = format!("{}", self);
         // dbg!(s);
 
-        let kid = match self.klass_lookup.get(klass_name) {
-            Some(id) => id,
+        match self.klass_lookup.get(klass_name) {
+            Some(cell) => match &*(cell.borrow()) {
+                KlassLoadingStatus::Mentioned {} => panic!("Klass with ID {} is not loaded yet", klass_name),
+                KlassLoadingStatus::Loaded { klass : k } => k.clone(),
+                KlassLoadingStatus::Live { klass : k } => k.clone()
+            },
             None => panic!("No klass called {} found in repo", klass_name),
-        };
-        let cell = match self.id_lookup.get(kid) {
-            Some(value) => value,
-            None => panic!("No klass with ID {} found in repo", kid),
-        };
-        match &*(cell.borrow()) {
-            KlassLoadingStatus::Mentioned {} => panic!("Klass with ID {} is not loaded yet", kid),
-            KlassLoadingStatus::Loaded { klass : k } => k.clone(),
-            KlassLoadingStatus::Live { klass : k } => k.clone()
         }
     }
 
@@ -100,37 +90,26 @@ impl SharedKlassRepo {
         // First check to see if we already have this class and which state it's in
         let klass_name = k.get_name();
         let upgrade = match self.klass_lookup.get(&klass_name) {
-            Some(id) => match self.id_lookup.get(id) {
-                Some(value) => match &*(value.borrow()) {
-                    KlassLoadingStatus::Mentioned {} => Some(id),
-                    KlassLoadingStatus::Loaded { klass : _ } => None, 
-                    KlassLoadingStatus::Live { klass : _ } => None 
-                },
-                None => panic!("No klass with ID {} found in repo", id),
+            Some(value) => match &*(value.borrow()) {
+                KlassLoadingStatus::Mentioned {} => true,
+                KlassLoadingStatus::Loaded { klass : _ } => false, 
+                KlassLoadingStatus::Live { klass : _ } => false 
             },
             None => {
                 let k2: OtKlass = (*k).to_owned();
-                // If it's completely new, then set its ID (which we'll use as the key for it)
-                k2.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
-                let id = k2.get_id();
                 // Scan for every other class the newcomer mentions
                 let klasses_mentioned = k2.get_mentioned_klasses();
 
-                self.klass_lookup.insert(k.get_name().clone(), id);
-                self.id_lookup.insert(id, RefCell::new(KlassLoadingStatus::Loaded{ klass: k2 }));
+                self.klass_lookup.insert(k.get_name().clone(), RefCell::new(KlassLoadingStatus::Loaded{ klass: k2 }));
                 // Mention everything this class refers to
                 self.mention(klasses_mentioned);
-                None
+                false
             }
         };
-        match upgrade {
-            None => (),
-            Some(id) => {
-                let k2 = (*k).to_owned();
-                // Set kid & Load k into map
-                k2.set_id(*id);
-                self.id_lookup.get(id).unwrap().replace(KlassLoadingStatus::Loaded{ klass: k2 });
-            }
+        if upgrade {
+            let k2 = (*k).to_owned();
+            // Set kid & Load k into map
+            self.klass_lookup.get(&klass_name).unwrap().replace(KlassLoadingStatus::Loaded{ klass: k2 });
         }
     }
 
@@ -143,16 +122,10 @@ impl SharedKlassRepo {
             match self.klass_lookup.get(klass_name) {
                 // If not, add a mention
                 None => {
-                    let id = self.klass_count.fetch_add(1, Ordering::SeqCst);
-                    self.klass_lookup.insert(klass_name.clone(), id);
-                    self.id_lookup.insert(id, RefCell::new(KlassLoadingStatus::Mentioned{ }));    
+                    self.klass_lookup.insert(klass_name.clone(), RefCell::new(KlassLoadingStatus::Mentioned{ }));
                 },
-                Some(id) => match self.id_lookup.get(id) {
-                    Some(value) => (),
-                    None => panic!("No klass with ID {} found in repo", id),
-                },
+                Some(value) => (),
             }
-
             i = i + 1;
         }
     }
@@ -191,9 +164,6 @@ impl SharedKlassRepo {
         self.add_klass(&k_obj);
         // FIXME Must reset the value set for the klass repo before clinit
         self.run_clinit_method(&k_obj, i_callback);
-
-        let s = format!("{:#?}", self.id_lookup);
-        dbg!(s);
 
         // FIXME Add primitive arrays
 
@@ -238,6 +208,9 @@ impl SharedKlassRepo {
         //     "println:(Ljava/lang/Object;)V".to_string(),
         //     crate::native_methods::java_io_PrintStream__println,
         // );
+
+        let s = format!("{:?}", self.klass_lookup);
+        dbg!(s);
     }
 
     pub fn lookup_static_field(&self, klass_name: &String, idx: u16) -> OtField {
@@ -290,46 +263,35 @@ impl SharedKlassRepo {
     }
 
     pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {
-        let kid = match self.klass_lookup.get(klass_name) {
-            Some(id) => id,
-            None => panic!("No klass called {} found in repo", klass_name),
-        };
-        match self.id_lookup.get(kid) {
+        match self.klass_lookup.get(klass_name) {
             Some(cell) => match &*(cell.borrow()) {
-                KlassLoadingStatus::Mentioned {} => panic!("Klass with ID {} is not loaded yet", kid),
+                KlassLoadingStatus::Mentioned {} => panic!("Klass with ID {} is not loaded yet", klass_name),
                 KlassLoadingStatus::Loaded { klass : k } => k.get_method_by_name_and_desc(&fq_name_desc).unwrap().clone(),
                 KlassLoadingStatus::Live { klass : k } => k.get_method_by_name_and_desc(&fq_name_desc).unwrap().clone(),
             },
-            None => panic!("No klass with ID {} found in repo", kid),
+            None => panic!("No klass with ID {} found in repo", klass_name),
         }
     }
 
     // m_idx is IDX in CP of current class
     pub fn lookup_method_virtual(&self, klass_name: &String, m_idx: u16) -> OtMethod {
-        // Get klass
-        let kid = match self.klass_lookup.get(klass_name) {
-            Some(id) => id,
-            None => panic!("No klass called {} found in repo", klass_name),
-        };
-        match self.id_lookup.get(kid) {
+        match self.klass_lookup.get(klass_name) {
             Some(cell) => match &*(cell.borrow()) {
-                KlassLoadingStatus::Mentioned {} => panic!("Klass with ID {} is not loaded yet", kid),
+                KlassLoadingStatus::Mentioned {} => panic!("Klass with ID {} is not loaded yet", klass_name),
                 KlassLoadingStatus::Loaded { klass : k } => k.get_method_by_offset_virtual(m_idx),
                 KlassLoadingStatus::Live { klass : k } => k.get_method_by_offset_virtual(m_idx),
             }
-            None => panic!("No klass with ID {} found in repo", kid),
+            None => panic!("No klass with ID {} found in repo", klass_name),
         }
     }
 }
 
-//     klass_lookup: HashMap<String, usize>,
-//    id_lookup: HashMap<usize, OtKlass>,
 impl fmt::Display for SharedKlassRepo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{:?} with klasses {:?}",
-            self.klass_count, self.id_lookup
+            "{:#?}",
+            self.klass_lookup
         )
     }
 }
@@ -338,8 +300,6 @@ impl Clone for SharedKlassRepo {
     fn clone(&self) -> SharedKlassRepo {
         SharedKlassRepo {
             klass_lookup: self.klass_lookup.clone(),
-            id_lookup: self.id_lookup.clone(),
-            klass_count: AtomicUsize::new(self.klass_count.fetch_add(0, Ordering::SeqCst)),
         }
     }
 }

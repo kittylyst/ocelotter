@@ -201,7 +201,7 @@ impl OtKlass {
 
     // NOTE: This is fully-qualified
     pub fn get_method_by_name_and_desc(&self, name_desc: &String) -> Option<&OtMethod> {
-        dbg!(&self.m_name_desc_lookup);
+        // dbg!(&self.m_name_desc_lookup);
         dbg!(&name_desc);
         let opt_idx = self.m_name_desc_lookup.get(name_desc);
         let idx: usize = match opt_idx {
@@ -213,7 +213,7 @@ impl OtKlass {
 
     // NOTE: This is fully-qualified
     pub fn get_static_field_by_name_and_desc(&self, name_desc: &String) -> Option<&OtField> {
-        dbg!(&self.f_name_desc_lookup);
+        // dbg!(&self.f_name_desc_lookup);
         dbg!(&name_desc);
         let opt_idx = self.f_name_desc_lookup.get(name_desc);
         let idx: usize = match opt_idx {
@@ -225,7 +225,7 @@ impl OtKlass {
 
     // NOTE: This is fully-qualified
     pub fn get_instance_field_by_name_and_desc(&self, name_desc: &String) -> Option<&OtField> {
-        dbg!(&self.f_name_desc_lookup);
+        // dbg!(&self.f_name_desc_lookup);
         dbg!(&name_desc);
         let opt_idx = self.f_name_desc_lookup.get(name_desc);
         let idx: usize = match opt_idx {
@@ -237,7 +237,6 @@ impl OtKlass {
 
     pub fn lookup_cp(&self, cp_idx: u16) -> CpEntry {
         let idx = cp_idx as usize;
-        // dbg!(&self.cp_entries);
         match self.cp_entries.get(idx).clone() {
             Some(val) => val.clone(),
             None => panic!(
