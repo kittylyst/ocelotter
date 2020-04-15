@@ -129,6 +129,23 @@ impl OtKlass {
         }
     }
 
+    pub fn get_mentioned_klasses(&self) -> Vec<String> {
+        let mut i = 0;
+        let mut out = Vec::new();
+        while i < self.cp_entries.len() {
+            let o_klass_name = match self.cp_entries.get(i).unwrap() {
+                CpEntry::class { idx: utf_idx } => Some(self.cp_as_string(*utf_idx)),
+                _ => None
+            };
+            match o_klass_name {
+                None => (),
+                Some(s) => out.push(s)
+            };
+            i = i + 1;
+        }
+        out
+    }
+
     pub fn get_instance_field_offset(&self, f: &OtField) -> usize {
         let mut i = 0;
         while i < self.i_fields.len() {

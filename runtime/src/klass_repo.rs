@@ -99,17 +99,12 @@ impl SharedKlassRepo {
     pub fn add_klass(&mut self, k: &OtKlass) -> () {
         // First check to see if we already have this class and which state it's in
         let klass_name = k.get_name();
-        match self.klass_lookup.get(&klass_name) {
+        let upgrade = match self.klass_lookup.get(&klass_name) {
             Some(id) => match self.id_lookup.get(id) {
                 Some(value) => match &*(value.borrow()) {
-                    KlassLoadingStatus::Mentioned {} => {
-                        let k2: OtKlass = (*k).to_owned();
-                        // Set kid & Load k into map
-                        k2.set_id(*id);
-                        self.id_lookup.get(id).unwrap().replace(KlassLoadingStatus::Loaded{ klass: k2 });
-                    },
-                    KlassLoadingStatus::Loaded { klass : k } => (), // No-op
-                    KlassLoadingStatus::Live { klass : k } => () // No-op
+                    KlassLoadingStatus::Mentioned {} => Some(id),
+                    KlassLoadingStatus::Loaded { klass : _ } => None, 
+                    KlassLoadingStatus::Live { klass : _ } => None 
                 },
                 None => panic!("No klass with ID {} found in repo", id),
             },
@@ -118,12 +113,48 @@ impl SharedKlassRepo {
                 // If it's completely new, then set its ID (which we'll use as the key for it)
                 k2.set_id(self.klass_count.fetch_add(1, Ordering::SeqCst));
                 let id = k2.get_id();
+                // Scan for every other class the newcomer mentions
+                let klasses_mentioned = k2.get_mentioned_klasses();
 
                 self.klass_lookup.insert(k.get_name().clone(), id);
                 self.id_lookup.insert(id, RefCell::new(KlassLoadingStatus::Loaded{ klass: k2 }));
+                // Mention everything this class refers to
+                self.mention(klasses_mentioned);
+                None
             }
         };
+        match upgrade {
+            None => (),
+            Some(id) => {
+                let k2 = (*k).to_owned();
+                // Set kid & Load k into map
+                k2.set_id(*id);
+                self.id_lookup.get(id).unwrap().replace(KlassLoadingStatus::Loaded{ klass: k2 });
+            }
+        }
+    }
 
+    fn mention(&mut self, mentions: Vec<String>) -> () {
+        // Loop over mentions
+        let mut i = 0;
+        while i < mentions.len() {
+            // Check to see if we have this class already
+            let klass_name = mentions.get(i).unwrap();
+            match self.klass_lookup.get(klass_name) {
+                // If not, add a mention
+                None => {
+                    let id = self.klass_count.fetch_add(1, Ordering::SeqCst);
+                    self.klass_lookup.insert(klass_name.clone(), id);
+                    self.id_lookup.insert(id, RefCell::new(KlassLoadingStatus::Mentioned{ }));    
+                },
+                Some(id) => match self.id_lookup.get(id) {
+                    Some(value) => (),
+                    None => panic!("No klass with ID {} found in repo", id),
+                },
+            }
+
+            i = i + 1;
+        }
     }
 
     fn run_clinit_method(&mut self, k : &OtKlass, i_callback: fn(&mut SharedKlassRepo, &OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) {
