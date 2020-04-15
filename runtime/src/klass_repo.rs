@@ -192,6 +192,9 @@ impl SharedKlassRepo {
         // FIXME Must reset the value set for the klass repo before clinit
         self.run_clinit_method(&k_obj, i_callback);
 
+        let s = format!("{:#?}", self.id_lookup);
+        dbg!(s);
+
         // FIXME Add primitive arrays
 
         // FIXME Add java.lang.Class
