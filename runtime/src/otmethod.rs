@@ -74,6 +74,9 @@ impl OtMethod {
     }
 
     pub fn set_native_code(&self, n_code: fn(&InterpLocalVars) -> Option<JvmValue>) {
+        if !self.is_native() {
+            panic!("Should be unreachable - trying to store native code in a regular method")
+        }
         self.native_code.set(Some(n_code));
     }
 

@@ -161,50 +161,15 @@ impl SharedKlassRepo {
             "java/lang/Object.hashCode:()I".to_string(),
             crate::native_methods::java_lang_Object__hashcode,
         );
-        k_obj.set_native_method(
-            "java/lang/Object.registerNatives:()V".to_string(),
-            crate::native_methods::java_lang_Object__registerNatives,
-        );
         // Do we need to re-add it?
         self.add_klass(&k_obj);
 
-        // FIXME Must reset the value set for the klass repo before clinit
-        self.run_clinit_method(&k_obj, i_callback);
-
-        // // FIXME Add primitive arrays
-
-        // // FIXME Add java.lang.Class
-
-        // // Add wrapper classes
-        // let k_jli = SharedKlassRepo::parse_bootstrap_class("java/lang/Integer".to_string());
-        // self.add_klass(&k_jli);
-        // // Needs j.l.Class to run (set up primitive type .class object)
-        // // self.run_clinit_method(&k_jli, i_callback);
-
-        // let k_jlic = SharedKlassRepo::parse_bootstrap_class("java/lang/Integer$IntegerCache".to_string());
-        // self.add_klass(&k_jlic);
-        // // Needs j.l.Class and uses sun.* classes to do VM-protected stuff
-        // // self.run_clinit_method(&k_jlic, i_callback);
-
-        // // FIXME Other classes
-
-        // // Add java.lang.String
-        // let k_jls = SharedKlassRepo::parse_bootstrap_class("java/lang/String".to_string());
-        // // FIXME String only has intern() as a native method, skip for now
-        // self.add_klass(&k_jls);
-
-        // // Add java.lang.StringBuilder
-        // let k_jlsb = SharedKlassRepo::parse_bootstrap_class("java/lang/StringBuilder".to_string());
-        // self.add_klass(&k_jlsb);
-
-        // // FIXME Add class objects for already bootstrapped classes
-
-        // Add java.lang.System
         let k_sys = self.lookup_klass(&"java/lang/System".to_string());
         k_sys.set_native_method(
             "java/lang/System.currentTimeMillis:()J".to_string(),
             crate::native_methods::java_lang_System__currentTimeMillis,
         );
+        // Do we need to re-add it?
         self.add_klass(&k_sys);
 
         // TODO Dummy up enough of java.io.PrintStream to get System.out.println() to work

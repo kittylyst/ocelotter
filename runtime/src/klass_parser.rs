@@ -529,7 +529,11 @@ impl OtKlassParser {
             //    u2 attributes_count;
             //    attribute_info attributes[attributes_count];
             "Exceptions" => {
-                dbg!("Encountered exception handlers in bytecode - skipping");
+                // dbg!("Encountered exception handlers in bytecode - skipping");
+                ()
+            }
+            "Synthetic" => {
+                // dbg!("Encountered Synthetic attribute in bytecode - skipping");
                 ()
             }
             "Deprecated" => {

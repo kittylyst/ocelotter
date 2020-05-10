@@ -119,12 +119,10 @@ impl OtKlass {
         name_desc: String,
         n_code: fn(&InterpLocalVars) -> Option<JvmValue>,
     ) {
-        // dbg!("Setting native code");
-        // dbg!(name_desc.clone());
         match self.get_method_by_name_and_desc(&name_desc) {
             Some(m2) => m2.set_native_code(n_code),
             None => {
-                panic!("Should be unreachable - trying to store native code in a regular method")
+                panic!("Should be unreachable - trying to store native code in a non-existant method")
             }
         }
     }
