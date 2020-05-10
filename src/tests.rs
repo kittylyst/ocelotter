@@ -47,10 +47,10 @@ fn simple_parse_klass(cname: String) -> OtKlass {
 #[test]
 fn bc_adds_to_two() {
     let first_test = vec![
-        opcode::Opcode::ICONST_1,
-        opcode::Opcode::ICONST_1,
-        opcode::Opcode::IADD,
-        opcode::Opcode::IRETURN,
+        opcode::ICONST_1,
+        opcode::ICONST_1,
+        opcode::IADD,
+        opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&first_test) {
         JvmValue::Int { val: i } => i,
@@ -65,10 +65,10 @@ fn bc_adds_to_two() {
 #[test]
 fn bc_iconst_dup() {
     let buf = vec![
-        opcode::Opcode::ICONST_1,
-        opcode::Opcode::DUP,
-        opcode::Opcode::IADD,
-        opcode::Opcode::IRETURN,
+        opcode::ICONST_1,
+        opcode::DUP,
+        opcode::IADD,
+        opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
@@ -80,12 +80,12 @@ fn bc_iconst_dup() {
     assert_eq!(2, ret);
 
     let buf2 = vec![
-        opcode::Opcode::ICONST_1,
-        opcode::Opcode::DUP,
-        opcode::Opcode::IADD,
-        opcode::Opcode::DUP,
-        opcode::Opcode::IADD,
-        opcode::Opcode::IRETURN,
+        opcode::ICONST_1,
+        opcode::DUP,
+        opcode::IADD,
+        opcode::DUP,
+        opcode::IADD,
+        opcode::IRETURN,
     ];
     let ret2 = match execute_simple_bytecode(&buf2) {
         JvmValue::Int { val: i } => i,
@@ -100,10 +100,10 @@ fn bc_iconst_dup() {
 #[test]
 fn bc_irem_works() {
     let buf = vec![
-        opcode::Opcode::ICONST_5,
-        opcode::Opcode::ICONST_3,
-        opcode::Opcode::IREM,
-        opcode::Opcode::IRETURN,
+        opcode::ICONST_5,
+        opcode::ICONST_3,
+        opcode::IREM,
+        opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
@@ -118,10 +118,10 @@ fn bc_irem_works() {
 #[test]
 fn bc_idiv_works() {
     let buf = vec![
-        opcode::Opcode::ICONST_5,
-        opcode::Opcode::ICONST_3,
-        opcode::Opcode::IDIV,
-        opcode::Opcode::IRETURN,
+        opcode::ICONST_5,
+        opcode::ICONST_3,
+        opcode::IDIV,
+        opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
@@ -136,11 +136,11 @@ fn bc_idiv_works() {
 #[test]
 fn bc_iconst_dup_nop_pop() {
     let buf = vec![
-        opcode::Opcode::ICONST_1,
-        opcode::Opcode::DUP,
-        opcode::Opcode::NOP,
-        opcode::Opcode::POP,
-        opcode::Opcode::IRETURN,
+        opcode::ICONST_1,
+        opcode::DUP,
+        opcode::NOP,
+        opcode::POP,
+        opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
@@ -155,12 +155,12 @@ fn bc_iconst_dup_nop_pop() {
 #[test]
 fn bc_iconst_dup_x1() {
     let buf = vec![
-        opcode::Opcode::ICONST_1,
-        opcode::Opcode::ICONST_2,
-        opcode::Opcode::DUP_X1,
-        opcode::Opcode::IADD,
-        opcode::Opcode::IADD,
-        opcode::Opcode::IRETURN,
+        opcode::ICONST_1,
+        opcode::ICONST_2,
+        opcode::DUP_X1,
+        opcode::IADD,
+        opcode::IADD,
+        opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
@@ -172,14 +172,14 @@ fn bc_iconst_dup_x1() {
     assert_eq!(5, ret);
 
     let buf2 = vec![
-        opcode::Opcode::ICONST_1,
-        opcode::Opcode::ICONST_2,
-        opcode::Opcode::DUP_X1,
-        opcode::Opcode::IADD,
-        opcode::Opcode::DUP_X1,
-        opcode::Opcode::IADD,
-        opcode::Opcode::IADD,
-        opcode::Opcode::IRETURN,
+        opcode::ICONST_1,
+        opcode::ICONST_2,
+        opcode::DUP_X1,
+        opcode::IADD,
+        opcode::DUP_X1,
+        opcode::IADD,
+        opcode::IADD,
+        opcode::IRETURN,
     ];
     let ret2 = match execute_simple_bytecode(&buf2) {
         JvmValue::Int { val: i } => i,
@@ -194,14 +194,14 @@ fn bc_iconst_dup_x1() {
 #[test]
 fn bc_ifnonnull() {
     let buf = vec![
-        opcode::Opcode::ICONST_1,
-        opcode::Opcode::ACONST_NULL,
-        opcode::Opcode::IFNONNULL,
+        opcode::ICONST_1,
+        opcode::ACONST_NULL,
+        opcode::IFNONNULL,
         0,
         4,
-        opcode::Opcode::POP,
-        opcode::Opcode::ICONST_2,
-        opcode::Opcode::IRETURN,
+        opcode::POP,
+        opcode::ICONST_2,
+        opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
@@ -216,14 +216,14 @@ fn bc_ifnonnull() {
 #[test]
 fn bc_ifnull() {
     let buf = vec![
-        opcode::Opcode::ICONST_1,
-        opcode::Opcode::ACONST_NULL,
-        opcode::Opcode::IFNULL,
+        opcode::ICONST_1,
+        opcode::ACONST_NULL,
+        opcode::IFNULL,
         0,
         4,
-        opcode::Opcode::POP,
-        opcode::Opcode::ICONST_2,
-        opcode::Opcode::IRETURN,
+        opcode::POP,
+        opcode::ICONST_2,
+        opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
@@ -238,19 +238,19 @@ fn bc_ifnull() {
 #[test]
 fn bc_ifeq() {
     let buf = vec![
-        Opcode::ICONST_1,
-        Opcode::ICONST_1,
-        Opcode::IADD,
-        Opcode::ICONST_2,
-        Opcode::IF_ICMPEQ,
+        opcode::ICONST_1,
+        opcode::ICONST_1,
+        opcode::IADD,
+        opcode::ICONST_2,
+        opcode::IF_ICMPEQ,
         0,
         3,
-        Opcode::ICONST_4,
-        // Opcode::GOTO,
+        opcode::ICONST_4,
+        // opcode::GOTO,
         // 0,
         // 12,
-        Opcode::ICONST_3,
-        Opcode::IRETURN,
+        opcode::ICONST_3,
+        opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
@@ -265,14 +265,14 @@ fn bc_ifeq() {
 #[test]
 fn bc_goto() {
     let buf = vec![
-        opcode::Opcode::ICONST_1,
-        opcode::Opcode::ICONST_1,
-        opcode::Opcode::IADD,
-        opcode::Opcode::GOTO,
+        opcode::ICONST_1,
+        opcode::ICONST_1,
+        opcode::IADD,
+        opcode::GOTO,
         0,
         3,
         0xff,
-        opcode::Opcode::IRETURN,
+        opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
