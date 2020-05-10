@@ -64,12 +64,7 @@ fn bc_adds_to_two() {
 
 #[test]
 fn bc_iconst_dup() {
-    let buf = vec![
-        opcode::ICONST_1,
-        opcode::DUP,
-        opcode::IADD,
-        opcode::IRETURN,
-    ];
+    let buf = vec![opcode::ICONST_1, opcode::DUP, opcode::IADD, opcode::IRETURN];
     let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Int { val: i } => i,
         _ => {
