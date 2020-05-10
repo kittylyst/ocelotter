@@ -12,6 +12,7 @@ use crate::otmethod::OtMethod;
 use crate::otklass::OtKlass;
 
 use ocelotter_util::file_to_bytes;
+use ocelotter_util::ZipFiles;
 
 //////////// SHARED RUNTIME KLASS REPO
 
@@ -33,7 +34,7 @@ impl SharedKlassRepo {
     // Static methods
 
     // FIXME This is effectively static
-    fn parse_bootstrap_class(&self, cl_name: String) -> OtKlass {
+    fn parse_bootstrap_class(cl_name: String) -> OtKlass {
         let fq_klass_fname = "./resources/lib/".to_owned() + &cl_name + ".class";
         let bytes = match file_to_bytes(Path::new(&fq_klass_fname)) {
             Ok(buf) => buf,
@@ -143,12 +144,33 @@ impl SharedKlassRepo {
         i_callback(self, &clinit, &mut vars);
     }
 
-    // FIXME This should be changed to read in an ocelot-rt.jar (a cut down full RT)
-    // and add each class one by one before fixing up the native code that we have working
-//  (repo: SharedKlassRepo, meth: &OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValue>
+    // This reads in classes.jar and adds each class one by one before fixing up
+    // the bits of native code that we have working
+    //
+    // An interpreter callback, i_callback is needed to run the static initializers
     pub fn bootstrap(&mut self, i_callback: fn(&mut SharedKlassRepo, &OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) -> () {
+        let file = "classes.jar";
+        ZipFiles::new(file)
+        .into_iter()
+        .filter(|f| match f {
+            Ok((name, _)) if name.ends_with(".class") => true,
+            _ => false,
+        })
+        .for_each(|z| {
+            if let Ok((name, bytes)) = z {
+                let mut parser = crate::klass_parser::OtKlassParser::of(bytes, name);
+                parser.parse();
+                self.add_klass(&parser.klass());
+            }
+        });
+
+
+
+
+
+
         // Add java.lang.Object
-        let k_obj = self.parse_bootstrap_class("java/lang/Object".to_string());
+        let k_obj = SharedKlassRepo::parse_bootstrap_class("java/lang/Object".to_string());
         // let s = format!("{}", self);
         // dbg!(s);
 
@@ -170,12 +192,12 @@ impl SharedKlassRepo {
         // FIXME Add java.lang.Class
 
         // Add wrapper classes
-        let k_jli = self.parse_bootstrap_class("java/lang/Integer".to_string());
+        let k_jli = SharedKlassRepo::parse_bootstrap_class("java/lang/Integer".to_string());
         self.add_klass(&k_jli);
         // Needs j.l.Class to run (set up primitive type .class object)
         // self.run_clinit_method(&k_jli, i_callback);
 
-        let k_jlic = self.parse_bootstrap_class("java/lang/Integer$IntegerCache".to_string());
+        let k_jlic = SharedKlassRepo::parse_bootstrap_class("java/lang/Integer$IntegerCache".to_string());
         self.add_klass(&k_jlic);
         // Needs j.l.Class and uses sun.* classes to do VM-protected stuff
         // self.run_clinit_method(&k_jlic, i_callback);
@@ -183,18 +205,18 @@ impl SharedKlassRepo {
         // FIXME Other classes
 
         // Add java.lang.String
-        let k_jls = self.parse_bootstrap_class("java/lang/String".to_string());
+        let k_jls = SharedKlassRepo::parse_bootstrap_class("java/lang/String".to_string());
         // FIXME String only has intern() as a native method, skip for now
         self.add_klass(&k_jls);
 
         // Add java.lang.StringBuilder
-        let k_jlsb = self.parse_bootstrap_class("java/lang/StringBuilder".to_string());
+        let k_jlsb = SharedKlassRepo::parse_bootstrap_class("java/lang/StringBuilder".to_string());
         self.add_klass(&k_jlsb);
 
         // FIXME Add class objects for already bootstrapped classes
 
         // Add java.lang.System
-        let k_sys = self.parse_bootstrap_class("java/lang/System".to_string());
+        let k_sys = SharedKlassRepo::parse_bootstrap_class("java/lang/System".to_string());
         k_sys.set_native_method(
             "java/lang/System.currentTimeMillis:()J".to_string(),
             crate::native_methods::java_lang_System__currentTimeMillis,
