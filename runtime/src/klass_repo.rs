@@ -119,9 +119,9 @@ impl SharedKlassRepo {
         }
     }
 
-    fn run_clinit_method(&mut self, k : &OtKlass, i_callback: fn(&mut SharedKlassRepo, &OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) {
-        let klass_name = k.get_name();
-        let m_str: String = klass_name.clone() + ".<clinit>:()V";
+    fn run_clinit_method(&mut self, klass_name: &String, i_callback: fn(&mut SharedKlassRepo, &OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) {
+        let m_str = klass_name.to_owned() + ".<clinit>:()V";
+        let k = self.lookup_klass(klass_name);
         let clinit = match k.get_method_by_name_and_desc(&m_str) {
             Some(value) => value.clone(),
             // FIXME Make this a clean exit
@@ -134,11 +134,11 @@ impl SharedKlassRepo {
 
     fn install_native_method(&mut self, klass_name: &String, name_desc: &String,
         n_code: fn(&InterpLocalVars) -> Option<JvmValue> ) -> () {
-        let k_obj = self.lookup_klass(klass_name);
+        let k = self.lookup_klass(klass_name);
         let fq_name = klass_name.to_owned() +"."+ &name_desc;
 
-        k_obj.set_native_method(fq_name, n_code);
-        self.klass_lookup.get(klass_name).unwrap().replace(KlassLoadingStatus::Live{ klass: k_obj });
+        k.set_native_method(fq_name, n_code);
+        self.klass_lookup.get(klass_name).unwrap().replace(KlassLoadingStatus::Live{ klass: k });
     }
 
     // This reads in classes.jar and adds each class one by one before fixing up
@@ -178,9 +178,18 @@ impl SharedKlassRepo {
         // // public native void close() throws IOException;
         // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"close:()V".to_string(), crate::native_methods::java_io/_FileOutputStream__close);
 
+        // // private static native FileDescriptor initSystemFD(FileDescriptor fdObj, int desc);
+        // self.install_native_method(&"java/io/FileDescriptor".to_string(), &"initSystemFD:(Ljava/io/FileDescriptor;I)Ljava/io/FileDescriptor;".to_string(), crate::native_methods::java_io_FileDescriptor__initSystemFD);
 
         // let s = format!("{:?}", self.klass_lookup);
         // dbg!(s);
+
+        // All native methods are installed for the bootstrap classes 
+        // Now, we need to run the static initializers in the right order
+        // self.run_clinit_method(&"java/io/FileDescriptor".to_string(), i_callback);
+
+        // // This requires the file descriptor handling to already exist
+        // self.run_clinit_method(&"java/lang/System".to_string(), i_callback);
     }
 
     pub fn lookup_static_field(&self, klass_name: &String, idx: u16) -> OtField {
