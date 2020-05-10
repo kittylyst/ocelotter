@@ -1,4 +1,6 @@
 #![deny(unreachable_patterns)]
+#![allow(dead_code)]
+#![allow(unused_variables)]
 
 use ocelotter_runtime::constant_pool::*;
 use ocelotter_runtime::interp_stack::InterpEvalStack;
@@ -7,8 +9,7 @@ use ocelotter_runtime::otklass::OtKlass;
 use ocelotter_runtime::otmethod::OtMethod;
 use ocelotter_runtime::*;
 
-pub mod opcode;
-use opcode::*;
+mod opcode;
 
 pub fn exec_method(
     repo: &mut SharedKlassRepo,
@@ -49,68 +50,68 @@ pub fn exec_bytecode_method(
 
         // dbg!(ins);
         match ins {
-            Opcode::ACONST_NULL => eval.aconst_null(),
+            opcode::ACONST_NULL => eval.aconst_null(),
 
-            Opcode::ALOAD => {
+            opcode::ALOAD => {
                 eval.push(lvt.load(instr[current]));
                 current += 1;
             }
-            Opcode::ALOAD_0 => eval.push(lvt.load(0)),
+            opcode::ALOAD_0 => eval.push(lvt.load(0)),
 
-            Opcode::ALOAD_1 => eval.push(lvt.load(1)),
+            opcode::ALOAD_1 => eval.push(lvt.load(1)),
 
-            Opcode::ARETURN => break Some(eval.pop()),
-            Opcode::ASTORE => {
+            opcode::ARETURN => break Some(eval.pop()),
+            opcode::ASTORE => {
                 lvt.store(instr[current], eval.pop());
                 current += 1;
             }
-            Opcode::ASTORE_0 => lvt.store(0, eval.pop()),
+            opcode::ASTORE_0 => lvt.store(0, eval.pop()),
 
-            Opcode::ASTORE_1 => lvt.store(1, eval.pop()),
+            opcode::ASTORE_1 => lvt.store(1, eval.pop()),
 
-            Opcode::BIPUSH => {
+            opcode::BIPUSH => {
                 eval.iconst(instr[current] as i32);
                 current += 1;
             }
-            Opcode::DADD => eval.dadd(),
+            opcode::DADD => eval.dadd(),
 
-            Opcode::DCONST_0 => eval.dconst(0.0),
+            opcode::DCONST_0 => eval.dconst(0.0),
 
-            Opcode::DCONST_1 => eval.dconst(1.0),
+            opcode::DCONST_1 => eval.dconst(1.0),
 
-            Opcode::DLOAD => {
+            opcode::DLOAD => {
                 eval.push(lvt.load(instr[current]));
                 current += 1;
             }
 
-            Opcode::DLOAD_0 => eval.push(lvt.load(0)),
+            opcode::DLOAD_0 => eval.push(lvt.load(0)),
 
-            Opcode::DLOAD_1 => eval.push(lvt.load(1)),
+            opcode::DLOAD_1 => eval.push(lvt.load(1)),
 
-            Opcode::DLOAD_2 => eval.push(lvt.load(2)),
+            opcode::DLOAD_2 => eval.push(lvt.load(2)),
 
-            Opcode::DLOAD_3 => eval.push(lvt.load(3)),
+            opcode::DLOAD_3 => eval.push(lvt.load(3)),
 
-            Opcode::DRETURN => break Some(eval.pop()),
-            Opcode::DSTORE => {
+            opcode::DRETURN => break Some(eval.pop()),
+            opcode::DSTORE => {
                 lvt.store(instr[current], eval.pop());
                 current += 1;
             }
-            Opcode::DSTORE_0 => lvt.store(0, eval.pop()),
+            opcode::DSTORE_0 => lvt.store(0, eval.pop()),
 
-            Opcode::DSTORE_1 => lvt.store(1, eval.pop()),
+            opcode::DSTORE_1 => lvt.store(1, eval.pop()),
 
-            Opcode::DSTORE_2 => lvt.store(2, eval.pop()),
+            opcode::DSTORE_2 => lvt.store(2, eval.pop()),
 
-            Opcode::DSTORE_3 => lvt.store(3, eval.pop()),
+            opcode::DSTORE_3 => lvt.store(3, eval.pop()),
 
-            Opcode::DSUB => eval.dsub(),
+            opcode::DSUB => eval.dsub(),
 
-            Opcode::DUP => eval.dup(),
+            opcode::DUP => eval.dup(),
 
-            Opcode::DUP_X1 => eval.dupX1(),
+            opcode::DUP_X1 => eval.dupX1(),
 
-            Opcode::GETFIELD => {
+            opcode::GETFIELD => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
@@ -126,7 +127,7 @@ pub fn exec_bytecode_method(
                 let ret = obj.get_field_value(getf.get_offset() as usize);
                 eval.push(ret);
             }
-            Opcode::GETSTATIC => {
+            opcode::GETSTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
@@ -136,15 +137,15 @@ pub fn exec_bytecode_method(
                 let ret = klass.get_static_field_value(&getf);
                 eval.push(ret.clone());
             }
-            Opcode::GOTO => {
+            opcode::GOTO => {
                 current += ((instr[current] as usize) << 8) + instr[current + 1] as usize
             }
 
-            Opcode::I2D => eval.i2d(),
+            opcode::I2D => eval.i2d(),
 
-            Opcode::IADD => eval.iadd(),
+            opcode::IADD => eval.iadd(),
 
-            Opcode::IALOAD => {
+            opcode::IALOAD => {
                 let pos_to_load = match eval.pop() {
                     JvmValue::Int { val: v } => v,
                     _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
@@ -168,9 +169,9 @@ pub fn exec_bytecode_method(
                 eval.push(JvmValue::Int { val: unwrapped_val });
             }
 
-            Opcode::IAND => eval.iand(),
+            opcode::IAND => eval.iand(),
 
-            Opcode::IASTORE => {
+            opcode::IASTORE => {
                 let val_to_store = match eval.pop() {
                     JvmValue::Int { val: v } => v,
                     _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
@@ -189,23 +190,23 @@ pub fn exec_bytecode_method(
                     .iastore(obj_id, pos_to_store, val_to_store);
             }
 
-            Opcode::ICONST_0 => eval.iconst(0),
+            opcode::ICONST_0 => eval.iconst(0),
 
-            Opcode::ICONST_1 => eval.iconst(1),
+            opcode::ICONST_1 => eval.iconst(1),
 
-            Opcode::ICONST_2 => eval.iconst(2),
+            opcode::ICONST_2 => eval.iconst(2),
 
-            Opcode::ICONST_3 => eval.iconst(3),
+            opcode::ICONST_3 => eval.iconst(3),
 
-            Opcode::ICONST_4 => eval.iconst(4),
+            opcode::ICONST_4 => eval.iconst(4),
 
-            Opcode::ICONST_5 => eval.iconst(5),
+            opcode::ICONST_5 => eval.iconst(5),
 
-            Opcode::ICONST_M1 => eval.iconst(-1),
+            opcode::ICONST_M1 => eval.iconst(-1),
 
-            Opcode::IDIV => eval.idiv(),
+            opcode::IDIV => eval.idiv(),
 
-            Opcode::IF_ICMPEQ => {
+            opcode::IF_ICMPEQ => {
                 let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i == j
@@ -215,7 +216,7 @@ pub fn exec_bytecode_method(
                     current += 2;
                 }
             }
-            Opcode::IF_ICMPGT => {
+            opcode::IF_ICMPGT => {
                 let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i > j
@@ -226,7 +227,7 @@ pub fn exec_bytecode_method(
                 }
             }
 
-            Opcode::IF_ICMPLT => {
+            opcode::IF_ICMPLT => {
                 let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i < j
@@ -236,7 +237,7 @@ pub fn exec_bytecode_method(
                     current += 2;
                 }
             }
-            Opcode::IF_ICMPNE => {
+            opcode::IF_ICMPNE => {
                 let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i == j
@@ -246,7 +247,7 @@ pub fn exec_bytecode_method(
                     current += jump_to;
                 }
             }
-            // Opcode::IFEQ => {
+            // opcode::IFEQ => {
             //     let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
             //     let i = match eval.pop() {
 
@@ -257,42 +258,42 @@ pub fn exec_bytecode_method(
             //         current += 2;
             //     }
             // }    ,
-            // Opcode::IFGE => {
+            // opcode::IFGE => {
             //     v = eval.pop();
             //     jump_to = ((int) instr[current++] << 8) + (int) instr[current++];
             //     if (v.value >= 0L) {
             //         current += jump_to - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // } ,
-            // Opcode::IFGT => {
+            // opcode::IFGT => {
             //     v = eval.pop();
             //     jump_to = ((int) instr[current++] << 8) + (int) instr[current++];
             //     if (v.value > 0L) {
             //         current += jump_to - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // },
-            // Opcode::IFLE => {
+            // opcode::IFLE => {
             //     v = eval.pop();
             //     jump_to = ((int) instr[current++] << 8) + (int) instr[current++];
             //     if (v.value <= 0L) {
             //         current += jump_to - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // },
-            // Opcode::IFLT => {
+            // opcode::IFLT => {
             //     v = eval.pop();
             //     jump_to = ((int) instr[current++] << 8) + (int) instr[current++];
             //     if (v.value < 0L) {
             //         current += jump_to - 1; // The -1 is necessary as we've already inc'd current
             //     }
             // },
-            // Opcode::IFNE => {
+            // opcode::IFNE => {
             //     v = eval.pop();
             //     jump_to = ((int) instr[current] << 8) + (int) instr[current + 1];
             //     if (v.value != 0L) {
             //         current += jump_to - 1;  // The -1 is necessary as we've already inc'd current
             //     }
             // },
-            Opcode::IFNONNULL => {
+            opcode::IFNONNULL => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
 
                 match eval.pop() {
@@ -309,7 +310,7 @@ pub fn exec_bytecode_method(
                     ),
                 };
             }
-            Opcode::IFNULL => {
+            opcode::IFNULL => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
 
                 match eval.pop() {
@@ -326,42 +327,42 @@ pub fn exec_bytecode_method(
                     ),
                 };
             }
-            Opcode::IINC => {
+            opcode::IINC => {
                 lvt.iinc(instr[current], instr[current + 1]);
                 current += 2;
             }
 
-            Opcode::ILOAD => {
+            opcode::ILOAD => {
                 eval.push(lvt.load(instr[current]));
                 current += 1
             }
 
-            Opcode::ILOAD_0 => eval.push(lvt.load(0)),
+            opcode::ILOAD_0 => eval.push(lvt.load(0)),
 
-            Opcode::ILOAD_1 => eval.push(lvt.load(1)),
+            opcode::ILOAD_1 => eval.push(lvt.load(1)),
 
-            Opcode::ILOAD_2 => eval.push(lvt.load(2)),
+            opcode::ILOAD_2 => eval.push(lvt.load(2)),
 
-            Opcode::ILOAD_3 => eval.push(lvt.load(3)),
+            opcode::ILOAD_3 => eval.push(lvt.load(3)),
 
-            Opcode::IMUL => eval.imul(),
+            opcode::IMUL => eval.imul(),
 
-            Opcode::INEG => eval.ineg(),
+            opcode::INEG => eval.ineg(),
 
-            Opcode::INVOKESPECIAL => {
+            opcode::INVOKESPECIAL => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 let current_klass = repo.lookup_klass(&klass_name).clone();
                 dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 1);
             }
-            Opcode::INVOKESTATIC => {
+            opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 let current_klass = repo.lookup_klass(&klass_name).clone();
                 // dbg!(current_klass.clone());
                 dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 0);
             }
-            Opcode::INVOKEVIRTUAL => {
+            opcode::INVOKEVIRTUAL => {
                 // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
@@ -369,31 +370,31 @@ pub fn exec_bytecode_method(
                 dbg!(current_klass.clone());
                 dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 1);
             }
-            Opcode::IOR => eval.ior(),
+            opcode::IOR => eval.ior(),
 
-            Opcode::IREM => eval.irem(),
+            opcode::IREM => eval.irem(),
 
-            Opcode::IRETURN => break Some(eval.pop()),
-            Opcode::ISTORE => {
+            opcode::IRETURN => break Some(eval.pop()),
+            opcode::ISTORE => {
                 lvt.store(instr[current], eval.pop());
                 current += 1;
             }
-            Opcode::ISTORE_0 => lvt.store(0, eval.pop()),
+            opcode::ISTORE_0 => lvt.store(0, eval.pop()),
 
-            Opcode::ISTORE_1 => lvt.store(1, eval.pop()),
+            opcode::ISTORE_1 => lvt.store(1, eval.pop()),
 
-            Opcode::ISTORE_2 => lvt.store(2, eval.pop()),
+            opcode::ISTORE_2 => lvt.store(2, eval.pop()),
 
-            Opcode::ISTORE_3 => lvt.store(3, eval.pop()),
+            opcode::ISTORE_3 => lvt.store(3, eval.pop()),
 
-            Opcode::ISUB => eval.isub(),
-            Opcode::L2I => {
+            opcode::ISUB => eval.isub(),
+            opcode::L2I => {
                 match eval.pop() {
                     JvmValue::Long { val: v } => eval.push(JvmValue::Int { val: v as i32 }),
                     _ => panic!("Value not of long type found for L2I at {}", (current - 1)),
                 };
             }
-            Opcode::LDC => {
+            opcode::LDC => {
                 let cp_lookup = instr[current] as u16;
                 current += 1;
                 let current_klass = repo.lookup_klass(&klass_name).clone();
@@ -413,14 +414,14 @@ pub fn exec_bytecode_method(
                 }
             }
             // FIXME TEMP
-            Opcode::MONITORENTER => {
+            opcode::MONITORENTER => {
                 eval.pop();
             }
             // FIXME TEMP
-            Opcode::MONITOREXIT => {
+            opcode::MONITOREXIT => {
                 eval.pop();
             }
-            Opcode::NEW => {
+            opcode::NEW => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 let current_klass = repo.lookup_klass(&klass_name).clone();
@@ -440,7 +441,7 @@ pub fn exec_bytecode_method(
                 let obj_id = HEAP.lock().unwrap().allocate_obj(&object_klass);
                 eval.push(JvmValue::ObjRef { val: obj_id });
             }
-            Opcode::NEWARRAY => {
+            opcode::NEWARRAY => {
                 let arr_type = instr[current];
                 current += 1;
 
@@ -466,14 +467,14 @@ pub fn exec_bytecode_method(
                 eval.push(JvmValue::ObjRef { val: arr_id });
             }
 
-            Opcode::NOP => {
+            opcode::NOP => {
                 ();
             }
 
-            Opcode::POP => {
+            opcode::POP => {
                 eval.pop();
             }
-            Opcode::POP2 => {
+            opcode::POP2 => {
                 let _discard: JvmValue = eval.pop();
                 // FIXME Change to type match
                 // if (discard.type == JVMType.J || discard.type == JVMType.D) {
@@ -481,7 +482,7 @@ pub fn exec_bytecode_method(
                 // }
                 eval.pop();
             }
-            Opcode::PUTFIELD => {
+            opcode::PUTFIELD => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
@@ -497,7 +498,7 @@ pub fn exec_bytecode_method(
 
                 HEAP.lock().unwrap().put_field(obj_id, putf, val);
             }
-            Opcode::PUTSTATIC => {
+            opcode::PUTSTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
@@ -506,25 +507,25 @@ pub fn exec_bytecode_method(
                 // FIXME IMPL IS BROKEN
                 repo.put_static(klass_name, puts, eval.pop());
             }
-            Opcode::RETURN => break None,
-            Opcode::SIPUSH => {
+            opcode::RETURN => break None,
+            opcode::SIPUSH => {
                 let vtmp = ((instr[current] as i32) << 8) + instr[current + 1] as i32;
                 eval.iconst(vtmp);
                 current += 2;
             }
-            Opcode::SWAP => {
+            opcode::SWAP => {
                 let val1 = eval.pop();
                 let val2 = eval.pop();
                 eval.push(val1);
                 eval.push(val2);
             }
             // Disallowed opcodes
-            Opcode::BREAKPOINT => break Some(JvmValue::Boolean { val: false }),
-            Opcode::IMPDEP1 => break Some(JvmValue::Boolean { val: false }),
-            Opcode::IMPDEP2 => break Some(JvmValue::Boolean { val: false }),
-            Opcode::JSR => break Some(JvmValue::Boolean { val: false }),
-            Opcode::JSR_W => break Some(JvmValue::Boolean { val: false }),
-            Opcode::RET => break Some(JvmValue::Boolean { val: false }),
+            opcode::BREAKPOINT => break Some(JvmValue::Boolean { val: false }),
+            opcode::IMPDEP1 => break Some(JvmValue::Boolean { val: false }),
+            opcode::IMPDEP2 => break Some(JvmValue::Boolean { val: false }),
+            opcode::JSR => break Some(JvmValue::Boolean { val: false }),
+            opcode::JSR_W => break Some(JvmValue::Boolean { val: false }),
+            opcode::RET => break Some(JvmValue::Boolean { val: false }),
 
             _ => panic!(
                 "Illegal opcode byte: {} encountered at position {}. Stopping.",
