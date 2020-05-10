@@ -12,6 +12,7 @@ use crate::otmethod::OtMethod;
 use crate::otklass::OtKlass;
 
 use ocelotter_util::file_to_bytes;
+use ocelotter_util::ZipFiles;
 
 //////////// SHARED RUNTIME KLASS REPO
 
@@ -31,18 +32,6 @@ impl SharedKlassRepo {
 
     //////////////////////////////////////////////
     // Static methods
-
-    // FIXME This is effectively static
-    fn parse_bootstrap_class(&self, cl_name: String) -> OtKlass {
-        let fq_klass_fname = "./resources/lib/".to_owned() + &cl_name + ".class";
-        let bytes = match file_to_bytes(Path::new(&fq_klass_fname)) {
-            Ok(buf) => buf,
-            _ => panic!("Error reading file {}", fq_klass_fname),
-        };
-        let mut parser = crate::klass_parser::OtKlassParser::of(bytes, cl_name.clone());
-        parser.parse();
-        parser.klass()
-    }
 
     pub fn klass_name_from_fq(klass_name: &String) -> String {
         lazy_static! {
@@ -78,7 +67,7 @@ impl SharedKlassRepo {
 
         match self.klass_lookup.get(klass_name) {
             Some(cell) => match &*(cell.borrow()) {
-                KlassLoadingStatus::Mentioned {} => panic!("Klass with ID {} is not loaded yet", klass_name),
+                KlassLoadingStatus::Mentioned {} => panic!("Klass {} is not loaded yet", klass_name),
                 KlassLoadingStatus::Loaded { klass : k } => k.clone(),
                 KlassLoadingStatus::Live { klass : k } => k.clone()
             },
@@ -108,7 +97,7 @@ impl SharedKlassRepo {
         };
         if upgrade {
             let k2 = (*k).to_owned();
-            // Set kid & Load k into map
+            // Load k into map
             self.klass_lookup.get(&klass_name).unwrap().replace(KlassLoadingStatus::Loaded{ klass: k2 });
         }
     }
@@ -143,74 +132,55 @@ impl SharedKlassRepo {
         i_callback(self, &clinit, &mut vars);
     }
 
-    // FIXME This should be changed to read in an ocelot-rt.jar (a cut down full RT)
-    // and add each class one by one before fixing up the native code that we have working
-//  (repo: SharedKlassRepo, meth: &OtMethod, lvt: &mut InterpLocalVars) -> Option<JvmValue>
+    fn install_native_method(&mut self, klass_name: &String, name_desc: &String,
+        n_code: fn(&InterpLocalVars) -> Option<JvmValue> ) -> () {
+        let k_obj = self.lookup_klass(klass_name);
+        let fq_name = klass_name.to_owned() +"."+ &name_desc;
+
+        k_obj.set_native_method(fq_name, n_code);
+        self.klass_lookup.get(klass_name).unwrap().replace(KlassLoadingStatus::Live{ klass: k_obj });
+    }
+
+    // This reads in classes.jar and adds each class one by one before fixing up
+    // the bits of native code that we have working
+    //
+    // An interpreter callback, i_callback is needed to run the static initializers
     pub fn bootstrap(&mut self, i_callback: fn(&mut SharedKlassRepo, &OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) -> () {
-        // Add java.lang.Object
-        let k_obj = self.parse_bootstrap_class("java/lang/Object".to_string());
-        // let s = format!("{}", self);
+        let file = "resources/lib/classes.jar";
+        ZipFiles::new(file)
+        .into_iter()
+        .filter(|f| match f {
+            Ok((name, _)) if name.ends_with(".class") => true,
+            _ => false,
+        })
+        .for_each(|z| {
+            if let Ok((name, bytes)) = z {
+                let mut parser = crate::klass_parser::OtKlassParser::of(bytes, name);
+                parser.parse();
+                self.add_klass(&parser.klass());
+            }
+        });
+
+        self.install_native_method(&"java/lang/Object".to_string(), &"hashCode:()I".to_string(), crate::native_methods::java_lang_Object__hashcode);
+        self.install_native_method(&"java/lang/System".to_string(), &"currentTimeMillis:()J".to_string(), crate::native_methods::java_lang_System__currentTimeMillis);
+
+        // TODO Get enough of java.io.PrintStream working to get System.out.println() to work
+
+        // // private native void open(String name) throws IOException;
+        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"open:(Ljava/lang/String;)V".to_string(), crate::native_methods::java_io/_FileOutputStream__open);
+        
+        // // public native void write(int b) throws IOException;
+        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"write:(I)V".to_string(), crate::native_methods::java_io/_FileOutputStream__write);
+
+        // // private native void writeBytes(byte b[], int off, int len) throws IOException;
+        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"writeBytes:([BII])V".to_string(), crate::native_methods::java_io/_FileOutputStream__writeBytes);
+
+        // // public native void close() throws IOException;
+        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"close:()V".to_string(), crate::native_methods::java_io/_FileOutputStream__close);
+
+
+        // let s = format!("{:?}", self.klass_lookup);
         // dbg!(s);
-
-        // Add j.l.O native methods (e.g. hashCode())
-        k_obj.set_native_method(
-            "java/lang/Object.hashCode:()I".to_string(),
-            crate::native_methods::java_lang_Object__hashcode,
-        );
-        k_obj.set_native_method(
-            "java/lang/Object.registerNatives:()V".to_string(),
-            crate::native_methods::java_lang_Object__registerNatives,
-        );
-        self.add_klass(&k_obj);
-        // FIXME Must reset the value set for the klass repo before clinit
-        self.run_clinit_method(&k_obj, i_callback);
-
-        // FIXME Add primitive arrays
-
-        // FIXME Add java.lang.Class
-
-        // Add wrapper classes
-        let k_jli = self.parse_bootstrap_class("java/lang/Integer".to_string());
-        self.add_klass(&k_jli);
-        // Needs j.l.Class to run (set up primitive type .class object)
-        // self.run_clinit_method(&k_jli, i_callback);
-
-        let k_jlic = self.parse_bootstrap_class("java/lang/Integer$IntegerCache".to_string());
-        self.add_klass(&k_jlic);
-        // Needs j.l.Class and uses sun.* classes to do VM-protected stuff
-        // self.run_clinit_method(&k_jlic, i_callback);
-
-        // FIXME Other classes
-
-        // Add java.lang.String
-        let k_jls = self.parse_bootstrap_class("java/lang/String".to_string());
-        // FIXME String only has intern() as a native method, skip for now
-        self.add_klass(&k_jls);
-
-        // Add java.lang.StringBuilder
-        let k_jlsb = self.parse_bootstrap_class("java/lang/StringBuilder".to_string());
-        self.add_klass(&k_jlsb);
-
-        // FIXME Add class objects for already bootstrapped classes
-
-        // Add java.lang.System
-        let k_sys = self.parse_bootstrap_class("java/lang/System".to_string());
-        k_sys.set_native_method(
-            "java/lang/System.currentTimeMillis:()J".to_string(),
-            crate::native_methods::java_lang_System__currentTimeMillis,
-        );
-        self.add_klass(&k_sys);
-
-        // TODO Dummy up enough of java.io.PrintStream to get System.out.println() to work
-        // By faking up the class so that println(Ljava/lang/Object;) fwds to native code
-        // k_obj = self.parse_bootstrap_class("java/io/PrintStream".to_string());
-        // k_obj.set_native_method(
-        //     "println:(Ljava/lang/Object;)V".to_string(),
-        //     crate::native_methods::java_io_PrintStream__println,
-        // );
-
-        let s = format!("{:?}", self.klass_lookup);
-        dbg!(s);
     }
 
     pub fn lookup_static_field(&self, klass_name: &String, idx: u16) -> OtField {

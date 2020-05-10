@@ -17,7 +17,6 @@ pub fn main() {
     // Parse any command-line arguments
     let options = Options::from_args();
 
-    // FIXME In reality, will need to bootstrap a full rt.jar
     let mut repo = SharedKlassRepo::of();
     repo.bootstrap(ocelotter::exec_method);
 
