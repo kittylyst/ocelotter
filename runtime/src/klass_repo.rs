@@ -67,7 +67,7 @@ impl SharedKlassRepo {
 
         match self.klass_lookup.get(klass_name) {
             Some(cell) => match &*(cell.borrow()) {
-                KlassLoadingStatus::Mentioned {} => panic!("Klass with ID {} is not loaded yet", klass_name),
+                KlassLoadingStatus::Mentioned {} => panic!("Klass {} is not loaded yet", klass_name),
                 KlassLoadingStatus::Loaded { klass : k } => k.clone(),
                 KlassLoadingStatus::Live { klass : k } => k.clone()
             },
@@ -97,7 +97,7 @@ impl SharedKlassRepo {
         };
         if upgrade {
             let k2 = (*k).to_owned();
-            // Set kid & Load k into map
+            // Load k into map
             self.klass_lookup.get(&klass_name).unwrap().replace(KlassLoadingStatus::Loaded{ klass: k2 });
         }
     }
@@ -152,36 +152,31 @@ impl SharedKlassRepo {
             }
         });
 
-        let k_obj = self.lookup_klass(&"java/lang/Object".to_string());
-        // let s = format!("{}", self);
-        // dbg!(s);
+        {
+            let klass_name = "java/lang/Object".to_string();
+            let k_obj = self.lookup_klass(&klass_name);
+            k_obj.set_native_method(
+                "java/lang/Object.hashCode:()I".to_string(),
+                crate::native_methods::java_lang_Object__hashcode,
+            );
+            self.klass_lookup.get(&klass_name).unwrap().replace(KlassLoadingStatus::Live{ klass: k_obj });
+        }
 
-        // Add j.l.O native methods (e.g. hashCode())
-        k_obj.set_native_method(
-            "java/lang/Object.hashCode:()I".to_string(),
-            crate::native_methods::java_lang_Object__hashcode,
-        );
-        // Do we need to re-add it?
-        self.add_klass(&k_obj);
+        {
+            let klass_name = "java/lang/System".to_string();
+            let k_sys = self.lookup_klass(&klass_name);
+            k_sys.set_native_method(
+                "java/lang/System.currentTimeMillis:()J".to_string(),
+                crate::native_methods::java_lang_System__currentTimeMillis,
+            );
+            self.klass_lookup.get(&klass_name).unwrap().replace(KlassLoadingStatus::Live{ klass: k_sys });
+        }
 
-        let k_sys = self.lookup_klass(&"java/lang/System".to_string());
-        k_sys.set_native_method(
-            "java/lang/System.currentTimeMillis:()J".to_string(),
-            crate::native_methods::java_lang_System__currentTimeMillis,
-        );
-        // Do we need to re-add it?
-        self.add_klass(&k_sys);
-
-        // TODO Dummy up enough of java.io.PrintStream to get System.out.println() to work
-        // By faking up the class so that println(Ljava/lang/Object;) fwds to native code
-        // k_obj = self.parse_bootstrap_class("java/io/PrintStream".to_string());
-        // k_obj.set_native_method(
-        //     "println:(Ljava/lang/Object;)V".to_string(),
+        // TODO Get enough of java.io.PrintStream working to get System.out.println() to work
         //     crate::native_methods::java_io_PrintStream__println,
-        // );
 
-        let s = format!("{:?}", self.klass_lookup);
-        dbg!(s);
+        // let s = format!("{:?}", self.klass_lookup);
+        // dbg!(s);
     }
 
     pub fn lookup_static_field(&self, klass_name: &String, idx: u16) -> OtField {
