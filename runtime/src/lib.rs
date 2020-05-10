@@ -1,3 +1,9 @@
+#![allow(non_snake_case)]
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+#![allow(non_camel_case_types)]
+
 use std::fmt;
 use std::sync::{Mutex};
 
