@@ -132,6 +132,15 @@ impl SharedKlassRepo {
         i_callback(self, &clinit, &mut vars);
     }
 
+    fn install_native_method(&mut self, klass_name: &String, name_desc: &String,
+        n_code: fn(&InterpLocalVars) -> Option<JvmValue> ) -> () {
+        let k_obj = self.lookup_klass(klass_name);
+        let fq_name = klass_name.to_owned() +"."+ &name_desc;
+
+        k_obj.set_native_method(fq_name, n_code);
+        self.klass_lookup.get(klass_name).unwrap().replace(KlassLoadingStatus::Live{ klass: k_obj });
+    }
+
     // This reads in classes.jar and adds each class one by one before fixing up
     // the bits of native code that we have working
     //
@@ -152,28 +161,23 @@ impl SharedKlassRepo {
             }
         });
 
-        {
-            let klass_name = "java/lang/Object".to_string();
-            let k_obj = self.lookup_klass(&klass_name);
-            k_obj.set_native_method(
-                "java/lang/Object.hashCode:()I".to_string(),
-                crate::native_methods::java_lang_Object__hashcode,
-            );
-            self.klass_lookup.get(&klass_name).unwrap().replace(KlassLoadingStatus::Live{ klass: k_obj });
-        }
-
-        {
-            let klass_name = "java/lang/System".to_string();
-            let k_sys = self.lookup_klass(&klass_name);
-            k_sys.set_native_method(
-                "java/lang/System.currentTimeMillis:()J".to_string(),
-                crate::native_methods::java_lang_System__currentTimeMillis,
-            );
-            self.klass_lookup.get(&klass_name).unwrap().replace(KlassLoadingStatus::Live{ klass: k_sys });
-        }
+        self.install_native_method(&"java/lang/Object".to_string(), &"hashCode:()I".to_string(), crate::native_methods::java_lang_Object__hashcode);
+        self.install_native_method(&"java/lang/System".to_string(), &"currentTimeMillis:()J".to_string(), crate::native_methods::java_lang_System__currentTimeMillis);
 
         // TODO Get enough of java.io.PrintStream working to get System.out.println() to work
-        //     crate::native_methods::java_io_PrintStream__println,
+
+        // // private native void open(String name) throws IOException;
+        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"open:(Ljava/lang/String;)V".to_string(), crate::native_methods::java_io/_FileOutputStream__open);
+        
+        // // public native void write(int b) throws IOException;
+        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"write:(I)V".to_string(), crate::native_methods::java_io/_FileOutputStream__write);
+
+        // // private native void writeBytes(byte b[], int off, int len) throws IOException;
+        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"writeBytes:([BII])V".to_string(), crate::native_methods::java_io/_FileOutputStream__writeBytes);
+
+        // // public native void close() throws IOException;
+        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"close:()V".to_string(), crate::native_methods::java_io/_FileOutputStream__close);
+
 
         // let s = format!("{:?}", self.klass_lookup);
         // dbg!(s);
