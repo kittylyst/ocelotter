@@ -34,7 +34,7 @@ lazy_static! {
 
 //////////// RUNTIME JVM VALUES
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub enum JvmValue {
     Boolean { val: bool },
     Byte { val: i8 },

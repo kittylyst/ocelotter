@@ -28,7 +28,7 @@ impl SharedSimpleHeap {
     pub fn allocate_obj(&mut self, klass: &OtKlass) -> usize {
         let klass_id = klass.get_id();
         let obj_id: usize = self.obj_count.fetch_add(1, Ordering::SeqCst);
-        let out = OtObj::obj_of(klass_id, obj_id, klass.make_default());
+        let out = OtObj::obj_of(klass_id, obj_id, klass.make_default_values());
         self.alloc.push(out);
         obj_id
     }
