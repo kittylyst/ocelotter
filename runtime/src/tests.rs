@@ -1,6 +1,7 @@
 use super::*;
 
 use std::path::Path;
+use ocelotter_util::file_to_bytes;
 
 #[test]
 fn test_klass_name_from_fq() {
