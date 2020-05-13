@@ -20,7 +20,7 @@ pub struct OtKlass {
     methods: Vec<OtMethod>,
     i_fields: Vec<OtField>,
     s_fields: Vec<OtField>,
-    s_field_vals: Vec<JvmValue>,
+    s_field_vals: Vec<Cell<JvmValue>>,
     m_name_desc_lookup: HashMap<String, usize>,
     f_name_desc_lookup: HashMap<String, usize>,
 }
@@ -47,6 +47,7 @@ impl OtKlass {
         i = 0;
         let mut f_lookup = HashMap::new();
         let mut s_fields = Vec::new();
+        let mut s_field_vals = Vec::new();
         let mut i_fields = Vec::new();
         while i < fields.len() {
             let f = match fields.get(i) {
@@ -55,7 +56,9 @@ impl OtKlass {
             };
             let f_name = f.get_fq_name_desc();
             if f.is_static() {
+                let default_val = f.get_default();
                 s_fields.push(f);
+                s_field_vals.push(Cell::new(default_val));
             } else {
                 i_fields.push(f);
             }
@@ -73,7 +76,7 @@ impl OtKlass {
             methods: methods.to_vec(),
             i_fields: i_fields.to_vec(),
             s_fields: s_fields.to_vec(),
-            s_field_vals: Vec::new(),
+            s_field_vals: s_field_vals.to_vec(),
             // FIXME
             m_name_desc_lookup: m_lookup,
             f_name_desc_lookup: f_lookup,
@@ -174,10 +177,16 @@ impl OtKlass {
     }
 
 
-    pub fn get_static_field_value(&self, f: &OtField) -> &JvmValue {
+    pub fn get_static(&self, f: &OtField) -> JvmValue {
         let idx = self.get_static_field_offset(f);
-        self.s_field_vals.get(idx).unwrap()
+        self.s_field_vals.get(idx).unwrap().get().clone()
     }
+
+    pub fn put_static(&self, f: &OtField, v: JvmValue) -> () {
+        let idx = self.get_static_field_offset(f);
+        self.s_field_vals.get(idx).unwrap().set(v);
+    }
+
 
     pub fn get_method_by_offset_virtual(&self, m_idx: u16) -> OtMethod {
         // If present, return value at specific offset

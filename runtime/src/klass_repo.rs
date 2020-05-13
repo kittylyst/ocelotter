@@ -179,14 +179,14 @@ impl SharedKlassRepo {
         // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"close:()V".to_string(), crate::native_methods::java_io/_FileOutputStream__close);
 
         // // private static native FileDescriptor initSystemFD(FileDescriptor fdObj, int desc);
-        // self.install_native_method(&"java/io/FileDescriptor".to_string(), &"initSystemFD:(Ljava/io/FileDescriptor;I)Ljava/io/FileDescriptor;".to_string(), crate::native_methods::java_io_FileDescriptor__initSystemFD);
+        self.install_native_method(&"java/io/FileDescriptor".to_string(), &"initSystemFD:(Ljava/io/FileDescriptor;I)Ljava/io/FileDescriptor;".to_string(), crate::native_methods::java_io_FileDescriptor__initSystemFD);
 
         // let s = format!("{:?}", self.klass_lookup);
         // dbg!(s);
 
         // All native methods are installed for the bootstrap classes 
         // Now, we need to run the static initializers in the right order
-        // self.run_clinit_method(&"java/io/FileDescriptor".to_string(), i_callback);
+        self.run_clinit_method(&"java/io/FileDescriptor".to_string(), i_callback);
 
         // // This requires the file descriptor handling to already exist
         // self.run_clinit_method(&"java/lang/System".to_string(), i_callback);
@@ -235,10 +235,6 @@ impl SharedKlassRepo {
     // FIXME Lookup offset properly
     pub fn get_field_offset(&self, kid: usize, f: OtField) -> usize {
         0
-    }
-
-    pub fn put_static(&self, klass_name: String, f: OtField, v: JvmValue) -> () {
-        // FIXME Handle storage properly
     }
 
     pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {

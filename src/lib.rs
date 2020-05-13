@@ -134,7 +134,7 @@ pub fn exec_bytecode_method(
                 let getf = repo.lookup_static_field(&klass_name, cp_lookup).clone();
                 let klass = repo.lookup_klass(&getf.get_klass_name()).clone();
 
-                let ret = klass.get_static_field_value(&getf);
+                let ret = klass.get_static(&getf);
                 eval.push(ret.clone());
             }
             opcode::GOTO => {
@@ -503,9 +503,9 @@ pub fn exec_bytecode_method(
                 current += 2;
 
                 let puts = repo.lookup_static_field(&klass_name, cp_lookup);
-                let klass_name = puts.get_klass_name();
-                // FIXME IMPL IS BROKEN
-                repo.put_static(klass_name, puts, eval.pop());
+                let klass = repo.lookup_klass(&puts.get_klass_name()).clone();
+
+                klass.put_static(&puts, eval.pop());
             }
             opcode::RETURN => break None,
             opcode::SIPUSH => {
@@ -577,12 +577,6 @@ fn dispatch_invoke(
         None => (),
     }
 }
-
-// fn parse_class(bytes: Vec<u8>, fname: String) -> OtKlass {
-//     let mut parser = klass_parser::OtKlassParser::of(bytes, fname);
-//     parser.parse();
-//     parser.klass()
-// }
 
 #[cfg(test)]
 mod tests;
