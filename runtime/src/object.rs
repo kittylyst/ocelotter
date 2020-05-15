@@ -1,16 +1,17 @@
 use std::fmt;
-use std::sync::Mutex;
+use std::cell::Cell;
 
 use crate::JvmValue;
 use crate::OtField;
 
-#[derive(Debug)]
+// If we need this, we'd better impl it manually
+// #[derive(Debug)]
 pub enum OtObj {
     vm_obj {
         id: usize,
         mark: u64,
         klassid: usize,
-        fields: Vec<Mutex<JvmValue>>,
+        fields: Vec<Cell<JvmValue>>,
     },
     vm_arr_int {
         id: usize,
@@ -29,12 +30,12 @@ pub enum OtObj {
 }
 
 impl OtObj {
-    pub fn obj_of(klass_id: usize, obj_id: usize, fields: Vec<Mutex<JvmValue>>) -> OtObj {
+    pub fn obj_of(klass_id: usize, obj_id: usize, initial: Vec<JvmValue>) -> OtObj {
         OtObj::vm_obj {
             id: obj_id,
             mark: 0u64,
             klassid: klass_id,
-            fields: fields,
+            fields: initial.into_iter().map(|s| Cell::new(s)).collect(),
         }
     }
 
@@ -72,8 +73,7 @@ impl OtObj {
                 klassid: _,
                 fields: fs,
             } => {
-                let mut place = fs[offset].lock().unwrap();
-                *place = val;
+                fs[offset].set(val);
             }
             _ => panic!("Not an object"),
         };
@@ -91,13 +91,10 @@ impl OtObj {
         };
         // Get klass
         dbg!("Made it to object get_field_offset");
-        // Lookup offset in klass
-        // let offset = REPO.lock().get_field_offset(*kid, f);
-        // dbg!("Made it to object get_field_offset");
         match fields.get(offset) {
             Some(v) => {
-                let place = v.lock().unwrap();
-                place.clone()
+                // let v = cell.get();
+                (*v).get()
             }
             None => panic!("Fields should hold a value"),
         }

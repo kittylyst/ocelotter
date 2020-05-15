@@ -27,6 +27,15 @@ pub fn java_lang_System__currentTimeMillis(args: &InterpLocalVars) -> Option<Jvm
     Some(JvmValue::Long { val: millis as i64 })
 }
 
+pub fn java_io_FileDescriptor__initSystemFD(args: &InterpLocalVars) -> Option<JvmValue> {
+    let obj = args.load(0);
+    let fd = args.load(1);
+
+    // Fix up actual system FD with fd and return obj
+
+    Some(obj)
+}
+
 // pub fn java_lang_System__nanoTime(args: &InterpLocalVars) -> Option<JvmValue> {
 //     let millis = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
 //         Ok(n) => n.as_millis(),
