@@ -85,13 +85,6 @@ impl OtKlass {
 
     /////////////////////////////////////
 
-    fn the_letter_a(input: &str) -> Result<(&str, ()), &str> {
-        match input.chars().next() {
-            Some('a') => Ok((&input['a'.len_utf8()..], ())),
-            _ => Err(input),
-        }
-    }
-
     pub fn parse_sig_for_args(signature : String) -> Vec<JvmValue> {
         let mut out: Vec<JvmValue> = Vec::new();
         let mut chars = signature.chars();
