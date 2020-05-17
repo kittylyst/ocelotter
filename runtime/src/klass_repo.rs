@@ -164,7 +164,17 @@ impl SharedKlassRepo {
         self.install_native_method(&"java/lang/Object".to_string(), &"hashCode:()I".to_string(), crate::native_methods::java_lang_Object__hashcode);
         self.install_native_method(&"java/lang/System".to_string(), &"currentTimeMillis:()J".to_string(), crate::native_methods::java_lang_System__currentTimeMillis);
 
+        // Load j.l.Math native methods
         self.install_native_method(&"java/lang/Math".to_string(), &"sin:(D)D".to_string(), crate::native_methods::java_lang_Math__sin);
+        self.install_native_method(&"java/lang/Math".to_string(), &"cos:(D)D".to_string(), crate::native_methods::java_lang_Math__cos);
+        self.install_native_method(&"java/lang/Math".to_string(), &"tan:(D)D".to_string(), crate::native_methods::java_lang_Math__tan);
+        self.install_native_method(&"java/lang/Math".to_string(), &"asin:(D)D".to_string(), crate::native_methods::java_lang_Math__asin);
+        self.install_native_method(&"java/lang/Math".to_string(), &"acos:(D)D".to_string(), crate::native_methods::java_lang_Math__acos);
+        self.install_native_method(&"java/lang/Math".to_string(), &"atan:(D)D".to_string(), crate::native_methods::java_lang_Math__atan);
+        self.install_native_method(&"java/lang/Math".to_string(), &"exp:(D)D".to_string(), crate::native_methods::java_lang_Math__exp);
+        self.install_native_method(&"java/lang/Math".to_string(), &"log:(D)D".to_string(), crate::native_methods::java_lang_Math__log);
+        self.install_native_method(&"java/lang/Math".to_string(), &"sqrt:(D)D".to_string(), crate::native_methods::java_lang_Math__sqrt);
+        self.install_native_method(&"java/lang/Math".to_string(), &"pow:(DD)D".to_string(), crate::native_methods::java_lang_Math__pow);
 
         // TODO Get enough of java.io.PrintStream working to get System.out.println() to work
 
