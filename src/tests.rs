@@ -281,6 +281,39 @@ fn bc_goto() {
 
 /////////////////////////////////////////////////////////////////
 //
+// Tests for helper methods
+
+#[test]
+fn parse_signatures() {
+    assert_eq!(0, OtKlass::parse_sig_for_args("()Z".to_string()).len());
+    assert_eq!(0, OtKlass::parse_sig_for_args("()I".to_string()).len());
+    assert_eq!(1, OtKlass::parse_sig_for_args("(I)V".to_string()).len());
+    assert_eq!(1, OtKlass::parse_sig_for_args("([I)V".to_string()).len());
+    assert_eq!(3, OtKlass::parse_sig_for_args("(D[II)V".to_string()).len());
+    assert_eq!(1, OtKlass::parse_sig_for_args("([[I)V".to_string()).len());
+    assert_eq!(
+        0,
+        OtKlass::parse_sig_for_args("()Ljava/lang/String;".to_string()).len()
+    );
+    assert_eq!(
+        1,
+        OtKlass::parse_sig_for_args("(Ljava/lang/String;)I".to_string()).len()
+    );
+    assert_eq!(
+        1,
+        OtKlass::parse_sig_for_args("([Ljava/lang/String;)I".to_string()).len()
+    );
+    assert_eq!(
+        2,
+        OtKlass::parse_sig_for_args(
+            "(Ljava/io/FileDescriptor;I)Ljava/io/FileDescriptor;".to_string()
+        )
+        .len()
+    );
+}
+
+/////////////////////////////////////////////////////////////////
+//
 // Tests that actually load classes
 
 #[test]
@@ -319,6 +352,29 @@ fn interp_invoke_simple() {
             _ => panic!("Error executing SampleInvoke.foo:()I - non-int value returned"),
         };
         assert_eq!(9, ret2);
+    }
+}
+
+#[test]
+fn test_math_sin() {
+    let mut repo = init_repo();
+    let k = simple_parse_klass("TestMathSin".to_string());
+    repo.add_klass(&k);
+
+    {
+        let fq_meth = "TestMathSin.main:()I";
+        let meth = k
+            .get_method_by_name_and_desc(&fq_meth.to_string())
+            .expect(&format!("{} not found", fq_meth));
+        assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+
+        let mut vars = InterpLocalVars::of(5);
+        let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
+        let ret2 = match ret {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Error executing TestMathSin.main:()I - non-int value returned"),
+        };
+        assert_eq!(1, ret2);
     }
 }
 

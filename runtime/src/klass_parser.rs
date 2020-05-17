@@ -147,8 +147,10 @@ impl OtKlassParser {
             (self.pool_item_count as usize) + 1,
             CpEntry::integer { val: 0 },
         );
-        let mut current_cp = 1;
-        while current_cp < self.pool_item_count {
+        let mut current_cp = 0;
+        let mut double_width = false;
+        while current_cp < self.pool_item_count - 1 {
+            current_cp += 1;
             let tag = self.clz_read[self.current];
             self.current += 1;
             let item = match tag {
@@ -212,7 +214,7 @@ impl OtKlassParser {
                     let b8 = self.clz_read[self.current + 7];
                     self.current += 8;
                     // Longs are double width
-                    current_cp += 1;
+                    double_width = true;
 
                     let buf = &[b1, b2, b3, b4, b5, b6, b7, b8];
                     CpEntry::long {
@@ -231,7 +233,7 @@ impl OtKlassParser {
                     let b8 = self.clz_read[self.current + 7];
                     self.current += 8;
                     // Doubles are double width
-                    current_cp += 1;
+                    double_width = true;
 
                     let buf = &[b1, b2, b3, b4, b5, b6, b7, b8];
                     CpEntry::double {
@@ -308,10 +310,14 @@ impl OtKlassParser {
                         type_idx: ((b3 as u16) << 8) + b4 as u16,
                     }
                 }
-                _ => panic!("Unsupported Constant Pool type {} at {}", tag, self.current),
+                _ => panic!("Unsupported Constant Pool type {} at {} of {}", tag, self.current, self.filename),
             };
             self.cp_entries[current_cp as usize] = item;
-            current_cp += 1;
+            if double_width {
+                current_cp = current_cp + 1;
+                double_width = false;
+            }
+
         }
     }
 

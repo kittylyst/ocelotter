@@ -164,6 +164,8 @@ impl SharedKlassRepo {
         self.install_native_method(&"java/lang/Object".to_string(), &"hashCode:()I".to_string(), crate::native_methods::java_lang_Object__hashcode);
         self.install_native_method(&"java/lang/System".to_string(), &"currentTimeMillis:()J".to_string(), crate::native_methods::java_lang_System__currentTimeMillis);
 
+        self.install_native_method(&"java/lang/Math".to_string(), &"sin:(D)D".to_string(), crate::native_methods::java_lang_Math__sin);
+
         // TODO Get enough of java.io.PrintStream working to get System.out.println() to work
 
         // // private native void open(String name) throws IOException;

@@ -63,6 +63,23 @@ impl CpEntry {
             _ => "".to_string(),
         }
     }
+
+    pub fn name(&self) -> String {
+        match *self {
+            CpEntry::utf8 { val: _ } => "Utf8".to_string(),
+            CpEntry::integer { val: _ } => "Integer".to_string(),
+            CpEntry::float { val: _ } => "Float".to_string(),
+            CpEntry::long { val: _ } => "Long".to_string(),
+            CpEntry::double { val: _ } => "Double".to_string(),
+            CpEntry::class { idx: _ } => "Class".to_string(),
+            CpEntry::string { idx: _ } => "String".to_string(),
+            CpEntry::fieldref { clz_idx: _, nt_idx: _ } => "Fieldref".to_string(),
+            CpEntry::methodref { clz_idx: _, nt_idx: _ } => "Methodref".to_string(),
+            CpEntry::interface_methodref { clz_idx: _, nt_idx: _ } => "Instance_Methodref".to_string(),
+            CpEntry::name_and_type { name_idx: _, type_idx: _ } => "NameAndType".to_string(),
+        }
+    }
+
 }
 
 #[derive(Clone, Debug)]

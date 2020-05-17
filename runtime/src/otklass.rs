@@ -83,6 +83,62 @@ impl OtKlass {
         }
     }
 
+    /////////////////////////////////////
+
+    pub fn parse_sig_for_args(signature : String) -> Vec<JvmValue> {
+        let mut out: Vec<JvmValue> = Vec::new();
+        let mut chars = signature.chars();
+
+        while let Some(next) = chars.next() {
+            let indicative_char = match next {
+                '(' => continue,
+                ')' => break,
+                'Z' => 'Z',
+                'B' => 'B',
+                'S' => 'S',
+                'I' => 'I',
+                'J' => 'J',
+                'F' => 'F',
+                'D' => 'D',
+                'C' => 'C',
+                'L' => {
+                    // advance through the object type
+                    while let Some(lbrac) = chars.next() {
+                        if lbrac == ';' {
+                            break;
+                        }
+                    };
+                    'A'
+                },
+                '[' => {
+                    // advance through the array type
+                    while let Some(lbrac) = chars.next() {
+                        if lbrac == 'L' {
+                            // advance through the object type
+                            while let Some(lbrac) = chars.next() {
+                                if lbrac == ';' {
+                                    break;
+                                }
+                            };
+                            break;
+                        }
+                        if lbrac != '[' {
+                            break;
+                        }
+                    };
+                    'A'
+                },
+                x => panic!("Illegal type {} seen when trying to parse {}", x, signature)
+            };
+
+            out.push(JvmValue::default_value(indicative_char));
+        }
+
+        out
+    }
+
+    /////////////////////////////////////
+
     pub fn make_default_values(&self) -> Vec<JvmValue> {
         let mut out: Vec<JvmValue> = Vec::new();
         let mut i = 0;
@@ -207,8 +263,6 @@ impl OtKlass {
 
     // NOTE: This is fully-qualified
     pub fn get_method_by_name_and_desc(&self, name_desc: &String) -> Option<&OtMethod> {
-        // dbg!(&self.m_name_desc_lookup);
-        dbg!(&name_desc);
         let opt_idx = self.m_name_desc_lookup.get(name_desc);
         let idx: usize = match opt_idx {
             Some(value) => value.clone(),
@@ -219,8 +273,7 @@ impl OtKlass {
 
     // NOTE: This is fully-qualified
     pub fn get_static_field_by_name_and_desc(&self, name_desc: &String) -> Option<&OtField> {
-        // dbg!(&self.f_name_desc_lookup);
-        dbg!(&name_desc);
+//        dbg!(&name_desc);
         let opt_idx = self.f_name_desc_lookup.get(name_desc);
         let idx: usize = match opt_idx {
             Some(value) => value.clone(),
@@ -231,8 +284,7 @@ impl OtKlass {
 
     // NOTE: This is fully-qualified
     pub fn get_instance_field_by_name_and_desc(&self, name_desc: &String) -> Option<&OtField> {
-        // dbg!(&self.f_name_desc_lookup);
-        dbg!(&name_desc);
+//        dbg!(&name_desc);
         let opt_idx = self.f_name_desc_lookup.get(name_desc);
         let idx: usize = match opt_idx {
             Some(value) => value.clone(),
@@ -248,6 +300,39 @@ impl OtKlass {
             None => panic!(
                 "Error: No entry found on {} at CP index {}",
                 self.name, cp_idx
+            ),
+        }
+    }
+
+    pub fn get_method_arg_count(&self, cp_idx: u16) -> u8 {
+        let cp_entry = self.lookup_cp(cp_idx);
+        let name_and_type = match cp_entry {
+            CpEntry::methodref {
+                clz_idx: _,
+                nt_idx: ntidx,
+            } => self.lookup_cp(ntidx),
+            _ => panic!(
+                "Attempt to count args of non-method in {} at index {} where {:?}",
+                self.name, cp_idx, self.cp_entries.get(cp_idx as usize)
+            ),
+        };
+        let type_signature = match name_and_type {
+            CpEntry::name_and_type {
+                name_idx: _,
+                type_idx: tidx,
+            } => self.lookup_cp(tidx),
+            _ => panic!(
+                "Attempt to count args of non-method in {} at index {} where {:?}",
+                self.name, cp_idx, self.cp_entries.get(cp_idx as usize)
+            ),
+        };
+        match type_signature {
+            CpEntry::utf8 {
+                val: sig,
+            } => OtKlass::parse_sig_for_args(sig).len() as u8,
+            _ => panic!(
+                "Attempt to count args of non-method in {} at index {} found {}",
+                self.name, cp_idx, type_signature.name()
             ),
         }
     }
@@ -281,8 +366,8 @@ impl fmt::Display for OtKlass {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{} ISA {} with methods {:?}",
-            self.name, self.super_name, self.m_name_desc_lookup
+            "{} ISA {} with methods {:?} and constants {:?}",
+            self.name, self.super_name, self.m_name_desc_lookup, self.cp_entries
         )
     }
 }
