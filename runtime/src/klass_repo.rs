@@ -141,6 +141,17 @@ impl SharedKlassRepo {
         self.klass_lookup.get(klass_name).unwrap().replace(KlassLoadingStatus::Live{ klass: k });
     }
 
+//    fn double_mapper_factory(tfm: fn(f64) -> f64) -> fn(&InterpLocalVars) -> Option<JvmValue> {
+//        |args: &InterpLocalVars| -> Option<JvmValue> {
+//            let d = match args.load(0) {
+//                JvmValue::Double { val: v } => v,
+//                x => panic!("Non-double value {} of type {} encountered in Math", x, x.name())
+//            };
+//
+//            Some(JvmValue::Double {val: tfm(d)})
+//        }
+//    }
+
     // This reads in classes.jar and adds each class one by one before fixing up
     // the bits of native code that we have working
     //
@@ -161,10 +172,39 @@ impl SharedKlassRepo {
             }
         });
 
+//        self.install_native_method(&"java/lang/Object".to_string(), &"getClass:()Ljava/lang/Class;".to_string(), crate::native_methods::java_lang_Object__getClass);
         self.install_native_method(&"java/lang/Object".to_string(), &"hashCode:()I".to_string(), crate::native_methods::java_lang_Object__hashcode);
+//        self.install_native_method(&"java/lang/Object".to_string(), &"clone:()Ljava/lang/Object;".to_string(), crate::native_methods::java_lang_Object__clone);
+        self.install_native_method(&"java/lang/Object".to_string(), &"notify:()V".to_string(), crate::native_methods::java_lang_Object__notify);
+        self.install_native_method(&"java/lang/Object".to_string(), &"notifyAll:()V".to_string(), crate::native_methods::java_lang_Object__notifyAll);
+        self.install_native_method(&"java/lang/Object".to_string(), &"wait:(J)V".to_string(), crate::native_methods::java_lang_Object__wait);
+
+
+//        public static final native java.lang.Class forName(java.lang.String) throws java.lang.ClassNotFoundException;
+//        public final native java.lang.Object newInstance() throws java.lang.InstantiationException, java.lang.IllegalAccessException;
+
+        self.install_native_method(&"java/lang/Class".to_string(), &"getName:()Ljava/lang/String;".to_string(), crate::native_methods::java_lang_Class__getName);
+//        public final native java.lang.String getName();
+//        public final native java.lang.Class getSuperclass();
+//        public final native java.lang.Class[] getInterfaces();
+//        public final native java.lang.ClassLoader getClassLoader();
+//        public final native boolean isInterface();
+
+
+
+        self.install_native_method(&"java/lang/Runtime".to_string(), &"freeMemory:()J".to_string(), crate::native_methods::java_lang_Runtime__freeMemory);
+        self.install_native_method(&"java/lang/Runtime".to_string(), &"totalMemory:()J".to_string(), crate::native_methods::java_lang_Runtime__totalMemory);
+        self.install_native_method(&"java/lang/Runtime".to_string(), &"gc:()V".to_string(), crate::native_methods::java_lang_Runtime__gc);
+        self.install_native_method(&"java/lang/Runtime".to_string(), &"runFinalization:()V".to_string(), crate::native_methods::java_lang_Runtime__runFinalization);
+        self.install_native_method(&"java/lang/Runtime".to_string(), &"traceInstructions:(Z)V".to_string(), crate::native_methods::java_lang_Runtime__traceInstructions);
+        self.install_native_method(&"java/lang/Runtime".to_string(), &"traceMethodCalls:(Z)V".to_string(), crate::native_methods::java_lang_Runtime__traceMethodCalls);
+
         self.install_native_method(&"java/lang/System".to_string(), &"currentTimeMillis:()J".to_string(), crate::native_methods::java_lang_System__currentTimeMillis);
+        self.install_native_method(&"java/lang/System".to_string(), &"arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V".to_string(), crate::native_methods::java_lang_System__arraycopy);
 
         // Load j.l.Math native methods
+//        let sin_f = SharedKlassRepo::double_mapper_factory(|i: f64| -> f64 { i.sin() });
+//        self.install_native_method(&"java/lang/Math".to_string(), &"sin:(D)D".to_string(), sin_f);
         self.install_native_method(&"java/lang/Math".to_string(), &"sin:(D)D".to_string(), crate::native_methods::java_lang_Math__sin);
         self.install_native_method(&"java/lang/Math".to_string(), &"cos:(D)D".to_string(), crate::native_methods::java_lang_Math__cos);
         self.install_native_method(&"java/lang/Math".to_string(), &"tan:(D)D".to_string(), crate::native_methods::java_lang_Math__tan);
