@@ -227,7 +227,7 @@ fn bc_ifnull() {
             0
         }
     };
-    assert_eq!(1, ret);
+    assert_eq!(2, ret);
 }
 
 #[test]
@@ -362,7 +362,7 @@ fn test_math_sin() {
     repo.add_klass(&k);
 
     {
-        let fq_meth = "TestMathSin.main:()I";
+        let fq_meth = "TestMathSin.main_ifge:()I";
         let meth = k
             .get_method_by_name_and_desc(&fq_meth.to_string())
             .expect(&format!("{} not found", fq_meth));
@@ -372,9 +372,41 @@ fn test_math_sin() {
         let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int { val: i } => i,
-            _ => panic!("Error executing TestMathSin.main:()I - non-int value returned"),
+            _ => panic!("Error executing {} - non-int value returned", fq_meth),
         };
         assert_eq!(1, ret2);
+    }
+
+    {
+        let fq_meth = "TestMathSin.main_ifle:()I";
+        let meth = k
+            .get_method_by_name_and_desc(&fq_meth.to_string())
+            .expect(&format!("{} not found", fq_meth));
+        assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+
+        let mut vars = InterpLocalVars::of(5);
+        let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
+        let ret2 = match ret {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Error executing {} - non-int value returned", fq_meth),
+        };
+        assert_eq!(0, ret2);
+    }
+
+    {
+        let fq_meth = "TestMathSin.main_ifnull:()I";
+        let meth = k
+            .get_method_by_name_and_desc(&fq_meth.to_string())
+            .expect(&format!("{} not found", fq_meth));
+        assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+
+        let mut vars = InterpLocalVars::of(5);
+        let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
+        let ret2 = match ret {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Error executing {} - non-int value returned", fq_meth),
+        };
+        assert_eq!(0, ret2);
     }
 }
 
