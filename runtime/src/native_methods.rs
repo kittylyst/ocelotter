@@ -13,6 +13,19 @@ pub fn java_lang_Object__registerNatives(args: &InterpLocalVars) -> Option<JvmVa
     None
 }
 
+////////////////////////////////////////////
+// java.lang.Math simple maths methods
+
+pub fn java_lang_Math__sin(args: &InterpLocalVars) -> Option<JvmValue> {
+    let d = match args.load(0) {
+        JvmValue::Double { val: v } => v,
+        x => panic!("Non-double value {} of type {} encountered in Math.sin", x, x.name())
+    };
+
+    Some(JvmValue::Double {val: d.sin()})
+}
+
+////////////////////////////////////////////
 
 // FIXME System -> Runtime -> Shutdown
 pub fn java_lang_Shutdown__exit(args: &InterpLocalVars) -> Option<JvmValue> {

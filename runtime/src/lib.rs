@@ -48,7 +48,7 @@ pub enum JvmValue {
 }
 
 impl JvmValue {
-    fn name(&self) -> char {
+    pub fn name(&self) -> char {
         match *self {
             JvmValue::Boolean { val: _ } => 'Z',
             JvmValue::Byte { val: _ } => 'B',
@@ -59,6 +59,21 @@ impl JvmValue {
             JvmValue::Double { val: _ } => 'D',
             JvmValue::Char { val: _ } => 'C',
             JvmValue::ObjRef { val: _ } => 'A',
+        }
+    }
+
+    pub fn default_value(letter: char) -> JvmValue {
+        match letter {
+            'Z' => JvmValue::Boolean { val: false } ,
+            'B' => JvmValue::Byte { val: 0 },
+            'S' => JvmValue::Short { val: 0 },
+            'I' => JvmValue::Int { val: 0 },
+            'J' => JvmValue::Long { val: 0 },
+            'F' => JvmValue::Float { val: 0.0 },
+            'D' => JvmValue::Double { val: 0.0 },
+            'C' => JvmValue::Char { val: '\0' },
+            'A' => JvmValue::ObjRef { val: 0 },
+            _   => panic!("Illegal type {} seen when trying to parse", letter)
         }
     }
 }

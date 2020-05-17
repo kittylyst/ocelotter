@@ -16,8 +16,7 @@ pub fn exec_method(
     meth: &OtMethod,
     lvt: &mut InterpLocalVars,
 ) -> Option<JvmValue> {
-    dbg!(meth.clone());
-    // dbg!(meth.get_flags());
+    //    dbg!(meth.clone());
     if meth.is_native() {
         // Explicit type hint here to document the type of n_f
         let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = meth.get_native_code().expect(
@@ -74,6 +73,25 @@ pub fn exec_bytecode_method(
                 current += 1;
             }
             opcode::DADD => eval.dadd(),
+
+            opcode::DCMPG => {
+                let v1 = match eval.pop() {
+                    JvmValue::Double { val: v } => v,
+                    _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
+                };
+                let v2 = match eval.pop() {
+                    JvmValue::Double { val: v } => v,
+                    _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
+                };
+                let mut out = JvmValue::Int { val: 0 };
+                if v1 > v2 {
+                    out = JvmValue::Int { val: 1 };
+                }
+                if v1 < v2 {
+                    out = JvmValue::Int { val: -1 };
+                }
+                eval.push(out);
+            }
 
             opcode::DCONST_0 => eval.dconst(0.0),
 
@@ -258,13 +276,16 @@ pub fn exec_bytecode_method(
             //         current += 2;
             //     }
             // }    ,
-            // opcode::IFGE => {
-            //     v = eval.pop();
-            //     jump_to = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     if (v.value >= 0L) {
-            //         current += jump_to - 1; // The -1 is necessary as we've already inc'd current
-            //     }
-            // } ,
+            opcode::IFGE => {
+                let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+                let v = match eval.pop() {
+                    JvmValue::Int { val: v } => v,
+                    _ => panic!("Non-int seen on stack during IFGE at {}", current - 1),
+                };
+                if v >= 0 {
+                    current += jump_to; // - 1; // The -1 is necessary as we've already inc'd current
+                }
+            }
             // opcode::IFGT => {
             //     v = eval.pop();
             //     jump_to = ((int) instr[current++] << 8) + (int) instr[current++];
@@ -359,8 +380,9 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 let current_klass = repo.lookup_klass(&klass_name).clone();
-                // dbg!(current_klass.clone());
-                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 0);
+                //                dbg!(cp_lookup);
+                let arg_count = current_klass.get_method_arg_count(cp_lookup);
+                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, arg_count);
             }
             opcode::INVOKEVIRTUAL => {
                 // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
@@ -413,6 +435,28 @@ pub fn exec_bytecode_method(
                     ),
                 }
             }
+            opcode::LDC2_W => {
+                let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
+                current += 2;
+                let current_klass = repo.lookup_klass(&klass_name).clone();
+
+                let entry: CpEntry = current_klass.lookup_cp(cp_lookup);
+                //                dbg!("Index: {} of type {}", cp_lookup, entry.name());
+                //                dbg!(current_klass.clone());
+                match entry {
+                    // FIXME Actually look up the class object properly
+                    CpEntry::class { idx: _ } => eval.aconst_null(),
+                    CpEntry::double { val: dcon } => eval.dconst(dcon),
+                    CpEntry::integer { val: icon } => eval.iconst(icon),
+                    // FIXME Actually look up the string object properly
+                    CpEntry::string { idx: _ } => eval.aconst_null(),
+                    _ => panic!(
+                        "Non-handled entry found in LDC op {} at CP index {}",
+                        current_klass.get_name(),
+                        cp_lookup
+                    ),
+                }
+            }
             // FIXME TEMP
             opcode::MONITORENTER => {
                 eval.pop();
@@ -435,7 +479,7 @@ pub fn exec_bytecode_method(
                         cp_lookup
                     ),
                 };
-                dbg!(alloc_klass_name.clone());
+                //                dbg!(alloc_klass_name.clone());
                 let object_klass = repo.lookup_klass(&alloc_klass_name).clone();
 
                 let obj_id = HEAP.lock().unwrap().allocate_obj(&object_klass);
