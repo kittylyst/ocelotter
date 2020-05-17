@@ -6,14 +6,14 @@ use crate::JvmValue;
 ////////////////////////////////////////////
 // java.lang.Object
 
-// java_lang_Object__getClass
+// getClass()
 
 pub fn java_lang_Object__hashcode(args: &InterpLocalVars) -> Option<JvmValue> {
     // FIXME Proper hashCode algorithm
     Some(JvmValue::Int { val: 255 })
 }
 
-// java_lang_Object__clone
+// clone()
 
 pub fn java_lang_Object__notify(args: &InterpLocalVars) -> Option<JvmValue> {
     // NO-OP for now
@@ -44,6 +44,28 @@ pub fn java_lang_Class__getName(args: &InterpLocalVars) -> Option<JvmValue> {
     // FIXME Currently returns null
     Some(JvmValue::ObjRef {val: 0})
 }
+
+////////////////////////////////////////////
+// java.lang.Compiler
+
+pub fn java_lang_Compiler__compileClass(args: &InterpLocalVars) -> Option<JvmValue> {
+    Some(JvmValue::Boolean {val: true})
+}
+
+pub fn java_lang_Compiler__compileClasses(args: &InterpLocalVars) -> Option<JvmValue> {
+    Some(JvmValue::Boolean {val: true})
+}
+
+pub fn java_lang_Compiler__enable(args: &InterpLocalVars) -> Option<JvmValue> {
+    // DUMMY
+    None
+}
+
+pub fn java_lang_Compiler__disable(args: &InterpLocalVars) -> Option<JvmValue> {
+    // DUMMY
+    None
+}
+
 
 ////////////////////////////////////////////
 // java.lang.Runtime
@@ -181,7 +203,42 @@ pub fn java_lang_Math__sqrt(args: &InterpLocalVars) -> Option<JvmValue> {
     Some(JvmValue::Double {val: d.sqrt()})
 }
 
-//public static final native double pow(double, double);
+pub fn java_lang_Math__ceil(args: &InterpLocalVars) -> Option<JvmValue> {
+    let d = match args.load(0) {
+        JvmValue::Double { val: v } => v,
+        x => panic!("Non-double value {} of type {} encountered in Math.ceil", x, x.name())
+    };
+
+    Some(JvmValue::Double {val: d.ceil()})
+}
+
+pub fn java_lang_Math__floor(args: &InterpLocalVars) -> Option<JvmValue> {
+    let d = match args.load(0) {
+        JvmValue::Double { val: v } => v,
+        x => panic!("Non-double value {} of type {} encountered in Math.floor", x, x.name())
+    };
+
+    Some(JvmValue::Double {val: d.floor()})
+}
+
+//public static final native double IEEEremainder(double, double);
+
+//public static final native double rint(double);
+
+pub fn java_lang_Math__atan2(args: &InterpLocalVars) -> Option<JvmValue> {
+    let base = match args.load(0) {
+        JvmValue::Double { val: v } => v,
+        x => panic!("Non-double value {} of type {} encountered in Math.atan2", x, x.name())
+    };
+
+    let other = match args.load(0) {
+        JvmValue::Double { val: v } => v,
+        x => panic!("Non-double value {} of type {} encountered in Math.atan2", x, x.name())
+    };
+
+
+    Some(JvmValue::Double {val: base.atan2(other)})
+}
 
 pub fn java_lang_Math__pow(args: &InterpLocalVars) -> Option<JvmValue> {
     let base = match args.load(0) {

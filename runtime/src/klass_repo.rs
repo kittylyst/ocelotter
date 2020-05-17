@@ -190,8 +190,12 @@ impl SharedKlassRepo {
 //        public final native java.lang.ClassLoader getClassLoader();
 //        public final native boolean isInterface();
 
-
-
+        self.install_native_method(&"java/lang/Compiler".to_string(), &"compileClass:(Ljava/lang/Class;)Z".to_string(), crate::native_methods::java_lang_Compiler__compileClass);
+        self.install_native_method(&"java/lang/Compiler".to_string(), &"compileClasses:(Ljava/lang/String;)Z".to_string(), crate::native_methods::java_lang_Compiler__compileClasses);
+//        public static final native java.lang.Object command(java.lang.Object);
+        self.install_native_method(&"java/lang/Compiler".to_string(), &"enable:()V".to_string(), crate::native_methods::java_lang_Compiler__enable);
+        self.install_native_method(&"java/lang/Compiler".to_string(), &"disable:()V".to_string(), crate::native_methods::java_lang_Compiler__disable);
+        
         self.install_native_method(&"java/lang/Runtime".to_string(), &"freeMemory:()J".to_string(), crate::native_methods::java_lang_Runtime__freeMemory);
         self.install_native_method(&"java/lang/Runtime".to_string(), &"totalMemory:()J".to_string(), crate::native_methods::java_lang_Runtime__totalMemory);
         self.install_native_method(&"java/lang/Runtime".to_string(), &"gc:()V".to_string(), crate::native_methods::java_lang_Runtime__gc);
@@ -214,6 +218,11 @@ impl SharedKlassRepo {
         self.install_native_method(&"java/lang/Math".to_string(), &"exp:(D)D".to_string(), crate::native_methods::java_lang_Math__exp);
         self.install_native_method(&"java/lang/Math".to_string(), &"log:(D)D".to_string(), crate::native_methods::java_lang_Math__log);
         self.install_native_method(&"java/lang/Math".to_string(), &"sqrt:(D)D".to_string(), crate::native_methods::java_lang_Math__sqrt);
+//public static final native double IEEEremainder(double, double);
+        self.install_native_method(&"java/lang/Math".to_string(), &"ceil:(D)D".to_string(), crate::native_methods::java_lang_Math__ceil);
+        self.install_native_method(&"java/lang/Math".to_string(), &"floor:(D)D".to_string(), crate::native_methods::java_lang_Math__floor);
+//public static final native double rint(double);
+        self.install_native_method(&"java/lang/Math".to_string(), &"atan2:(DD)D".to_string(), crate::native_methods::java_lang_Math__atan2);
         self.install_native_method(&"java/lang/Math".to_string(), &"pow:(DD)D".to_string(), crate::native_methods::java_lang_Math__pow);
 
         // TODO Get enough of java.io.PrintStream working to get System.out.println() to work
