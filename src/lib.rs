@@ -75,22 +75,51 @@ pub fn exec_bytecode_method(
             opcode::DADD => eval.dadd(),
 
             opcode::DCMPG => {
-                let v1 = match eval.pop() {
-                    JvmValue::Double { val: v } => v,
-                    _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
-                };
                 let v2 = match eval.pop() {
                     JvmValue::Double { val: v } => v,
                     _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
                 };
-                let mut out = JvmValue::Int { val: 0 };
-                if v1 > v2 {
-                    out = JvmValue::Int { val: 1 };
+                let v1 = match eval.pop() {
+                    JvmValue::Double { val: v } => v,
+                    _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
+                };
+                if v1.is_nan() || v2.is_nan() {
+                    eval.push(JvmValue::Int { val: 1 });
+                } else {
+                    let mut out = JvmValue::Int { val: 0 };
+                    if v1 > v2 {
+                        out = JvmValue::Int { val: 1 };
+                    }
+                    if v1 < v2 {
+                        out = JvmValue::Int { val: -1 };
+                    }
+                    dbg!(out, v1, v2);
+                    eval.push(out);
                 }
-                if v1 < v2 {
-                    out = JvmValue::Int { val: -1 };
+            }
+
+            opcode::DCMPL => {
+                let v2 = match eval.pop() {
+                    JvmValue::Double { val: v } => v,
+                    _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
+                };
+                let v1 = match eval.pop() {
+                    JvmValue::Double { val: v } => v,
+                    _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
+                };
+                if v1.is_nan() || v2.is_nan() {
+                    eval.push(JvmValue::Int { val: -1 });
+                } else {
+                    let mut out = JvmValue::Int { val: 0 };
+                    if v1 > v2 {
+                        out = JvmValue::Int { val: 1 };
+                    }
+                    if v1 < v2 {
+                        out = JvmValue::Int { val: -1 };
+                    }
+                    dbg!(out, v1, v2);
+                    eval.push(out);
                 }
-                eval.push(out);
             }
 
             opcode::DCONST_0 => eval.dconst(0.0),
@@ -225,102 +254,129 @@ pub fn exec_bytecode_method(
             opcode::IDIV => eval.idiv(),
 
             opcode::IF_ICMPEQ => {
-                let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i == j
                 }) {
-                    current += jump_to;
+                    current += jump_to - 1;
                 } else {
                     current += 2;
                 }
             }
             opcode::IF_ICMPGT => {
-                let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i > j
                 }) {
-                    current += jump_to;
+                    current += jump_to - 1;
                 } else {
                     current += 2;
                 }
             }
-
             opcode::IF_ICMPLT => {
-                let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i < j
                 }) {
-                    current += jump_to;
+                    current += jump_to - 1;
                 } else {
                     current += 2;
                 }
             }
             opcode::IF_ICMPNE => {
-                let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i == j
                 }) {
                     current += 2;
                 } else {
-                    current += jump_to;
+                    current += jump_to - 1;
                 }
             }
-            // opcode::IFEQ => {
-            //     let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
-            //     let i = match eval.pop() {
-
-            //     }
-            //     if == 0 {
-            //         current += jump_to;
-            //     } else {
-            //         current += 2;
-            //     }
-            // }    ,
-            opcode::IFGE => {
-                let jump_to = (instr[current] as usize) << 8 + instr[current + 1] as usize;
-                let v = match eval.pop() {
+            opcode::IFEQ => {
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let i = match eval.pop() {
                     JvmValue::Int { val: v } => v,
+                    _ => panic!("Non-int seen on stack during IFEQ at {}", current - 1),
+                };
+                if i == 0 {
+                    current += jump_to - 1;
+                } else {
+                    current += 2;
+                }
+            }
+            opcode::IFGE => {
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let v = match eval.pop() {
+                    JvmValue::Int { val: i } => i,
                     _ => panic!("Non-int seen on stack during IFGE at {}", current - 1),
                 };
+                //                dbg!(v);
+                //                dbg!(current, jump_to);
                 if v >= 0 {
-                    current += jump_to; // - 1; // The -1 is necessary as we've already inc'd current
+                    current += jump_to - 1;
+                } else {
+                    current += 2;
                 }
             }
-            // opcode::IFGT => {
-            //     v = eval.pop();
-            //     jump_to = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     if (v.value > 0L) {
-            //         current += jump_to - 1; // The -1 is necessary as we've already inc'd current
-            //     }
-            // },
-            // opcode::IFLE => {
-            //     v = eval.pop();
-            //     jump_to = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     if (v.value <= 0L) {
-            //         current += jump_to - 1; // The -1 is necessary as we've already inc'd current
-            //     }
-            // },
-            // opcode::IFLT => {
-            //     v = eval.pop();
-            //     jump_to = ((int) instr[current++] << 8) + (int) instr[current++];
-            //     if (v.value < 0L) {
-            //         current += jump_to - 1; // The -1 is necessary as we've already inc'd current
-            //     }
-            // },
-            // opcode::IFNE => {
-            //     v = eval.pop();
-            //     jump_to = ((int) instr[current] << 8) + (int) instr[current + 1];
-            //     if (v.value != 0L) {
-            //         current += jump_to - 1;  // The -1 is necessary as we've already inc'd current
-            //     }
-            // },
+            opcode::IFGT => {
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let v = match eval.pop() {
+                    JvmValue::Int { val: v } => v,
+                    _ => panic!("Non-int seen on stack during IFGT at {}", current - 1),
+                };
+                if v > 0 {
+                    current += jump_to - 1;
+                } else {
+                    current += 2;
+                }
+            }
+            opcode::IFLE => {
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let v = match eval.pop() {
+                    JvmValue::Int { val: i } => i,
+                    _ => panic!("Non-int seen on stack during IFLE at {}", current - 1),
+                };
+                //                dbg!(v);
+                //                dbg!(current, jump_to);
+                //                dbg!(instr[current], instr[current + 1]);
+                if v <= 0 {
+                    current += jump_to - 1;
+                } else {
+                    current += 2;
+                }
+            }
+            opcode::IFLT => {
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let v = match eval.pop() {
+                    JvmValue::Int { val: v } => v,
+                    _ => panic!("Non-int seen on stack during IFGT at {}", current - 1),
+                };
+                if v < 0 {
+                    current += jump_to - 1;
+                } else {
+                    current += 2;
+                }
+            }
+            opcode::IFNE => {
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let i = match eval.pop() {
+                    JvmValue::Int { val: v } => v,
+                    _ => panic!("Non-int seen on stack during IFEQ at {}", current - 1),
+                };
+                if i == 0 {
+                    current += jump_to - 1;
+                } else {
+                    current += 2;
+                }
+            }
             opcode::IFNONNULL => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
 
                 match eval.pop() {
                     JvmValue::ObjRef { val: v } => {
                         if v > 0 {
-                            current += jump_to;
+                            current += jump_to - 1;
                         } else {
                             current += 2;
                         }
@@ -337,7 +393,7 @@ pub fn exec_bytecode_method(
                 match eval.pop() {
                     JvmValue::ObjRef { val: v } => {
                         if v == 0 {
-                            current += jump_to;
+                            current += jump_to - 1;
                         } else {
                             current += 2;
                         }

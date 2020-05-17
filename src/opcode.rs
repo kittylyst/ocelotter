@@ -10,6 +10,7 @@ pub const BIPUSH: u8 = 0x10;
 pub const BREAKPOINT: u8 = 0xca;
 pub const DADD: u8 = 0x63;
 pub const DCMPG: u8 = 0x98;
+pub const DCMPL: u8 = 0x97;
 pub const DCONST_0: u8 = 0x0e;
 pub const DCONST_1: u8 = 0x0f;
 pub const DLOAD: u8 = 0x18;
