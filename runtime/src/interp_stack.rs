@@ -38,6 +38,23 @@ impl InterpEvalStack {
         self.push(JvmValue::Int { val: v });
     }
 
+    pub fn i2d(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Double { val: i1 as f64 });
+    }
+
+    pub fn i2l(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Long { val: i1 as i64 });
+    }
+
+
     pub fn iadd(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
@@ -228,6 +245,28 @@ impl InterpEvalStack {
         self.push(JvmValue::Long { val: i2 / i1 });
     }
 
+    pub fn lmul(&mut self) -> () {
+        // For a runtime checking interpreter - type checks would go here...
+        let i1 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+
+        self.push(JvmValue::Long { val: i2 * i1 });
+    }
+
+    pub fn lneg(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Long { val: -i1 });
+    }
+
     pub fn land(&mut self) -> () {
         let i1 = match self.pop() {
             JvmValue::Long { val: i } => i,
@@ -262,6 +301,30 @@ impl InterpEvalStack {
             _ => panic!("Unexpected, non-integer value encountered"),
         };
         self.push(JvmValue::Long { val: i1 ^ i2 });
+    }
+
+    pub fn lshl(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Long { val: i1 << i2 });
+    }
+
+    pub fn lshr(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Long { val: i1 >> i2 });
     }
 
     //
@@ -335,8 +398,6 @@ impl InterpEvalStack {
     pub fn dconst(&mut self, v: f64) -> () {
         self.push(JvmValue::Double { val: v });
     }
-
-    pub fn i2d(&self) -> () {}
 
     pub fn dup(&mut self) -> () {
         let i1 = self.pop();

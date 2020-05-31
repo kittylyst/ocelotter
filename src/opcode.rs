@@ -51,7 +51,7 @@ pub const DSUB: u8 = 0x67;
 pub const DUP: u8 = 0x59;
 pub const DUP_X1: u8 = 0x5a;
 // DUP_X2 0x5b
-//pub const DUP2: u8 = 0x5c;
+// DUP2 0x5c
 // DUP2_X1 0x5d
 // DUP2_X2 0x5e
 //
@@ -65,7 +65,7 @@ pub const GOTO_W: u8 = 0xc8;
 // I2C 0x92
 pub const I2D: u8 = 0x87;
 // I2F 0x86
-// I2L 0x85
+pub const I2L: u8 = 0x85;
 // I2S 0x93
 pub const IADD: u8 = 0x60;
 pub const IALOAD: u8 = 0x2e;
@@ -139,19 +139,26 @@ pub const LCONST_1: u8 = 0x0a;
 pub const LDC: u8 = 0x12;
 pub const LDC2_W: u8 = 0x14;
 pub const LDIV: u8 = 0x6d;
-// LLOAD 0x16
-// LLOAD_0 0x1e
-// LLOAD_1 0x1f
-// LLOAD_2 0x20
-// LLOAD_3 0x21
-// LMUL 0x69
-// LNEG 0x75
+pub const LLOAD: u8 = 0x16;
+pub const LLOAD_0: u8 = 0x1e;
+pub const LLOAD_1: u8 = 0x1f;
+pub const LLOAD_2: u8 = 0x20;
+pub const LLOAD_3: u8 = 0x21;
+pub const LMUL: u8 = 0x69;
+pub const LNEG: u8 = 0x75;
 // LOOKUPSWITCH 0xab
 pub const LOR: u8 = 0x81;
-//
-// More L opcodes
-//
+// LREM 0x71
+// LRETURN 0xad
+pub const LSHL: u8 = 0x79;
+pub const LSHR: u8 = 0x7b;
+pub const LSTORE: u8 = 0x37;
+pub const LSTORE_0: u8 = 0x3f;
+pub const LSTORE_1: u8 = 0x40;
+pub const LSTORE_2: u8 = 0x41;
+pub const LSTORE_3: u8 = 0x42;
 pub const LSUB: u8 = 0x65;
+// LUSHR 0x7d
 pub const LXOR: u8 = 0x83;
 pub const MONITORENTER: u8 = 0xc2;
 pub const MONITOREXIT: u8 = 0xc3;
@@ -199,6 +206,8 @@ fn num_params(c: u8) -> u8 {
         INVOKESTATIC => 2,
         INVOKEVIRTUAL => 2,
         ISTORE => 1,
+        LLOAD => 1,
+        LSTORE => 1,
         NEW => 2,
         NEWARRAY => 1,
         JSR => 2,

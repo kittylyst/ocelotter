@@ -212,6 +212,8 @@ pub fn exec_bytecode_method(
 
             opcode::I2D => eval.i2d(),
 
+            opcode::I2L => eval.i2l(),
+
             opcode::IADD => eval.iadd(),
 
             opcode::IALOAD => {
@@ -580,7 +582,41 @@ pub fn exec_bytecode_method(
 
             opcode::LDIV => eval.ldiv(),
 
+            opcode::LLOAD => {
+                eval.push(lvt.load(instr[current]));
+                current += 1
+            }
+
+            opcode::LLOAD_0 => eval.push(lvt.load(0)),
+
+            opcode::LLOAD_1 => eval.push(lvt.load(1)),
+
+            opcode::LLOAD_2 => eval.push(lvt.load(2)),
+
+            opcode::LLOAD_3 => eval.push(lvt.load(3)),
+
+            opcode::LMUL => eval.lmul(),
+
+            opcode::LNEG => eval.lneg(),
+
             opcode::LOR => eval.lor(),
+
+            opcode::LSHL => eval.lshl(),
+
+            opcode::LSHR => eval.lshr(),
+
+            opcode::LSTORE => {
+                lvt.store(instr[current], eval.pop());
+                current += 1;
+            }
+
+            opcode::LSTORE_0 => lvt.store(0, eval.pop()),
+
+            opcode::LSTORE_1 => lvt.store(1, eval.pop()),
+
+            opcode::LSTORE_2 => lvt.store(2, eval.pop()),
+
+            opcode::LSTORE_3 => lvt.store(3, eval.pop()),
 
             opcode::LSUB => eval.lsub(),
 
