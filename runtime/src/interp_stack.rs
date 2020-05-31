@@ -30,6 +30,10 @@ impl InterpEvalStack {
         });
     }
 
+    //
+    // I opcodes - int
+    //
+
     pub fn iconst(&mut self, v: i32) -> () {
         self.push(JvmValue::Int { val: v });
     }
@@ -61,6 +65,7 @@ impl InterpEvalStack {
 
         self.push(JvmValue::Int { val: i1 - i2 });
     }
+
     pub fn imul(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
@@ -88,6 +93,7 @@ impl InterpEvalStack {
 
         self.push(JvmValue::Int { val: i2 % i1 });
     }
+
     pub fn idiv(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
@@ -101,6 +107,7 @@ impl InterpEvalStack {
 
         self.push(JvmValue::Int { val: i2 / i1 });
     }
+
     pub fn iand(&mut self) -> () {
         let i1 = match self.pop() {
             JvmValue::Int { val: i } => i,
@@ -133,6 +140,7 @@ impl InterpEvalStack {
         self.push(JvmValue::Int { val: i1 | i2 });
 
     }
+
     pub fn ishl(&mut self) -> () {
         let i1 = match self.pop() {
             JvmValue::Int { val: i } => i,
@@ -144,6 +152,7 @@ impl InterpEvalStack {
         };
         self.push(JvmValue::Int { val: i1 << i2 });
     }
+
     pub fn ishr(&mut self) -> () {
         let i1 = match self.pop() {
             JvmValue::Int { val: i } => i,
@@ -168,6 +177,61 @@ impl InterpEvalStack {
         self.push(JvmValue::Int { val: i1 ^ i2 });
 
     }
+
+    //
+    // L opcodes - long
+    //
+
+    pub fn lconst(&mut self, v: i64) -> () {
+        self.push(JvmValue::Long { val: v });
+    }
+
+    pub fn ladd(&mut self) -> () {
+        // For a runtime checking interpreter - type checks would go here...
+        let i1 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+
+        self.push(JvmValue::Long { val: i1 + i2 });
+    }
+
+    pub fn lsub(&mut self) -> () {
+        // For a runtime checking interpreter - type checks would go here...
+        let i1 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+
+        self.push(JvmValue::Long { val: i1 - i2 });
+    }
+
+    pub fn ldiv(&mut self) -> () {
+        // For a runtime checking interpreter - type checks would go here...
+        let i1 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+
+        self.push(JvmValue::Long { val: i2 / i1 });
+    }
+
+
+    //
+    // D opcodes - double
+    //
 
     pub fn dadd(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...

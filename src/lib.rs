@@ -527,6 +527,13 @@ pub fn exec_bytecode_method(
                     _ => panic!("Value not of long type found for L2I at {}", (current - 1)),
                 };
             }
+
+            opcode::LADD => eval.ladd(),
+
+            opcode::LCONST_0 => eval.lconst(0),
+
+            opcode::LCONST_1 => eval.lconst(1),
+
             opcode::LDC => {
                 let cp_lookup = instr[current] as u16;
                 current += 1;
@@ -568,6 +575,11 @@ pub fn exec_bytecode_method(
                     ),
                 }
             }
+
+            opcode::LDIV => eval.ldiv(),
+
+            opcode::LSUB => eval.lsub(),
+
             // FIXME TEMP
             opcode::MONITORENTER => {
                 eval.pop();

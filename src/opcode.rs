@@ -129,15 +129,28 @@ pub const JSR_W: u8 = 0xc9;
 // L2D 0x8a
 // L2F 0x89
 pub const L2I: u8 = 0x88;
-//
-// L opcodes
-//
+pub const LADD: u8 = 0x61;
+// LALOAD 0x2f
+//pub const LAND: u8 = 0x7f;
+// LASTORE 0x50
+// LCMP 0x94
+pub const LCONST_0: u8 = 0x09;
+pub const LCONST_1: u8 = 0x0a;
 pub const LDC: u8 = 0x12;
 pub const LDC2_W: u8 = 0x14;
+pub const LDIV: u8 = 0x6d;
+// LLOAD 0x16
+// LLOAD_0 0x1e
+// LLOAD_1 0x1f
+// LLOAD_2 0x20
+// LLOAD_3 0x21
+// LMUL 0x69
+// LNEG 0x75
+// LOOKUPSWITCH 0xab
 //
 // More L opcodes
 //
-// LOOKUPSWITCH 0xab
+pub const LSUB: u8 = 0x65;
 pub const MONITORENTER: u8 = 0xc2;
 pub const MONITOREXIT: u8 = 0xc3;
 // MULTINEWARRAY 0xc5
