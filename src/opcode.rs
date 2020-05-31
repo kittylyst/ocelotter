@@ -131,7 +131,7 @@ pub const JSR_W: u8 = 0xc9;
 pub const L2I: u8 = 0x88;
 pub const LADD: u8 = 0x61;
 // LALOAD 0x2f
-//pub const LAND: u8 = 0x7f;
+pub const LAND: u8 = 0x7f;
 // LASTORE 0x50
 // LCMP 0x94
 pub const LCONST_0: u8 = 0x09;
@@ -147,10 +147,12 @@ pub const LDIV: u8 = 0x6d;
 // LMUL 0x69
 // LNEG 0x75
 // LOOKUPSWITCH 0xab
+pub const LOR: u8 = 0x81;
 //
 // More L opcodes
 //
 pub const LSUB: u8 = 0x65;
+pub const LXOR: u8 = 0x83;
 pub const MONITORENTER: u8 = 0xc2;
 pub const MONITOREXIT: u8 = 0xc3;
 // MULTINEWARRAY 0xc5

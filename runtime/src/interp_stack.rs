@@ -138,6 +138,18 @@ impl InterpEvalStack {
             _ => panic!("Unexpected, non-integer value encountered"),
         };
         self.push(JvmValue::Int { val: i1 | i2 });
+    }
+
+    pub fn ixor(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Int { val: i1 ^ i2 });
 
     }
 
@@ -165,18 +177,6 @@ impl InterpEvalStack {
         self.push(JvmValue::Int { val: i1 >> i2 });
     }
 
-    pub fn ixor(&mut self) -> () {
-        let i1 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-        let i2 = match self.pop() {
-            JvmValue::Int { val: i } => i,
-            _ => panic!("Unexpected, non-integer value encountered"),
-        };
-        self.push(JvmValue::Int { val: i1 ^ i2 });
-
-    }
 
     //
     // L opcodes - long
@@ -228,6 +228,41 @@ impl InterpEvalStack {
         self.push(JvmValue::Long { val: i2 / i1 });
     }
 
+    pub fn land(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Long { val: i1 & i2 });
+    }
+
+    pub fn lor(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Long { val: i1 | i2 });
+    }
+
+    pub fn lxor(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Long { val: i1 ^ i2 });
+    }
 
     //
     // D opcodes - double

@@ -530,6 +530,8 @@ pub fn exec_bytecode_method(
 
             opcode::LADD => eval.ladd(),
 
+            opcode::LAND => eval.land(),
+
             opcode::LCONST_0 => eval.lconst(0),
 
             opcode::LCONST_1 => eval.lconst(1),
@@ -578,7 +580,11 @@ pub fn exec_bytecode_method(
 
             opcode::LDIV => eval.ldiv(),
 
+            opcode::LOR => eval.lor(),
+
             opcode::LSUB => eval.lsub(),
+
+            opcode::LXOR => eval.lxor(),
 
             // FIXME TEMP
             opcode::MONITORENTER => {
