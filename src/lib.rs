@@ -59,6 +59,10 @@ pub fn exec_bytecode_method(
 
             opcode::ALOAD_1 => eval.push(lvt.load(1)),
 
+            opcode::ALOAD_2 => eval.push(lvt.load(2)),
+
+            opcode::ALOAD_3 => eval.push(lvt.load(3)),
+
             opcode::ARETURN => break Some(eval.pop()),
             opcode::ASTORE => {
                 lvt.store(instr[current], eval.pop());
@@ -67,6 +71,10 @@ pub fn exec_bytecode_method(
             opcode::ASTORE_0 => lvt.store(0, eval.pop()),
 
             opcode::ASTORE_1 => lvt.store(1, eval.pop()),
+
+            opcode::ASTORE_2 => lvt.store(2, eval.pop()),
+
+            opcode::ASTORE_3 => lvt.store(3, eval.pop()),
 
             opcode::BIPUSH => {
                 eval.iconst(instr[current] as i32);
@@ -466,6 +474,9 @@ pub fn exec_bytecode_method(
             opcode::ISTORE_3 => lvt.store(3, eval.pop()),
 
             opcode::ISUB => eval.isub(),
+
+            opcode::IXOR => eval.ixor(),
+
             opcode::L2I => {
                 match eval.pop() {
                     JvmValue::Long { val: v } => eval.push(JvmValue::Int { val: v as i32 }),

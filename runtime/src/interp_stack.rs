@@ -88,7 +88,6 @@ impl InterpEvalStack {
 
         self.push(JvmValue::Int { val: i2 % i1 });
     }
-    pub fn ixor(&self) -> () {}
     pub fn idiv(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
@@ -102,7 +101,17 @@ impl InterpEvalStack {
 
         self.push(JvmValue::Int { val: i2 / i1 });
     }
-    pub fn iand(&self) -> () {}
+    pub fn iand(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Int { val: i1 & i2 });
+    }
     pub fn ineg(&mut self) -> () {
         let i1 = match self.pop() {
             JvmValue::Int { val: i } => i,
@@ -110,7 +119,32 @@ impl InterpEvalStack {
         };
         self.push(JvmValue::Int { val: -i1 });
     }
-    pub fn ior(&self) -> () {}
+    pub fn ior(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Int { val: i1 | i2 });
+
+    }
+    pub fn ixor(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Int { val: i1 ^ i2 });
+
+    }
+
+
 
     pub fn dadd(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...

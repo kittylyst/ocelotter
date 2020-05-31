@@ -2,22 +2,43 @@ pub const ACONST_NULL: u8 = 0x01;
 pub const ALOAD: u8 = 0x19;
 pub const ALOAD_0: u8 = 0x2a;
 pub const ALOAD_1: u8 = 0x2b;
+pub const ALOAD_2: u8 = 0x2c;
+pub const ALOAD_3: u8 = 0x2d;
+// ANEWARRAY 0xbd
 pub const ARETURN: u8 = 0xb0;
+// ARRAYLENGTH 0xbe
 pub const ASTORE: u8 = 0x53;
 pub const ASTORE_0: u8 = 0x4b;
 pub const ASTORE_1: u8 = 0x4c;
+pub const ASTORE_2: u8 = 0x4d;
+pub const ASTORE_3: u8 = 0x4e;
+// ATHROW 0xbf
+// BALOAD 0x33
+// BASTORE 0x54
 pub const BIPUSH: u8 = 0x10;
 pub const BREAKPOINT: u8 = 0xca;
+// CALOAD 0x34
+// CASTORE 0x55
+// CHECKCAST 0xc0
+// D2F 0x90
+// D2I 0x8e
+// D2L 0x8f
 pub const DADD: u8 = 0x63;
+// DALOAD 0x31
+// DASTORE 0x52
 pub const DCMPG: u8 = 0x98;
 pub const DCMPL: u8 = 0x97;
 pub const DCONST_0: u8 = 0x0e;
 pub const DCONST_1: u8 = 0x0f;
+// DDIV 0x6f
 pub const DLOAD: u8 = 0x18;
 pub const DLOAD_0: u8 = 0x26;
 pub const DLOAD_1: u8 = 0x27;
 pub const DLOAD_2: u8 = 0x28;
 pub const DLOAD_3: u8 = 0x29;
+// DMUL 0x6b
+// DNEG 0x77
+// DREM 0x73
 pub const DRETURN: u8 = 0xaf;
 pub const DSTORE: u8 = 0x39;
 pub const DSTORE_0: u8 = 0x47;
@@ -27,10 +48,23 @@ pub const DSTORE_3: u8 = 0x4a;
 pub const DSUB: u8 = 0x67;
 pub const DUP: u8 = 0x59;
 pub const DUP_X1: u8 = 0x5a;
+// DUP_X2 0x5b
+// DUP2 0x5c
+// DUP2_X1 0x5d
+// DUP2_X2 0x5e
+//
+// All the F Opcodes...
+//
 pub const GETFIELD: u8 = 0xb4;
 pub const GETSTATIC: u8 = 0xb2;
 pub const GOTO: u8 = 0xa7;
+// GOTO_W 0xc8
+// I2B 0x91
+// I2C 0x92
 pub const I2D: u8 = 0x87;
+// I2F 0x86
+// I2L 0x85
+// I2S 0x93
 pub const IADD: u8 = 0x60;
 pub const IALOAD: u8 = 0x2e;
 pub const IAND: u8 = 0x7e;
@@ -43,6 +77,9 @@ pub const ICONST_3: u8 = 0x06;
 pub const ICONST_4: u8 = 0x07;
 pub const ICONST_5: u8 = 0x08;
 pub const IDIV: u8 = 0x6c;
+//
+// Many IF variants...
+//
 pub const IF_ICMPEQ: u8 = 0x9f;
 pub const IF_ICMPGT: u8 = 0xa3;
 pub const IF_ICMPLT: u8 = 0xa1;
@@ -65,18 +102,25 @@ pub const IMPDEP1: u8 = 0xfe;
 pub const IMPDEP2: u8 = 0xff;
 pub const IMUL: u8 = 0x68;
 pub const INEG: u8 = 0x74;
+// INSTANCEOF 0xc1
+// INVOKEDYNAMIC 0xba
+// INVOKEINTERFACE 0xb9
 pub const INVOKESPECIAL: u8 = 0xb7;
 pub const INVOKESTATIC: u8 = 0xb8;
 pub const INVOKEVIRTUAL: u8 = 0xb6;
 pub const IOR: u8 = 0x80;
 pub const IREM: u8 = 0x70;
 pub const IRETURN: u8 = 0xac;
+// ISHL 0x78
+// ISHR 0x7a
 pub const ISTORE: u8 = 0x36;
 pub const ISTORE_0: u8 = 0x3b;
 pub const ISTORE_1: u8 = 0x3c;
 pub const ISTORE_2: u8 = 0x3d;
 pub const ISTORE_3: u8 = 0x3e;
 pub const ISUB: u8 = 0x64;
+// IUSHR 0x7c
+pub const IXOR: u8 = 0x82;
 pub const JSR: u8 = 0xa8;
 pub const JSR_W: u8 = 0xc9;
 pub const LDC: u8 = 0x12;
