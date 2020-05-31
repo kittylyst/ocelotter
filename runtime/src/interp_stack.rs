@@ -327,6 +327,136 @@ impl InterpEvalStack {
         self.push(JvmValue::Long { val: i1 >> i2 });
     }
 
+
+    //
+    // F opcodes - float
+    //
+
+    pub fn f2d(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Float { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Double { val: i1 as f64 });
+    }
+
+    pub fn fadd(&mut self) -> () {
+        // For a runtime checking interpreter - type checks would go here...
+        let i1 = match self.pop() {
+            JvmValue::Float { val: i } => i,
+            _ => panic!("Unexpected, non-double value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Float { val: i } => i,
+            _ => panic!("Unexpected, non-double value encountered"),
+        };
+
+        self.push(JvmValue::Float { val: i1 + i2 });
+    }
+
+    pub fn fsub(&mut self) -> () {
+        // For a runtime checking interpreter - type checks would go here...
+        let i1 = match self.pop() {
+            JvmValue::Float { val: i } => i,
+            _ => panic!("Unexpected, non-double value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Float { val: i } => i,
+            _ => panic!("Unexpected, non-double value encountered"),
+        };
+
+        self.push(JvmValue::Float { val: i1 - i2 });
+    }
+
+    pub fn fmul(&mut self) -> () {
+        // For a runtime checking interpreter - type checks would go here...
+        let i1 = match self.pop() {
+            JvmValue::Float { val: i } => i,
+            _ => panic!("Unexpected, non-double value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Float { val: i } => i,
+            _ => panic!("Unexpected, non-double value encountered"),
+        };
+
+        self.push(JvmValue::Float { val: i1 * i2 });
+    }
+
+    pub fn fdiv(&mut self) -> () {
+        // For a runtime checking interpreter - type checks would go here...
+        let i1 = match self.pop() {
+            JvmValue::Float { val: i } => i,
+            _ => panic!("Unexpected, non-double value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Float { val: i } => i,
+            _ => panic!("Unexpected, non-double value encountered"),
+        };
+
+        self.push(JvmValue::Float { val: i1 / i2 });
+    }
+
+    pub fn fconst(&mut self, v: f32) -> () {
+        self.push(JvmValue::Float { val: v });
+    }
+
+    pub fn fneg(&mut self) -> () {
+        let d = match self.pop() {
+            JvmValue::Float { val: d } => d,
+            _ => panic!("Unexpected, non-float value encountered"),
+        };
+        self.push(JvmValue::Float { val: -d });
+    }
+
+    pub fn fcmpg(&mut self) {
+        let v2 = match self.pop() {
+            JvmValue::Float { val: v } => v,
+            _ => panic!("Non-double seen on stack during FCMPG"),
+        };
+        let v1 = match self.pop() {
+            JvmValue::Float { val: v } => v,
+            _ => panic!("Non-double seen on stack during FCMPG"),
+        };
+        if v1.is_nan() || v2.is_nan() {
+            self.push(JvmValue::Int { val: 1 });
+        } else {
+            let mut out = JvmValue::Int { val: 0 };
+            if v1 > v2 {
+                out = JvmValue::Int { val: 1 };
+            }
+            if v1 < v2 {
+                out = JvmValue::Int { val: -1 };
+            }
+//            dbg!(out, v1, v2);
+            self.push(out);
+        }
+
+    }
+
+    pub fn fcmpl(&mut self) {
+        let v2 = match self.pop() {
+            JvmValue::Float { val: v } => v,
+            _ => panic!("Non-double seen on stack during FCMPL"),
+        };
+        let v1 = match self.pop() {
+            JvmValue::Float { val: v } => v,
+            _ => panic!("Non-double seen on stack during FCMPL"),
+        };
+        if v1.is_nan() || v2.is_nan() {
+            self.push(JvmValue::Int { val: -1 });
+        } else {
+            let mut out = JvmValue::Int { val: 0 };
+            if v1 > v2 {
+                out = JvmValue::Int { val: 1 };
+            }
+            if v1 < v2 {
+                out = JvmValue::Int { val: -1 };
+            }
+//            dbg!(out, v1, v2);
+            self.push(out);
+        }
+    }
+
     //
     // D opcodes - double
     //
@@ -398,6 +528,59 @@ impl InterpEvalStack {
     pub fn dconst(&mut self, v: f64) -> () {
         self.push(JvmValue::Double { val: v });
     }
+
+    pub fn dcmpg(&mut self) {
+        let v2 = match self.pop() {
+            JvmValue::Double { val: v } => v,
+            _ => panic!("Non-double seen on stack during DCMPG"),
+        };
+        let v1 = match self.pop() {
+            JvmValue::Double { val: v } => v,
+            _ => panic!("Non-double seen on stack during DCMPG"),
+        };
+        if v1.is_nan() || v2.is_nan() {
+            self.push(JvmValue::Int { val: 1 });
+        } else {
+            let mut out = JvmValue::Int { val: 0 };
+            if v1 > v2 {
+                out = JvmValue::Int { val: 1 };
+            }
+            if v1 < v2 {
+                out = JvmValue::Int { val: -1 };
+            }
+//            dbg!(out, v1, v2);
+            self.push(out);
+        }
+
+    }
+
+    pub fn dcmpl(&mut self) {
+        let v2 = match self.pop() {
+            JvmValue::Double { val: v } => v,
+            _ => panic!("Non-double seen on stack during DCMPL"),
+        };
+        let v1 = match self.pop() {
+            JvmValue::Double { val: v } => v,
+            _ => panic!("Non-double seen on stack during DCMPL"),
+        };
+        if v1.is_nan() || v2.is_nan() {
+            self.push(JvmValue::Int { val: -1 });
+        } else {
+            let mut out = JvmValue::Int { val: 0 };
+            if v1 > v2 {
+                out = JvmValue::Int { val: 1 };
+            }
+            if v1 < v2 {
+                out = JvmValue::Int { val: -1 };
+            }
+//            dbg!(out, v1, v2);
+            self.push(out);
+        }
+    }
+
+    //
+    //  Stack Manipulation
+    //
 
     pub fn dup(&mut self) -> () {
         let i1 = self.pop();

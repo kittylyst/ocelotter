@@ -54,9 +54,33 @@ pub const DUP_X1: u8 = 0x5a;
 // DUP2 0x5c
 // DUP2_X1 0x5d
 // DUP2_X2 0x5e
-//
-// All the F Opcodes...
-//
+pub const F2D: u8 = 0x8d;
+// F2I 0x8b
+// F2L 0x8c
+pub const FADD: u8 = 0x62;
+// FALOAD 0x30
+// FASTORE 0x51
+pub const FCMPG: u8 = 0x96;
+pub const FCMPL: u8 = 0x95;
+pub const FCONST_0: u8 = 0x0b;
+pub const FCONST_1: u8 = 0x0c;
+pub const FCONST_2: u8 = 0x0d;
+pub const FDIV: u8 = 0x6e;
+pub const FLOAD: u8 = 0x17;
+pub const FLOAD_0: u8 = 0x22;
+pub const FLOAD_1: u8 = 0x23;
+pub const FLOAD_2: u8 = 0x24;
+pub const FLOAD_3: u8 = 0x25;
+pub const FMUL: u8 = 0x6a;
+pub const FNEG: u8 = 0x76;
+// FREM 0x72
+pub const FRETURN: u8 = 0xae;
+pub const FSTORE: u8 = 0x38;
+pub const FSTORE_0: u8 = 0x43;
+pub const FSTORE_1: u8 = 0x44;
+pub const FSTORE_2: u8 = 0x45;
+pub const FSTORE_3: u8 = 0x46;
+pub const FSUB: u8 = 0x66;
 pub const GETFIELD: u8 = 0xb4;
 pub const GETSTATIC: u8 = 0xb2;
 pub const GOTO: u8 = 0xa7;
@@ -188,6 +212,8 @@ fn num_params(c: u8) -> u8 {
         BIPUSH => 1,
         DLOAD => 1,
         DSTORE => 1,
+        FLOAD => 1,
+        FSTORE => 1,
         GETFIELD => 2,
         GETSTATIC => 2,
         GOTO => 2,

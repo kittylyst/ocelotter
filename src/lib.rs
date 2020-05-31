@@ -82,53 +82,9 @@ pub fn exec_bytecode_method(
             }
             opcode::DADD => eval.dadd(),
 
-            opcode::DCMPG => {
-                let v2 = match eval.pop() {
-                    JvmValue::Double { val: v } => v,
-                    _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
-                };
-                let v1 = match eval.pop() {
-                    JvmValue::Double { val: v } => v,
-                    _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
-                };
-                if v1.is_nan() || v2.is_nan() {
-                    eval.push(JvmValue::Int { val: 1 });
-                } else {
-                    let mut out = JvmValue::Int { val: 0 };
-                    if v1 > v2 {
-                        out = JvmValue::Int { val: 1 };
-                    }
-                    if v1 < v2 {
-                        out = JvmValue::Int { val: -1 };
-                    }
-                    dbg!(out, v1, v2);
-                    eval.push(out);
-                }
-            }
+            opcode::DCMPG => eval.dcmpg(),
 
-            opcode::DCMPL => {
-                let v2 = match eval.pop() {
-                    JvmValue::Double { val: v } => v,
-                    _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
-                };
-                let v1 = match eval.pop() {
-                    JvmValue::Double { val: v } => v,
-                    _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
-                };
-                if v1.is_nan() || v2.is_nan() {
-                    eval.push(JvmValue::Int { val: -1 });
-                } else {
-                    let mut out = JvmValue::Int { val: 0 };
-                    if v1 > v2 {
-                        out = JvmValue::Int { val: 1 };
-                    }
-                    if v1 < v2 {
-                        out = JvmValue::Int { val: -1 };
-                    }
-                    dbg!(out, v1, v2);
-                    eval.push(out);
-                }
-            }
+            opcode::DCMPL => eval.dcmpl(),
 
             opcode::DCONST_0 => eval.dconst(0.0),
 
@@ -159,6 +115,7 @@ pub fn exec_bytecode_method(
                 lvt.store(instr[current], eval.pop());
                 current += 1;
             }
+
             opcode::DSTORE_0 => lvt.store(0, eval.pop()),
 
             opcode::DSTORE_1 => lvt.store(1, eval.pop()),
@@ -174,6 +131,56 @@ pub fn exec_bytecode_method(
             opcode::DUP_X1 => eval.dup_x1(),
 
             //            opcode::DUP2 => eval.dup2(),
+            opcode::F2D => eval.f2d(),
+
+            opcode::FADD => eval.fadd(),
+
+            opcode::FCMPG => eval.fcmpg(),
+
+            opcode::FCMPL => eval.fcmpl(),
+
+            opcode::FCONST_0 => eval.fconst(0.0),
+
+            opcode::FCONST_1 => eval.fconst(1.0),
+
+            opcode::FCONST_2 => eval.fconst(2.0),
+
+            opcode::FDIV => eval.fdiv(),
+
+            opcode::FLOAD => {
+                eval.push(lvt.load(instr[current]));
+                current += 1;
+            }
+
+            opcode::FLOAD_0 => eval.push(lvt.load(0)),
+
+            opcode::FLOAD_1 => eval.push(lvt.load(1)),
+
+            opcode::FLOAD_2 => eval.push(lvt.load(2)),
+
+            opcode::FLOAD_3 => eval.push(lvt.load(3)),
+
+            opcode::FMUL => eval.fmul(),
+
+            opcode::FNEG => eval.fneg(),
+
+            opcode::FRETURN => break Some(eval.pop()),
+
+            opcode::FSTORE => {
+                lvt.store(instr[current], eval.pop());
+                current += 1;
+            }
+
+            opcode::FSTORE_0 => lvt.store(0, eval.pop()),
+
+            opcode::FSTORE_1 => lvt.store(1, eval.pop()),
+
+            opcode::FSTORE_2 => lvt.store(2, eval.pop()),
+
+            opcode::FSTORE_3 => lvt.store(3, eval.pop()),
+
+            opcode::FSUB => eval.fsub(),
+
             opcode::GETFIELD => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
