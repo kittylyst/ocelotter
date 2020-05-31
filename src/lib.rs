@@ -541,6 +541,8 @@ pub fn exec_bytecode_method(
 
             opcode::LAND => eval.land(),
 
+            opcode::LCMP => eval.lcmp(),
+
             opcode::LCONST_0 => eval.lconst(0),
 
             opcode::LCONST_1 => eval.lconst(1),
@@ -607,6 +609,8 @@ pub fn exec_bytecode_method(
             opcode::LNEG => eval.lneg(),
 
             opcode::LOR => eval.lor(),
+
+            opcode::LRETURN => break Some(eval.pop()),
 
             opcode::LSHL => eval.lshl(),
 

@@ -327,6 +327,25 @@ impl InterpEvalStack {
         self.push(JvmValue::Long { val: i1 >> i2 });
     }
 
+    pub fn lcmp(&mut self) {
+        let v2 = match self.pop() {
+            JvmValue::Long{ val: v } => v,
+            _ => panic!("Non-long seen on stack during LCMP"),
+        };
+        let v1 = match self.pop() {
+            JvmValue::Long { val: v } => v,
+            _ => panic!("Non-double seen on stack during LCMP"),
+        };
+        let mut out = JvmValue::Int { val: 0 };
+        if v1 > v2 {
+            out = JvmValue::Int { val: 1 };
+        }
+        if v1 < v2 {
+            out = JvmValue::Int { val: -1 };
+        }
+        self.push(out);
+    }
+
 
     //
     // F opcodes - float

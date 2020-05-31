@@ -157,7 +157,7 @@ pub const LADD: u8 = 0x61;
 // LALOAD 0x2f
 pub const LAND: u8 = 0x7f;
 // LASTORE 0x50
-// LCMP 0x94
+pub const LCMP: u8 = 0x94;
 pub const LCONST_0: u8 = 0x09;
 pub const LCONST_1: u8 = 0x0a;
 pub const LDC: u8 = 0x12;
@@ -173,7 +173,7 @@ pub const LNEG: u8 = 0x75;
 // LOOKUPSWITCH 0xab
 pub const LOR: u8 = 0x81;
 // LREM 0x71
-// LRETURN 0xad
+pub const LRETURN: u8 = 0xad;
 pub const LSHL: u8 = 0x79;
 pub const LSHR: u8 = 0x7b;
 pub const LSTORE: u8 = 0x37;
