@@ -224,7 +224,7 @@ impl InterpEvalStack {
 
         self.push(JvmValue::Double { val: i1 / i2 });
     }
-    
+
     pub fn dneg(&mut self) -> () {
         let d = match self.pop() {
             JvmValue::Double { val: d } => d,

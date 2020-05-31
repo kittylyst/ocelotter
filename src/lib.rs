@@ -285,6 +285,18 @@ pub fn exec_bytecode_method(
                     current += 2;
                 }
             }
+
+            opcode::IF_ICMPGE => {
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
+                    i >= j
+                }) {
+                    current += jump_to - 1;
+                } else {
+                    current += 2;
+                }
+            }
+
             opcode::IF_ICMPGT => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
@@ -295,6 +307,18 @@ pub fn exec_bytecode_method(
                     current += 2;
                 }
             }
+
+            opcode::IF_ICMPLE => {
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
+                    i <= j
+                }) {
+                    current += jump_to - 1;
+                } else {
+                    current += 2;
+                }
+            }
+
             opcode::IF_ICMPLT => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
@@ -305,6 +329,7 @@ pub fn exec_bytecode_method(
                     current += 2;
                 }
             }
+
             opcode::IF_ICMPNE => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {

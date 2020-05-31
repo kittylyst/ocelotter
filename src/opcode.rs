@@ -79,11 +79,12 @@ pub const ICONST_3: u8 = 0x06;
 pub const ICONST_4: u8 = 0x07;
 pub const ICONST_5: u8 = 0x08;
 pub const IDIV: u8 = 0x6c;
-//
-// Many IF variants...
-//
+// IF_ACMPEQ 0xa5
+// IF_ACMPNE 0xa6
 pub const IF_ICMPEQ: u8 = 0x9f;
+pub const IF_ICMPGE: u8 = 0xa2;
 pub const IF_ICMPGT: u8 = 0xa3;
+pub const IF_ICMPLE: u8 = 0xa4;
 pub const IF_ICMPLT: u8 = 0xa1;
 pub const IF_ICMPNE: u8 = 0xa0;
 pub const IFEQ: u8 = 0x99;
