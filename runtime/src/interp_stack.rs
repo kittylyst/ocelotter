@@ -131,6 +131,29 @@ impl InterpEvalStack {
         self.push(JvmValue::Int { val: i1 | i2 });
 
     }
+    pub fn ishl(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Int { val: i1 << i2 });
+    }
+    pub fn ishr(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Int { val: i1 >> i2 });
+    }
+
     pub fn ixor(&mut self) -> () {
         let i1 = match self.pop() {
             JvmValue::Int { val: i } => i,

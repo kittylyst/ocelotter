@@ -1,3 +1,5 @@
+// AALOAD 0x32
+// AASTORE 0x53
 pub const ACONST_NULL: u8 = 0x01;
 pub const ALOAD: u8 = 0x19;
 pub const ALOAD_0: u8 = 0x2a;
@@ -58,7 +60,7 @@ pub const DUP_X1: u8 = 0x5a;
 pub const GETFIELD: u8 = 0xb4;
 pub const GETSTATIC: u8 = 0xb2;
 pub const GOTO: u8 = 0xa7;
-// GOTO_W 0xc8
+pub const GOTO_W: u8 = 0xc8;
 // I2B 0x91
 // I2C 0x92
 pub const I2D: u8 = 0x87;
@@ -111,8 +113,8 @@ pub const INVOKEVIRTUAL: u8 = 0xb6;
 pub const IOR: u8 = 0x80;
 pub const IREM: u8 = 0x70;
 pub const IRETURN: u8 = 0xac;
-// ISHL 0x78
-// ISHR 0x7a
+pub const ISHL: u8 = 0x78;
+pub const ISHR: u8 = 0x7a;
 pub const ISTORE: u8 = 0x36;
 pub const ISTORE_0: u8 = 0x3b;
 pub const ISTORE_1: u8 = 0x3c;
@@ -123,11 +125,21 @@ pub const ISUB: u8 = 0x64;
 pub const IXOR: u8 = 0x82;
 pub const JSR: u8 = 0xa8;
 pub const JSR_W: u8 = 0xc9;
+// L2D 0x8a
+// L2F 0x89
+pub const L2I: u8 = 0x88;
+//
+// L opcodes
+//
 pub const LDC: u8 = 0x12;
 pub const LDC2_W: u8 = 0x14;
-pub const L2I: u8 = 0x88;
+//
+// More L opcodes
+//
+// LOOKUPSWITCH 0xab
 pub const MONITORENTER: u8 = 0xc2;
 pub const MONITOREXIT: u8 = 0xc3;
+// MULTINEWARRAY 0xc5
 pub const NEW: u8 = 0xbb;
 pub const NEWARRAY: u8 = 0xbc;
 pub const NOP: u8 = 0x00;
@@ -137,8 +149,14 @@ pub const PUTFIELD: u8 = 0xb5;
 pub const PUTSTATIC: u8 = 0xb3;
 pub const RET: u8 = 0xa9;
 pub const RETURN: u8 = 0xb1;
+// SALOAD 0x35
+// SASTORE 0x56
 pub const SIPUSH: u8 = 0x11;
 pub const SWAP: u8 = 0x5f;
+// TABLESWITCH 0xaa
+// WIDE 0xc4
+
+// [UNUSED] 0cb - 0xfd
 
 fn num_params(c: u8) -> u8 {
     match c {

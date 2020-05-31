@@ -195,6 +195,12 @@ pub fn exec_bytecode_method(
             opcode::GOTO => {
                 current += ((instr[current] as usize) << 8) + instr[current + 1] as usize
             }
+            opcode::GOTO_W => {
+                current += ((instr[current] as usize) << 24)
+                    + ((instr[current + 1] as usize) << 16)
+                    + ((instr[current + 2] as usize) << 8)
+                    + instr[current + 3] as usize
+            }
 
             opcode::I2D => eval.i2d(),
 
@@ -461,6 +467,11 @@ pub fn exec_bytecode_method(
             opcode::IREM => eval.irem(),
 
             opcode::IRETURN => break Some(eval.pop()),
+
+            opcode::ISHL => eval.ishl(),
+
+            opcode::ISHR => eval.ishr(),
+
             opcode::ISTORE => {
                 lvt.store(instr[current], eval.pop());
                 current += 1;
