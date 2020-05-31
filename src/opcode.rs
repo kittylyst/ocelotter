@@ -22,9 +22,9 @@ pub const BREAKPOINT: u8 = 0xca;
 // CALOAD 0x34
 // CASTORE 0x55
 // CHECKCAST 0xc0
-// D2F 0x90
-// D2I 0x8e
-// D2L 0x8f
+pub const D2F: u8 = 0x90;
+pub const D2I: u8 = 0x8e;
+pub const D2L: u8 = 0x8f;
 pub const DADD: u8 = 0x63;
 // DALOAD 0x31
 // DASTORE 0x52

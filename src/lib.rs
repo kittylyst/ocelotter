@@ -80,6 +80,28 @@ pub fn exec_bytecode_method(
                 eval.iconst(instr[current] as i32);
                 current += 1;
             }
+
+            opcode::D2F => {
+                match eval.pop() {
+                    JvmValue::Double { val: v } => eval.push(JvmValue::Float { val: v as f32 }),
+                    _ => panic!("Value not of long type found for D2F at {}", (current - 1)),
+                };
+            }
+
+            opcode::D2I => {
+                match eval.pop() {
+                    JvmValue::Double { val: v } => eval.push(JvmValue::Int { val: v as i32 }),
+                    _ => panic!("Value not of long type found for D2I at {}", (current - 1)),
+                };
+            }
+
+            opcode::D2L => {
+                match eval.pop() {
+                    JvmValue::Double { val: v } => eval.push(JvmValue::Long { val: v as i64 }),
+                    _ => panic!("Value not of long type found for D2L at {}", (current - 1)),
+                };
+            }
+
             opcode::DADD => eval.dadd(),
 
             opcode::DCMPG => eval.dcmpg(),
