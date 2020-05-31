@@ -32,14 +32,14 @@ pub const DCMPG: u8 = 0x98;
 pub const DCMPL: u8 = 0x97;
 pub const DCONST_0: u8 = 0x0e;
 pub const DCONST_1: u8 = 0x0f;
-// DDIV 0x6f
+pub const DDIV: u8 = 0x6f;
 pub const DLOAD: u8 = 0x18;
 pub const DLOAD_0: u8 = 0x26;
 pub const DLOAD_1: u8 = 0x27;
 pub const DLOAD_2: u8 = 0x28;
 pub const DLOAD_3: u8 = 0x29;
-// DMUL 0x6b
-// DNEG 0x77
+pub const DMUL: u8 = 0x6b;
+pub const DNEG: u8 = 0x77;
 // DREM 0x73
 pub const DRETURN: u8 = 0xaf;
 pub const DSTORE: u8 = 0x39;
@@ -51,7 +51,7 @@ pub const DSUB: u8 = 0x67;
 pub const DUP: u8 = 0x59;
 pub const DUP_X1: u8 = 0x5a;
 // DUP_X2 0x5b
-// DUP2 0x5c
+//pub const DUP2: u8 = 0x5c;
 // DUP2_X1 0x5d
 // DUP2_X2 0x5e
 //

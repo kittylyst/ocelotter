@@ -134,6 +134,8 @@ pub fn exec_bytecode_method(
 
             opcode::DCONST_1 => eval.dconst(1.0),
 
+            opcode::DDIV => eval.ddiv(),
+
             opcode::DLOAD => {
                 eval.push(lvt.load(instr[current]));
                 current += 1;
@@ -147,7 +149,12 @@ pub fn exec_bytecode_method(
 
             opcode::DLOAD_3 => eval.push(lvt.load(3)),
 
+            opcode::DMUL => eval.dmul(),
+
+            opcode::DNEG => eval.dneg(),
+
             opcode::DRETURN => break Some(eval.pop()),
+
             opcode::DSTORE => {
                 lvt.store(instr[current], eval.pop());
                 current += 1;
@@ -164,8 +171,9 @@ pub fn exec_bytecode_method(
 
             opcode::DUP => eval.dup(),
 
-            opcode::DUP_X1 => eval.dupX1(),
+            opcode::DUP_X1 => eval.dup_x1(),
 
+            //            opcode::DUP2 => eval.dup2(),
             opcode::GETFIELD => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
