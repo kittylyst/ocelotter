@@ -40,7 +40,7 @@ pub const DLOAD_2: u8 = 0x28;
 pub const DLOAD_3: u8 = 0x29;
 pub const DMUL: u8 = 0x6b;
 pub const DNEG: u8 = 0x77;
-// DREM 0x73
+pub const DREM: u8 = 0x73;
 pub const DRETURN: u8 = 0xaf;
 pub const DSTORE: u8 = 0x39;
 pub const DSTORE_0: u8 = 0x47;

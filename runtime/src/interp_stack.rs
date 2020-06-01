@@ -522,6 +522,20 @@ impl InterpEvalStack {
         self.push(JvmValue::Double { val: i1 * i2 });
     }
 
+    pub fn drem(&mut self) -> () {
+        // For a runtime checking interpreter - type checks would go here...
+        let i1 = match self.pop() {
+            JvmValue::Double { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Double { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+
+        self.push(JvmValue::Double { val: i2.rem_euclid(i1) });
+    }
+
     pub fn ddiv(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
@@ -533,7 +547,7 @@ impl InterpEvalStack {
             _ => panic!("Unexpected, non-double value encountered"),
         };
 
-        self.push(JvmValue::Double { val: i1 / i2 });
+        self.push(JvmValue::Double { val: i2 / i1 });
     }
 
     pub fn dneg(&mut self) -> () {

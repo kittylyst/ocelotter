@@ -279,6 +279,30 @@ fn bc_goto() {
     assert_eq!(2, ret);
 }
 
+#[test]
+fn bc_drem() {
+    let buf = vec![
+        opcode::DCONST_1,
+        opcode::ICONST_2,
+        opcode::I2D,
+        opcode::DDIV,
+        opcode::DCONST_1,
+        opcode::ICONST_3,
+        opcode::I2D,
+        opcode::DDIV,
+        opcode::DREM,
+        opcode::DRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Double { val: i } => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0.0
+        }
+    };
+    assert_f64_near!(ret, 1.0 / 6.0);
+}
+
 /////////////////////////////////////////////////////////////////
 //
 // Tests for helper methods

@@ -2,6 +2,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+#[macro_use]
+extern crate assert_float_eq;
+
 use ocelotter_runtime::constant_pool::*;
 use ocelotter_runtime::interp_stack::InterpEvalStack;
 use ocelotter_runtime::klass_repo::SharedKlassRepo;
@@ -130,6 +133,8 @@ pub fn exec_bytecode_method(
             opcode::DMUL => eval.dmul(),
 
             opcode::DNEG => eval.dneg(),
+
+            opcode::DREM => eval.drem(),
 
             opcode::DRETURN => break Some(eval.pop()),
 
