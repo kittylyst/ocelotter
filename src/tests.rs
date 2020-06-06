@@ -279,6 +279,106 @@ fn bc_goto() {
     assert_eq!(2, ret);
 }
 
+#[test]
+fn bc_lrem_works() {
+    let buf = vec![
+        opcode::BIPUSH,
+        100,
+        opcode::BIPUSH,
+        100,
+        opcode::IMUL,
+        opcode::BIPUSH,
+        100,
+        opcode::IMUL,
+        opcode::I2L,
+        opcode::LSTORE_0,
+        opcode::LLOAD_0,
+        opcode::LLOAD_0,
+        opcode::LMUL,
+        opcode::BIPUSH,
+        117,
+        opcode::I2L,
+        opcode::LREM,
+        opcode::LRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Long { val: i } => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0
+        }
+    };
+    assert_eq!(ret, 1);
+}
+
+#[test]
+fn bc_drem() {
+    let buf = vec![
+        opcode::DCONST_1,
+        opcode::ICONST_2,
+        opcode::I2D,
+        opcode::DDIV,
+        opcode::DCONST_1,
+        opcode::ICONST_3,
+        opcode::I2D,
+        opcode::DDIV,
+        opcode::DREM,
+        opcode::DRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Double { val: i } => i,
+        _ => {
+            println!("Unexpected, non-double value encountered");
+            0.0
+        }
+    };
+    assert_f64_near!(ret, 1.0 / 6.0);
+}
+
+#[test]
+fn bc_fdiv() {
+    let buf = vec![
+        opcode::ICONST_4,
+        opcode::I2F,
+        opcode::ICONST_3,
+        opcode::I2F,
+        opcode::FDIV,
+        opcode::FRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Float { val: i } => i,
+        _ => {
+            println!("Unexpected, non-float value encountered");
+            0.0
+        }
+    };
+    assert_f32_near!(ret, 4.0 / 3.0);
+}
+
+#[test]
+fn bc_frem() {
+    let buf = vec![
+        opcode::BIPUSH,
+        17,
+        opcode::I2F,
+        opcode::ICONST_3,
+        opcode::I2F,
+        opcode::FDIV,
+        opcode::ICONST_3,
+        opcode::I2F,
+        opcode::FREM,
+        opcode::FRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Float { val: i } => i,
+        _ => {
+            println!("Unexpected, non-float value encountered");
+            0.0
+        }
+    };
+    assert_f32_near!(ret, 8.0 / 3.0);
+}
+
 /////////////////////////////////////////////////////////////////
 //
 // Tests for helper methods

@@ -2,6 +2,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+#[macro_use]
+extern crate assert_float_eq;
+
 use ocelotter_runtime::constant_pool::*;
 use ocelotter_runtime::interp_stack::InterpEvalStack;
 use ocelotter_runtime::klass_repo::SharedKlassRepo;
@@ -16,7 +19,6 @@ pub fn exec_method(
     meth: &OtMethod,
     lvt: &mut InterpLocalVars,
 ) -> Option<JvmValue> {
-    //    dbg!(meth.clone());
     if meth.is_native() {
         // Explicit type hint here to document the type of n_f
         let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = meth.get_native_code().expect(
@@ -59,6 +61,10 @@ pub fn exec_bytecode_method(
 
             opcode::ALOAD_1 => eval.push(lvt.load(1)),
 
+            opcode::ALOAD_2 => eval.push(lvt.load(2)),
+
+            opcode::ALOAD_3 => eval.push(lvt.load(3)),
+
             opcode::ARETURN => break Some(eval.pop()),
             opcode::ASTORE => {
                 lvt.store(instr[current], eval.pop());
@@ -68,63 +74,47 @@ pub fn exec_bytecode_method(
 
             opcode::ASTORE_1 => lvt.store(1, eval.pop()),
 
+            opcode::ASTORE_2 => lvt.store(2, eval.pop()),
+
+            opcode::ASTORE_3 => lvt.store(3, eval.pop()),
+
             opcode::BIPUSH => {
                 eval.iconst(instr[current] as i32);
                 current += 1;
             }
+
+            opcode::D2F => {
+                match eval.pop() {
+                    JvmValue::Double { val: v } => eval.push(JvmValue::Float { val: v as f32 }),
+                    _ => panic!("Value not of long type found for D2F at {}", (current - 1)),
+                };
+            }
+
+            opcode::D2I => {
+                match eval.pop() {
+                    JvmValue::Double { val: v } => eval.push(JvmValue::Int { val: v as i32 }),
+                    _ => panic!("Value not of long type found for D2I at {}", (current - 1)),
+                };
+            }
+
+            opcode::D2L => {
+                match eval.pop() {
+                    JvmValue::Double { val: v } => eval.push(JvmValue::Long { val: v as i64 }),
+                    _ => panic!("Value not of long type found for D2L at {}", (current - 1)),
+                };
+            }
+
             opcode::DADD => eval.dadd(),
 
-            opcode::DCMPG => {
-                let v2 = match eval.pop() {
-                    JvmValue::Double { val: v } => v,
-                    _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
-                };
-                let v1 = match eval.pop() {
-                    JvmValue::Double { val: v } => v,
-                    _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
-                };
-                if v1.is_nan() || v2.is_nan() {
-                    eval.push(JvmValue::Int { val: 1 });
-                } else {
-                    let mut out = JvmValue::Int { val: 0 };
-                    if v1 > v2 {
-                        out = JvmValue::Int { val: 1 };
-                    }
-                    if v1 < v2 {
-                        out = JvmValue::Int { val: -1 };
-                    }
-                    dbg!(out, v1, v2);
-                    eval.push(out);
-                }
-            }
+            opcode::DCMPG => eval.dcmpg(),
 
-            opcode::DCMPL => {
-                let v2 = match eval.pop() {
-                    JvmValue::Double { val: v } => v,
-                    _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
-                };
-                let v1 = match eval.pop() {
-                    JvmValue::Double { val: v } => v,
-                    _ => panic!("Non-double seen on stack during DCMPG at {}", current - 1),
-                };
-                if v1.is_nan() || v2.is_nan() {
-                    eval.push(JvmValue::Int { val: -1 });
-                } else {
-                    let mut out = JvmValue::Int { val: 0 };
-                    if v1 > v2 {
-                        out = JvmValue::Int { val: 1 };
-                    }
-                    if v1 < v2 {
-                        out = JvmValue::Int { val: -1 };
-                    }
-                    dbg!(out, v1, v2);
-                    eval.push(out);
-                }
-            }
+            opcode::DCMPL => eval.dcmpl(),
 
             opcode::DCONST_0 => eval.dconst(0.0),
 
             opcode::DCONST_1 => eval.dconst(1.0),
+
+            opcode::DDIV => eval.ddiv(),
 
             opcode::DLOAD => {
                 eval.push(lvt.load(instr[current]));
@@ -139,11 +129,19 @@ pub fn exec_bytecode_method(
 
             opcode::DLOAD_3 => eval.push(lvt.load(3)),
 
+            opcode::DMUL => eval.dmul(),
+
+            opcode::DNEG => eval.dneg(),
+
+            opcode::DREM => eval.drem(),
+
             opcode::DRETURN => break Some(eval.pop()),
+
             opcode::DSTORE => {
                 lvt.store(instr[current], eval.pop());
                 current += 1;
             }
+
             opcode::DSTORE_0 => lvt.store(0, eval.pop()),
 
             opcode::DSTORE_1 => lvt.store(1, eval.pop()),
@@ -156,7 +154,64 @@ pub fn exec_bytecode_method(
 
             opcode::DUP => eval.dup(),
 
-            opcode::DUP_X1 => eval.dupX1(),
+            opcode::DUP_X1 => eval.dup_x1(),
+
+            //            opcode::DUP2 => eval.dup2(),
+            opcode::F2D => eval.f2d(),
+
+            opcode::F2I => eval.f2i(),
+
+            opcode::F2L => eval.f2l(),
+
+            opcode::FADD => eval.fadd(),
+
+            opcode::FCMPG => eval.fcmpg(),
+
+            opcode::FCMPL => eval.fcmpl(),
+
+            opcode::FCONST_0 => eval.fconst(0.0),
+
+            opcode::FCONST_1 => eval.fconst(1.0),
+
+            opcode::FCONST_2 => eval.fconst(2.0),
+
+            opcode::FDIV => eval.fdiv(),
+
+            opcode::FLOAD => {
+                eval.push(lvt.load(instr[current]));
+                current += 1;
+            }
+
+            opcode::FLOAD_0 => eval.push(lvt.load(0)),
+
+            opcode::FLOAD_1 => eval.push(lvt.load(1)),
+
+            opcode::FLOAD_2 => eval.push(lvt.load(2)),
+
+            opcode::FLOAD_3 => eval.push(lvt.load(3)),
+
+            opcode::FMUL => eval.fmul(),
+
+            opcode::FNEG => eval.fneg(),
+
+            opcode::FREM => eval.frem(),
+
+            opcode::FRETURN => break Some(eval.pop()),
+
+            opcode::FSTORE => {
+                lvt.store(instr[current], eval.pop());
+                current += 1;
+            }
+
+            opcode::FSTORE_0 => lvt.store(0, eval.pop()),
+
+            opcode::FSTORE_1 => lvt.store(1, eval.pop()),
+
+            opcode::FSTORE_2 => lvt.store(2, eval.pop()),
+
+            opcode::FSTORE_3 => lvt.store(3, eval.pop()),
+
+            opcode::FSUB => eval.fsub(),
 
             opcode::GETFIELD => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
@@ -187,8 +242,24 @@ pub fn exec_bytecode_method(
             opcode::GOTO => {
                 current += ((instr[current] as usize) << 8) + instr[current + 1] as usize
             }
+            opcode::GOTO_W => {
+                current += ((instr[current] as usize) << 24)
+                    + ((instr[current + 1] as usize) << 16)
+                    + ((instr[current + 2] as usize) << 8)
+                    + instr[current + 3] as usize
+            }
+
+            opcode::I2B => eval.i2b(),
+
+            opcode::I2C => eval.i2c(),
 
             opcode::I2D => eval.i2d(),
+
+            opcode::I2F => eval.i2f(),
+
+            opcode::I2L => eval.i2l(),
+
+            opcode::I2S => eval.i2s(),
 
             opcode::IADD => eval.iadd(),
 
@@ -263,6 +334,18 @@ pub fn exec_bytecode_method(
                     current += 2;
                 }
             }
+
+            opcode::IF_ICMPGE => {
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
+                    i >= j
+                }) {
+                    current += jump_to - 1;
+                } else {
+                    current += 2;
+                }
+            }
+
             opcode::IF_ICMPGT => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
@@ -273,6 +356,18 @@ pub fn exec_bytecode_method(
                     current += 2;
                 }
             }
+
+            opcode::IF_ICMPLE => {
+                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
+                    i <= j
+                }) {
+                    current += jump_to - 1;
+                } else {
+                    current += 2;
+                }
+            }
+
             opcode::IF_ICMPLT => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
@@ -283,6 +378,7 @@ pub fn exec_bytecode_method(
                     current += 2;
                 }
             }
+
             opcode::IF_ICMPNE => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
@@ -453,6 +549,11 @@ pub fn exec_bytecode_method(
             opcode::IREM => eval.irem(),
 
             opcode::IRETURN => break Some(eval.pop()),
+
+            opcode::ISHL => eval.ishl(),
+
+            opcode::ISHR => eval.ishr(),
+
             opcode::ISTORE => {
                 lvt.store(instr[current], eval.pop());
                 current += 1;
@@ -466,12 +567,27 @@ pub fn exec_bytecode_method(
             opcode::ISTORE_3 => lvt.store(3, eval.pop()),
 
             opcode::ISUB => eval.isub(),
-            opcode::L2I => {
-                match eval.pop() {
-                    JvmValue::Long { val: v } => eval.push(JvmValue::Int { val: v as i32 }),
-                    _ => panic!("Value not of long type found for L2I at {}", (current - 1)),
-                };
-            }
+
+            opcode::IUSHR => eval.iushr(),
+
+            opcode::IXOR => eval.ixor(),
+
+            opcode::L2D => eval.l2d(),
+
+            opcode::L2F => eval.l2f(),
+
+            opcode::L2I => eval.l2i(),
+
+            opcode::LADD => eval.ladd(),
+
+            opcode::LAND => eval.land(),
+
+            opcode::LCMP => eval.lcmp(),
+
+            opcode::LCONST_0 => eval.lconst(0),
+
+            opcode::LCONST_1 => eval.lconst(1),
+
             opcode::LDC => {
                 let cp_lookup = instr[current] as u16;
                 current += 1;
@@ -513,6 +629,55 @@ pub fn exec_bytecode_method(
                     ),
                 }
             }
+
+            opcode::LDIV => eval.ldiv(),
+
+            opcode::LLOAD => {
+                eval.push(lvt.load(instr[current]));
+                current += 1
+            }
+
+            opcode::LLOAD_0 => eval.push(lvt.load(0)),
+
+            opcode::LLOAD_1 => eval.push(lvt.load(1)),
+
+            opcode::LLOAD_2 => eval.push(lvt.load(2)),
+
+            opcode::LLOAD_3 => eval.push(lvt.load(3)),
+
+            opcode::LMUL => eval.lmul(),
+
+            opcode::LNEG => eval.lneg(),
+
+            opcode::LOR => eval.lor(),
+
+            opcode::LREM => eval.lrem(),
+
+            opcode::LRETURN => break Some(eval.pop()),
+
+            opcode::LSHL => eval.lshl(),
+
+            opcode::LSHR => eval.lshr(),
+
+            opcode::LSTORE => {
+                lvt.store(instr[current], eval.pop());
+                current += 1;
+            }
+
+            opcode::LSTORE_0 => lvt.store(0, eval.pop()),
+
+            opcode::LSTORE_1 => lvt.store(1, eval.pop()),
+
+            opcode::LSTORE_2 => lvt.store(2, eval.pop()),
+
+            opcode::LSTORE_3 => lvt.store(3, eval.pop()),
+
+            opcode::LSUB => eval.lsub(),
+
+            opcode::LUSHR => eval.lushr(),
+
+            opcode::LXOR => eval.lxor(),
+
             // FIXME TEMP
             opcode::MONITORENTER => {
                 eval.pop();
