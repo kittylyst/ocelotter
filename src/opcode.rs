@@ -146,7 +146,7 @@ pub const ISTORE_1: u8 = 0x3c;
 pub const ISTORE_2: u8 = 0x3d;
 pub const ISTORE_3: u8 = 0x3e;
 pub const ISUB: u8 = 0x64;
-// IUSHR 0x7c
+pub const IUSHR: u8 = 0x7c;
 pub const IXOR: u8 = 0x82;
 pub const JSR: u8 = 0xa8;
 pub const JSR_W: u8 = 0xc9;
@@ -182,7 +182,7 @@ pub const LSTORE_1: u8 = 0x40;
 pub const LSTORE_2: u8 = 0x41;
 pub const LSTORE_3: u8 = 0x42;
 pub const LSUB: u8 = 0x65;
-// LUSHR 0x7d
+pub const LUSHR: u8 = 0x7d;
 pub const LXOR: u8 = 0x83;
 pub const MONITORENTER: u8 = 0xc2;
 pub const MONITOREXIT: u8 = 0xc3;

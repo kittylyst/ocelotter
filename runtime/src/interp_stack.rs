@@ -226,6 +226,17 @@ impl InterpEvalStack {
         self.push(JvmValue::Int { val: i1 >> i2 });
     }
 
+    pub fn iushr(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Int { val: (i1 as u32 >> i2 as u32) as i32 });
+    }
 
     //
     // L opcodes - long
@@ -392,6 +403,18 @@ impl InterpEvalStack {
             _ => panic!("Unexpected, non-integer value encountered"),
         };
         self.push(JvmValue::Long { val: i1 >> i2 });
+    }
+
+    pub fn lushr(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-long value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Long { val: i } => i,
+            _ => panic!("Unexpected, non-long value encountered"),
+        };
+        self.push(JvmValue::Long { val: (i1 as u64 >> i2 as u64) as i64 });
     }
 
     pub fn lcmp(&mut self) {

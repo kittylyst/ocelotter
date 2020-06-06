@@ -568,6 +568,8 @@ pub fn exec_bytecode_method(
 
             opcode::ISUB => eval.isub(),
 
+            opcode::IUSHR => eval.iushr(),
+
             opcode::IXOR => eval.ixor(),
 
             opcode::L2D => eval.l2d(),
@@ -671,6 +673,8 @@ pub fn exec_bytecode_method(
             opcode::LSTORE_3 => lvt.store(3, eval.pop()),
 
             opcode::LSUB => eval.lsub(),
+
+            opcode::LUSHR => eval.lushr(),
 
             opcode::LXOR => eval.lxor(),
 
