@@ -296,12 +296,56 @@ fn bc_drem() {
     let ret = match execute_simple_bytecode(&buf) {
         JvmValue::Double { val: i } => i,
         _ => {
-            println!("Unexpected, non-integer value encountered");
+            println!("Unexpected, non-double value encountered");
             0.0
         }
     };
     assert_f64_near!(ret, 1.0 / 6.0);
 }
+
+#[test]
+fn bc_fdiv() {
+    let buf = vec![
+        opcode::ICONST_4,
+        opcode::I2F,
+        opcode::ICONST_3,
+        opcode::I2F,
+        opcode::FDIV,
+        opcode::FRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Float { val: i } => i,
+        _ => {
+            println!("Unexpected, non-float value encountered");
+            0.0
+        }
+    };
+    assert_f32_near!(ret, 4.0 / 3.0);
+}
+
+#[test]
+fn bc_frem() {
+    let buf = vec![
+        opcode::BIPUSH, 17,
+        opcode::I2F,
+        opcode::ICONST_3,
+        opcode::I2F,
+        opcode::FDIV,
+        opcode::ICONST_3,
+        opcode::I2F,
+        opcode::FREM,
+        opcode::FRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Float { val: i } => i,
+        _ => {
+            println!("Unexpected, non-float value encountered");
+            0.0
+        }
+    };
+    assert_f32_near!(ret, 8.0 / 3.0);
+}
+
 
 /////////////////////////////////////////////////////////////////
 //

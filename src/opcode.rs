@@ -55,7 +55,7 @@ pub const DUP_X1: u8 = 0x5a;
 // DUP2_X1 0x5d
 // DUP2_X2 0x5e
 pub const F2D: u8 = 0x8d;
-// F2I 0x8b
+pub const F2I: u8 = 0x8b;
 // F2L 0x8c
 pub const FADD: u8 = 0x62;
 // FALOAD 0x30
@@ -73,7 +73,7 @@ pub const FLOAD_2: u8 = 0x24;
 pub const FLOAD_3: u8 = 0x25;
 pub const FMUL: u8 = 0x6a;
 pub const FNEG: u8 = 0x76;
-// FREM 0x72
+pub const FREM: u8 = 0x72;
 pub const FRETURN: u8 = 0xae;
 pub const FSTORE: u8 = 0x38;
 pub const FSTORE_0: u8 = 0x43;
@@ -88,7 +88,7 @@ pub const GOTO_W: u8 = 0xc8;
 // I2B 0x91
 // I2C 0x92
 pub const I2D: u8 = 0x87;
-// I2F 0x86
+pub const I2F: u8 = 0x86;
 pub const I2L: u8 = 0x85;
 // I2S 0x93
 pub const IADD: u8 = 0x60;

@@ -46,6 +46,14 @@ impl InterpEvalStack {
         self.push(JvmValue::Double { val: i1 as f64 });
     }
 
+    pub fn i2f(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Int { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Float { val: i1 as f32 });
+    }
+
     pub fn i2l(&mut self) -> () {
         let i1 = match self.pop() {
             JvmValue::Int { val: i } => i,
@@ -359,6 +367,15 @@ impl InterpEvalStack {
         self.push(JvmValue::Double { val: i1 as f64 });
     }
 
+    pub fn f2i(&mut self) -> () {
+        let i1 = match self.pop() {
+            JvmValue::Float { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        self.push(JvmValue::Int { val: i1 as i32 });
+    }
+
+
     pub fn fadd(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
@@ -401,6 +418,20 @@ impl InterpEvalStack {
         self.push(JvmValue::Float { val: i1 * i2 });
     }
 
+    pub fn frem(&mut self) -> () {
+        // For a runtime checking interpreter - type checks would go here...
+        let i1 = match self.pop() {
+            JvmValue::Float { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+        let i2 = match self.pop() {
+            JvmValue::Float { val: i } => i,
+            _ => panic!("Unexpected, non-integer value encountered"),
+        };
+
+        self.push(JvmValue::Float { val: i2.rem_euclid(i1) });
+    }
+
     pub fn fdiv(&mut self) -> () {
         // For a runtime checking interpreter - type checks would go here...
         let i1 = match self.pop() {
@@ -412,7 +443,7 @@ impl InterpEvalStack {
             _ => panic!("Unexpected, non-double value encountered"),
         };
 
-        self.push(JvmValue::Float { val: i1 / i2 });
+        self.push(JvmValue::Float { val: i2 / i1 });
     }
 
     pub fn fconst(&mut self, v: f32) -> () {

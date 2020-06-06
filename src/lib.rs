@@ -19,7 +19,6 @@ pub fn exec_method(
     meth: &OtMethod,
     lvt: &mut InterpLocalVars,
 ) -> Option<JvmValue> {
-    //    dbg!(meth.clone());
     if meth.is_native() {
         // Explicit type hint here to document the type of n_f
         let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = meth.get_native_code().expect(
@@ -160,6 +159,8 @@ pub fn exec_bytecode_method(
             //            opcode::DUP2 => eval.dup2(),
             opcode::F2D => eval.f2d(),
 
+            opcode::F2I => eval.f2i(),
+
             opcode::FADD => eval.fadd(),
 
             opcode::FCMPG => eval.fcmpg(),
@@ -190,6 +191,8 @@ pub fn exec_bytecode_method(
             opcode::FMUL => eval.fmul(),
 
             opcode::FNEG => eval.fneg(),
+
+            opcode::FREM => eval.frem(),
 
             opcode::FRETURN => break Some(eval.pop()),
 
@@ -245,6 +248,8 @@ pub fn exec_bytecode_method(
             }
 
             opcode::I2D => eval.i2d(),
+
+            opcode::I2F => eval.i2f(),
 
             opcode::I2L => eval.i2l(),
 
