@@ -56,7 +56,7 @@ pub const DUP_X1: u8 = 0x5a;
 // DUP2_X2 0x5e
 pub const F2D: u8 = 0x8d;
 pub const F2I: u8 = 0x8b;
-// F2L 0x8c
+pub const F2L: u8 = 0x8c;
 pub const FADD: u8 = 0x62;
 // FALOAD 0x30
 // FASTORE 0x51
@@ -85,12 +85,12 @@ pub const GETFIELD: u8 = 0xb4;
 pub const GETSTATIC: u8 = 0xb2;
 pub const GOTO: u8 = 0xa7;
 pub const GOTO_W: u8 = 0xc8;
-// I2B 0x91
-// I2C 0x92
+pub const I2B: u8 = 0x91;
+pub const I2C: u8 = 0x92;
 pub const I2D: u8 = 0x87;
 pub const I2F: u8 = 0x86;
 pub const I2L: u8 = 0x85;
-// I2S 0x93
+pub const I2S: u8 = 0x93;
 pub const IADD: u8 = 0x60;
 pub const IALOAD: u8 = 0x2e;
 pub const IAND: u8 = 0x7e;
@@ -150,8 +150,8 @@ pub const ISUB: u8 = 0x64;
 pub const IXOR: u8 = 0x82;
 pub const JSR: u8 = 0xa8;
 pub const JSR_W: u8 = 0xc9;
-// L2D 0x8a
-// L2F 0x89
+pub const L2D: u8 = 0x8a;
+pub const L2F: u8 = 0x89;
 pub const L2I: u8 = 0x88;
 pub const LADD: u8 = 0x61;
 // LALOAD 0x2f
@@ -172,7 +172,7 @@ pub const LMUL: u8 = 0x69;
 pub const LNEG: u8 = 0x75;
 // LOOKUPSWITCH 0xab
 pub const LOR: u8 = 0x81;
-// LREM 0x71
+pub const LREM: u8 = 0x71;
 pub const LRETURN: u8 = 0xad;
 pub const LSHL: u8 = 0x79;
 pub const LSHR: u8 = 0x7b;

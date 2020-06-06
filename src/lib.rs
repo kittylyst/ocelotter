@@ -161,6 +161,8 @@ pub fn exec_bytecode_method(
 
             opcode::F2I => eval.f2i(),
 
+            opcode::F2L => eval.f2l(),
+
             opcode::FADD => eval.fadd(),
 
             opcode::FCMPG => eval.fcmpg(),
@@ -247,11 +249,17 @@ pub fn exec_bytecode_method(
                     + instr[current + 3] as usize
             }
 
+            opcode::I2B => eval.i2b(),
+
+            opcode::I2C => eval.i2c(),
+
             opcode::I2D => eval.i2d(),
 
             opcode::I2F => eval.i2f(),
 
             opcode::I2L => eval.i2l(),
+
+            opcode::I2S => eval.i2s(),
 
             opcode::IADD => eval.iadd(),
 
@@ -562,12 +570,11 @@ pub fn exec_bytecode_method(
 
             opcode::IXOR => eval.ixor(),
 
-            opcode::L2I => {
-                match eval.pop() {
-                    JvmValue::Long { val: v } => eval.push(JvmValue::Int { val: v as i32 }),
-                    _ => panic!("Value not of long type found for L2I at {}", (current - 1)),
-                };
-            }
+            opcode::L2D => eval.l2d(),
+
+            opcode::L2F => eval.l2f(),
+
+            opcode::L2I => eval.l2i(),
 
             opcode::LADD => eval.ladd(),
 
@@ -641,6 +648,8 @@ pub fn exec_bytecode_method(
             opcode::LNEG => eval.lneg(),
 
             opcode::LOR => eval.lor(),
+
+            opcode::LREM => eval.lrem(),
 
             opcode::LRETURN => break Some(eval.pop()),
 
