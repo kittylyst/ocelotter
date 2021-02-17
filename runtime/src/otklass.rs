@@ -54,10 +54,10 @@ impl OtKlass {
                 let default_val = f.get_default();
                 s_fields.push(f);
                 s_field_vals.push(Cell::new(default_val));
-                f_lookup.insert(f_name, s_fields.len());
+                f_lookup.insert(f_name, s_fields.len() - 1);
             } else {
                 i_fields.push(f);
-                f_lookup.insert(f_name, i_fields.len());
+                f_lookup.insert(f_name, i_fields.len() - 1);
             }
         }
         // dbg!(m_lookup.clone());
