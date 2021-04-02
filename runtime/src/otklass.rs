@@ -44,26 +44,21 @@ impl OtKlass {
             m_lookup.insert(meth.get_fq_name_desc().clone(), i);
             i = i + 1;
         }
-        i = 0;
         let mut f_lookup = HashMap::new();
         let mut s_fields = Vec::new();
         let mut s_field_vals = Vec::new();
         let mut i_fields = Vec::new();
-        while i < fields.len() {
-            let f = match fields.get(i) {
-                Some(val) => val.clone(),
-                None => panic!("Error: field {} not found on {}", i, klass_name),
-            };
+        for f in fields.clone() {
             let f_name = f.get_fq_name_desc();
             if f.is_static() {
                 let default_val = f.get_default();
                 s_fields.push(f);
                 s_field_vals.push(Cell::new(default_val));
+                f_lookup.insert(f_name, s_fields.len() - 1);
             } else {
                 i_fields.push(f);
+                f_lookup.insert(f_name, i_fields.len() - 1);
             }
-            f_lookup.insert(f_name, i);
-            i = i + 1;
         }
         // dbg!(m_lookup.clone());
         // dbg!(f_lookup.clone());
