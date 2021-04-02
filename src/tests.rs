@@ -617,7 +617,6 @@ fn interp_system_current_timemillis() {
 }
 
 #[test]
-#[ignore]
 fn interp_class_based_addition() {
     let mut repo = init_repo();
     let k = simple_parse_klass("AddFieldInteger".to_string());

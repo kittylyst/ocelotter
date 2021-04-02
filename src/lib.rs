@@ -161,7 +161,7 @@ pub fn exec_bytecode_method(
 
             opcode::DUP => {
                 eval.dup();
-                // println!("DUP in {}:{} {}", klass_name, method_name, eval);
+                println!("DUP in {}:{} {}", klass_name, method_name, eval);
             }
 
             opcode::DUP_X1 => eval.dup_x1(),
@@ -536,12 +536,12 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 let current_klass = repo.lookup_klass(&klass_name).clone();
-                // println!(
-                //     "INVOKESPECIAL at {} - predispatch in {}:{} {}",
-                //     current, klass_name, method_name, eval
-                // );
+                println!(
+                    "INVOKESPECIAL at {} - predispatch in {}:{} {}",
+                    current, klass_name, method_name, eval
+                );
                 let arg_count = current_klass.get_method_arg_count(cp_lookup);
-                // println!("Args: {}", arg_count);
+                println!("Args: {}", arg_count);
                 dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 1 + arg_count);
             }
             opcode::INVOKESTATIC => {
@@ -720,7 +720,7 @@ pub fn exec_bytecode_method(
 
                 let obj_id = HEAP.lock().unwrap().allocate_obj(&object_klass);
                 eval.push(JvmValue::ObjRef { val: obj_id });
-                // println!("NEW in {}:{} {}", klass_name, method_name, eval);
+                println!("NEW in {}:{} {}", klass_name, method_name, eval);
             }
             opcode::NEWARRAY => {
                 let arr_type = instr[current];
@@ -764,16 +764,16 @@ pub fn exec_bytecode_method(
                 eval.pop();
             }
             opcode::PUTFIELD => {
-                // println!(
-                //     "PUTFIELD at {} - predispatch in {}:{} {}",
-                //     current, klass_name, method_name, eval
-                // );
+                println!(
+                    "PUTFIELD at {} - predispatch in {}:{} {}",
+                    current, klass_name, method_name, eval
+                );
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
+                let recvp: JvmValue = eval.pop();
                 let val = eval.pop();
 
-                let recvp: JvmValue = eval.pop();
                 let obj_id = match recvp {
                     JvmValue::ObjRef { val: v } => v,
                     _ => {
@@ -860,7 +860,7 @@ fn dispatch_invoke(
 
     // FIXME - General setup requires call args from the stack
     let mut vars = InterpLocalVars::of(255);
-    // println!("Additional args: {}", additional_args);
+    println!("Args count: {}", arg_count);
     if arg_count > 0 {
         let mut i = 0;
         while i < arg_count {
