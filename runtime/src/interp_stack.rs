@@ -1,6 +1,7 @@
 #![deny(unreachable_patterns)]
 
 use crate::JvmValue;
+use std::fmt;
 
 pub struct InterpEvalStack {
     stack: Vec<JvmValue>,
@@ -759,5 +760,15 @@ impl InterpEvalStack {
         self.push(v2.to_owned());
         self.push(v2.to_owned());
     }
-
 }
+
+impl fmt::Display for InterpEvalStack {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Stack {:?}",
+            self.stack
+        )
+    }
+}
+

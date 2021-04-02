@@ -63,7 +63,10 @@ pub fn main() {
     let ret = exec_method(&mut repo, &main, &mut vars)
         .map(|return_value| match return_value {
             Int { val: i } => i,
-            _ => panic!("Error executing ".to_owned() + &f_name + " - non-int value returned"),
+            _ => panic!(
+                "{}",
+                "Error executing ".to_owned() + &f_name + " - non-int value returned"
+            ),
         })
         .expect(&format!("Error executing {} - no value returned", &f_name));
 

@@ -258,6 +258,11 @@ impl OtKlass {
 
     // NOTE: This is fully-qualified
     pub fn get_method_by_name_and_desc(&self, name_desc: &String) -> Option<&OtMethod> {
+        // println!("In klass {} : {}", self.name, name_desc);
+        // for m in self.methods.iter() {
+        //     println!("Method: {}", m.get_fq_name_desc())
+        // }
+
         let opt_idx = self.m_name_desc_lookup.get(name_desc);
         let idx: usize = match opt_idx {
             Some(value) => value.clone(),

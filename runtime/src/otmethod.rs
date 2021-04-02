@@ -61,6 +61,10 @@ impl OtMethod {
         self.name_desc.clone()
     }
 
+    pub fn get_simple_name(&self) -> String {
+        self.name.clone()
+    }
+
     pub fn get_fq_name_desc(&self) -> String {
         self.klass_name.clone() + "." + &self.name_desc.clone()
     }

@@ -299,6 +299,7 @@ impl SharedKlassRepo {
     }
 
     pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {
+        // println!("{} : {}", klass_name, fq_name_desc);
         match self.klass_lookup.get(klass_name) {
             Some(cell) => match &*(cell.borrow()) {
                 KlassLoadingStatus::Mentioned {} => panic!("Klass with ID {} is not loaded yet", klass_name),

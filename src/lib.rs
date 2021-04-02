@@ -28,13 +28,20 @@ pub fn exec_method(
         // FIXME Parameter passing
         n_f(lvt)
     } else {
-        exec_bytecode_method(repo, meth.get_klass_name(), &meth.get_code(), lvt)
+        exec_bytecode_method(
+            repo,
+            meth.get_klass_name(),
+            meth.get_simple_name(),
+            &meth.get_code(),
+            lvt,
+        )
     }
 }
 
 pub fn exec_bytecode_method(
     repo: &mut SharedKlassRepo,
     klass_name: String,
+    method_name: String,
     instr: &Vec<u8>,
     lvt: &mut InterpLocalVars,
 ) -> Option<JvmValue> {
@@ -152,7 +159,10 @@ pub fn exec_bytecode_method(
 
             opcode::DSUB => eval.dsub(),
 
-            opcode::DUP => eval.dup(),
+            opcode::DUP => {
+                eval.dup();
+                // println!("DUP in {}:{} {}", klass_name, method_name, eval);
+            }
 
             opcode::DUP_X1 => eval.dup_x1(),
 
@@ -526,13 +536,18 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 let current_klass = repo.lookup_klass(&klass_name).clone();
-                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 1);
+                // println!(
+                //     "INVOKESPECIAL at {} - predispatch in {}:{} {}",
+                //     current, klass_name, method_name, eval
+                // );
+                let arg_count = current_klass.get_method_arg_count(cp_lookup);
+                // println!("Args: {}", arg_count);
+                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 1 + arg_count);
             }
             opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 let current_klass = repo.lookup_klass(&klass_name).clone();
-                //                dbg!(cp_lookup);
                 let arg_count = current_klass.get_method_arg_count(cp_lookup);
                 dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, arg_count);
             }
@@ -705,6 +720,7 @@ pub fn exec_bytecode_method(
 
                 let obj_id = HEAP.lock().unwrap().allocate_obj(&object_klass);
                 eval.push(JvmValue::ObjRef { val: obj_id });
+                // println!("NEW in {}:{} {}", klass_name, method_name, eval);
             }
             opcode::NEWARRAY => {
                 let arr_type = instr[current];
@@ -748,6 +764,10 @@ pub fn exec_bytecode_method(
                 eval.pop();
             }
             opcode::PUTFIELD => {
+                // println!(
+                //     "PUTFIELD at {} - predispatch in {}:{} {}",
+                //     current, klass_name, method_name, eval
+                // );
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
@@ -756,7 +776,14 @@ pub fn exec_bytecode_method(
                 let recvp: JvmValue = eval.pop();
                 let obj_id = match recvp {
                     JvmValue::ObjRef { val: v } => v,
-                    _ => panic!("Not an object ref at {}", (current - 1)),
+                    _ => {
+                        // println!(
+                        //     "PUTFIELD in {}:{} - val {:?}",
+                        //     klass_name, method_name, recvp
+                        // );
+                        // println!("PUTFIELD in {}:{} {}", klass_name, method_name, eval);
+                        panic!("Not an object ref at {}", (current - 1))
+                    }
                 };
 
                 let putf = repo.lookup_instance_field(&klass_name, cp_lookup);
@@ -816,7 +843,7 @@ fn dispatch_invoke(
     current_klass: OtKlass,
     cp_lookup: u16,
     eval: &mut InterpEvalStack,
-    additional_args: u8,
+    arg_count: u8,
 ) -> () {
     let fq_name_desc = current_klass.cp_as_string(cp_lookup);
     let klz_idx = match current_klass.lookup_cp(cp_lookup) {
@@ -833,8 +860,13 @@ fn dispatch_invoke(
 
     // FIXME - General setup requires call args from the stack
     let mut vars = InterpLocalVars::of(255);
-    if additional_args > 0 {
-        vars.store(0, eval.pop());
+    // println!("Additional args: {}", additional_args);
+    if arg_count > 0 {
+        let mut i = 0;
+        while i < arg_count {
+            vars.store(i, eval.pop());
+            i += 1;
+        }
     }
     // Explicit use of match expression to be clear about the semantics
     match exec_method(repo, &callee, &mut vars) {
