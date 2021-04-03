@@ -1,10 +1,8 @@
 use std::path::Path;
 
-use ocelotter_runtime::klass_parser::*;
 use ocelotter_runtime::klass_repo::SharedKlassRepo;
 use ocelotter_runtime::InterpLocalVars;
 use ocelotter_runtime::JvmValue::*;
-use ocelotter_util::file_to_bytes;
 use structopt::StructOpt;
 
 use ocelotter::exec_method;
@@ -37,9 +35,7 @@ pub fn main() {
             });
     //Not using a classpath jar, just a class
     } else {
-        let bytes = file_to_bytes(Path::new(&fq_klass_name))
-            .expect(&format!("Problem reading {}", &fq_klass_name));
-        repo.parse_and_add(fq_klass_name.clone(), bytes);
+        repo.load_from_classpath(&fq_klass_name);
     }
 
     // FIXME Real main() signature required, dummying for ease of testing

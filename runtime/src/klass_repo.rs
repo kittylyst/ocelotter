@@ -69,6 +69,7 @@ impl SharedKlassRepo {
                 KlassLoadingStatus::Mentioned {} => {
                     // println!("{}", self);
                     // Attempt to perform classloading
+                    // self.load_from_classpath(klass_name);
                     panic!("Klass {} is not loaded yet", klass_name);
                 },
                 KlassLoadingStatus::Loaded { klass : k } => k.clone(),
@@ -76,6 +77,13 @@ impl SharedKlassRepo {
             },
             None => panic!("No klass called {} found in repo", klass_name),
         }
+    }
+
+    pub fn load_from_classpath(&mut self, fq_name: &String) {
+        // FIXME: Turn fq_name into a path
+        let bytes = file_to_bytes(Path::new(&fq_name))
+            .expect(&format!("Problem reading {}", &fq_name));
+        self.parse_and_add(fq_name.clone(), bytes);
     }
 
     pub fn parse_and_add(&mut self, name: String, bytes : Vec<u8>) {
