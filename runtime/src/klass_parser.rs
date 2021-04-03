@@ -346,6 +346,7 @@ impl OtKlassParser {
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         self.current += 2;
 
+        let mut static_count = 0;
         for idx in 0..f_count {
             let f_flags = ((self.clz_read[self.current] as u16) << 8)
                 + self.clz_read[self.current + 1] as u16;
@@ -373,8 +374,13 @@ impl OtKlassParser {
             };
 
             let k_name = &self.klass_name();
+            let mut offset = idx - static_count;
+            if f_flags & ACC_STATIC == ACC_STATIC {
+                offset = static_count;
+                static_count += 1;
+            }
             let f = OtField::of(
-                idx,
+                offset,
                 k_name.to_string(),
                 f_name.to_string(),
                 f_desc.to_string(),

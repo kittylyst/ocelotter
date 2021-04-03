@@ -715,7 +715,6 @@ pub fn exec_bytecode_method(
                         cp_lookup
                     ),
                 };
-                //                dbg!(alloc_klass_name.clone());
                 let object_klass = repo.lookup_klass(&alloc_klass_name).clone();
 
                 let obj_id = HEAP.lock().unwrap().allocate_obj(&object_klass);

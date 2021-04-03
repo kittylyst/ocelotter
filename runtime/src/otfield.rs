@@ -81,6 +81,6 @@ impl OtField {
 
 impl fmt::Display for OtField {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}.{}:{}", self.klass_name, self.name, self.desc_idx)
+        write!(f, "{}.{}:{} at {} with {:?}", self.klass_name, self.name, self.desc, self.offset, self.attrs)
     }
 }

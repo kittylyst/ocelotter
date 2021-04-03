@@ -13,6 +13,7 @@ use crate::otklass::OtKlass;
 
 use ocelotter_util::file_to_bytes;
 use ocelotter_util::ZipFiles;
+use crate::klass_parser::OtKlassParser;
 
 //////////// SHARED RUNTIME KLASS REPO
 
@@ -62,17 +63,25 @@ impl SharedKlassRepo {
     }
 
     pub fn lookup_klass(&self, klass_name: &String) -> OtKlass {
-        // let s = format!("{}", self);
-        // dbg!(s);
 
         match self.klass_lookup.get(klass_name) {
             Some(cell) => match &*(cell.borrow()) {
-                KlassLoadingStatus::Mentioned {} => panic!("Klass {} is not loaded yet", klass_name),
+                KlassLoadingStatus::Mentioned {} => {
+                    // println!("{}", self);
+                    // Attempt to perform classloading
+                    panic!("Klass {} is not loaded yet", klass_name);
+                },
                 KlassLoadingStatus::Loaded { klass : k } => k.clone(),
                 KlassLoadingStatus::Live { klass : k } => k.clone()
             },
             None => panic!("No klass called {} found in repo", klass_name),
         }
+    }
+
+    pub fn parse_and_add(&mut self, name: String, bytes : Vec<u8>) {
+        let mut parser = OtKlassParser::of(bytes, name);
+        parser.parse();
+        self.add_klass(&parser.klass());
     }
 
     pub fn add_klass(&mut self, k: &OtKlass) -> () {

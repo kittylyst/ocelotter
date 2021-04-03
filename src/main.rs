@@ -32,19 +32,14 @@ pub fn main() {
             })
             .for_each(|z| {
                 if let Ok((name, bytes)) = z {
-                    let mut parser = OtKlassParser::of(bytes, name);
-                    parser.parse();
-                    repo.add_klass(&parser.klass());
+                    repo.parse_and_add(name, bytes);
                 }
             });
     //Not using a classpath jar, just a class
     } else {
         let bytes = file_to_bytes(Path::new(&fq_klass_name))
             .expect(&format!("Problem reading {}", &fq_klass_name));
-        let mut parser = OtKlassParser::of(bytes, fq_klass_name.clone());
-        parser.parse();
-        let k = parser.klass();
-        repo.add_klass(&k);
+        repo.parse_and_add(fq_klass_name.clone(), bytes);
     }
 
     // FIXME Real main() signature required, dummying for ease of testing

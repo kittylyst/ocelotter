@@ -53,19 +53,15 @@ impl OtObj {
     }
 
     pub fn put_field(&self, offset : usize, val: JvmValue) -> () {
-        let (kid, fields) = match self {
-            OtObj::vm_obj {
-                id: _,
-                mark: _,
-                klassid: id,
-                fields: fs,
-            } => (id, fs),
-            _ => panic!("Not an object"),
-        };
-        // Get klass
-        dbg!("Made it to object get_field_offset");
-        // Lookup offset in klass
-        // let offset = REPO.lock().get_field_offset(*kid, f);
+        // let (kid, fields) = match self {
+        //     OtObj::vm_obj {
+        //         id: _,
+        //         mark: _,
+        //         klassid: id,
+        //         fields: fs,
+        //     } => (id, fs),
+        //     _ => panic!("Not an object"),
+        // };
         match self {
             OtObj::vm_obj {
                 id: _,
@@ -73,6 +69,7 @@ impl OtObj {
                 klassid: _,
                 fields: fs,
             } => {
+                println!("Offset: {} fields: {:?}", offset, fs);
                 fs[offset].set(val);
             }
             _ => panic!("Not an object"),
