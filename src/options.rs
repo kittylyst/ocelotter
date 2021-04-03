@@ -7,6 +7,9 @@ pub struct Options {
     /// class search path of directories and zip/jar files
     pub classpath: Option<String>,
 
+    /// Jar option
+    pub jar: Option<String>,
+
     #[structopt()]
     /// Class name
     pub classname: Vec<String>,

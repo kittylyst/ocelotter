@@ -27,6 +27,7 @@ pub enum KlassLoadingStatus {
 #[derive(Debug)]
 pub struct SharedKlassRepo {
     klass_lookup: HashMap<String, RefCell<KlassLoadingStatus>>,
+    classpath_dirs: Vec<String>
 }
 
 impl SharedKlassRepo {
@@ -59,9 +60,18 @@ impl SharedKlassRepo {
     pub fn of() -> SharedKlassRepo {
         SharedKlassRepo {
             klass_lookup: HashMap::new(),
+            classpath_dirs: Vec::new()
         }
     }
 
+    pub fn set_classpath(&mut self, cp_str: &String) {
+        let split = cp_str.split(":");
+        for s in split {
+            self.classpath_dirs.push(s.to_string())
+        }
+    }
+
+    // FIXME What about if we need to perform classloading. Does this need to be mut
     pub fn lookup_klass(&self, klass_name: &String) -> OtKlass {
 
         match self.klass_lookup.get(klass_name) {
@@ -76,6 +86,22 @@ impl SharedKlassRepo {
                 KlassLoadingStatus::Live { klass : k } => k.clone()
             },
             None => panic!("No klass called {} found in repo", klass_name),
+        }
+    }
+
+    pub fn eager_load_everything_mentioned(&mut self) {
+        for (k_name, cell) in self.klass_lookup.clone().into_iter() {
+            println!("Examining {}", k_name);
+            match &*(cell.borrow()) {
+                KlassLoadingStatus::Mentioned {} => {
+                    // println!("{}", self);
+                    // Attempt to perform classloading
+                    println!("Eagerly loading {}", k_name);
+                    self.load_from_classpath(&k_name);
+                },
+                KlassLoadingStatus::Loaded { klass : k } => (),
+                KlassLoadingStatus::Live { klass : k } => ()
+            }
         }
     }
 
@@ -354,6 +380,7 @@ impl Clone for SharedKlassRepo {
     fn clone(&self) -> SharedKlassRepo {
         SharedKlassRepo {
             klass_lookup: self.klass_lookup.clone(),
+            classpath_dirs: self.classpath_dirs.clone()
         }
     }
 }

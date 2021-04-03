@@ -621,6 +621,7 @@ fn interp_class_based_addition() {
     let mut repo = init_repo();
     let k = simple_parse_klass("AddFieldInteger".to_string());
     repo.add_klass(&k);
+    repo.eager_load_everything_mentioned(); // HACK
 
     {
         let fqname = "AddFieldInteger.main2:([Ljava/lang/String;)I".to_string();

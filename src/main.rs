@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use ocelotter_runtime::klass_repo::SharedKlassRepo;
 use ocelotter_runtime::InterpLocalVars;
 use ocelotter_runtime::JvmValue::*;
@@ -20,8 +18,11 @@ pub fn main() {
 
     let fq_klass_name = options.fq_klass_name();
     let f_name = options.f_name();
+    if let Some(cp_str) = &options.classpath {
+        repo.set_classpath(cp_str);
+    }
 
-    if let Some(file) = &options.classpath {
+    if let Some(file) = &options.jar {
         ZipFiles::new(file)
             .into_iter()
             .filter(|f| match f {
@@ -37,6 +38,8 @@ pub fn main() {
     } else {
         repo.load_from_classpath(&fq_klass_name);
     }
+    // Hack until we figure out classloading properly
+    repo.eager_load_everything_mentioned();
 
     // FIXME Real main() signature required, dummying for ease of testing
     let main_str: String = f_name.clone() + ".main2:([Ljava/lang/String;)I";
