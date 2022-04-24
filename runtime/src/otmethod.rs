@@ -31,7 +31,7 @@ impl OtMethod {
         let name_and_desc = name.clone() + ":" + &desc.clone();
         OtMethod {
             klass_name: klass_name.to_string(),
-            flags: flags,
+            flags,
             name: name.clone(),
             name_desc: name_and_desc,
             attrs: Vec::new(),
@@ -39,7 +39,7 @@ impl OtMethod {
             native_code: Cell::new(None),
             // FIXME
             name_idx: desc_idx,
-            desc_idx: desc_idx,
+            desc_idx,
         }
     }
 

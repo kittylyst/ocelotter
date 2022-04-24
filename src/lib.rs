@@ -85,21 +85,21 @@ pub fn exec_bytecode_method(
 
             opcode::D2F => {
                 match eval.pop() {
-                    JvmValue::Double { val: v } => eval.push(JvmValue::Float { val: v as f32 }),
+                    JvmValue::Double(v) => eval.push(JvmValue::Float(v as f32)),
                     _ => panic!("Value not of long type found for D2F at {}", (current - 1)),
                 };
             }
 
             opcode::D2I => {
                 match eval.pop() {
-                    JvmValue::Double { val: v } => eval.push(JvmValue::Int { val: v as i32 }),
+                    JvmValue::Double(v) => eval.push(JvmValue::Int(v as i32)),
                     _ => panic!("Value not of long type found for D2I at {}", (current - 1)),
                 };
             }
 
             opcode::D2L => {
                 match eval.pop() {
-                    JvmValue::Double { val: v } => eval.push(JvmValue::Long { val: v as i64 }),
+                    JvmValue::Double(v) => eval.push(JvmValue::Long(v as i64)),
                     _ => panic!("Value not of long type found for D2L at {}", (current - 1)),
                 };
             }
@@ -219,7 +219,7 @@ pub fn exec_bytecode_method(
 
                 let recvp: JvmValue = eval.pop();
                 let obj_id = match recvp {
-                    JvmValue::ObjRef { val: v } => v,
+                    JvmValue::ObjRef(v) => v,
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
                 let heap = HEAP.lock().unwrap();
@@ -265,11 +265,11 @@ pub fn exec_bytecode_method(
 
             opcode::IALOAD => {
                 let pos_to_load = match eval.pop() {
-                    JvmValue::Int { val: v } => v,
+                    JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
                 };
                 let arrayid = match eval.pop() {
-                    JvmValue::ObjRef { val: v } => v,
+                    JvmValue::ObjRef(v) => v,
                     _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
                 };
                 dbg!(arrayid.clone());
@@ -284,22 +284,22 @@ pub fn exec_bytecode_method(
                     } => elts[pos_to_load as usize],
                     _ => panic!("Non-int[] seen on stack during IASTORE at {}", current - 1),
                 };
-                eval.push(JvmValue::Int { val: unwrapped_val });
+                eval.push(JvmValue::Int(unwrapped_val));
             }
 
             opcode::IAND => eval.iand(),
 
             opcode::IASTORE => {
                 let val_to_store = match eval.pop() {
-                    JvmValue::Int { val: v } => v,
+                    JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
                 };
                 let pos_to_store = match eval.pop() {
-                    JvmValue::Int { val: v } => v,
+                    JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
                 };
                 let obj_id = match eval.pop() {
-                    JvmValue::ObjRef { val: v } => v,
+                    JvmValue::ObjRef(v) => v,
                     _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
                 };
 
@@ -392,7 +392,7 @@ pub fn exec_bytecode_method(
             opcode::IFEQ => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 let i = match eval.pop() {
-                    JvmValue::Int { val: v } => v,
+                    JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IFEQ at {}", current - 1),
                 };
                 if i == 0 {
@@ -404,7 +404,7 @@ pub fn exec_bytecode_method(
             opcode::IFGE => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 let v = match eval.pop() {
-                    JvmValue::Int { val: i } => i,
+                    JvmValue::Int(i) => i,
                     _ => panic!("Non-int seen on stack during IFGE at {}", current - 1),
                 };
                 //                dbg!(v);
@@ -418,7 +418,7 @@ pub fn exec_bytecode_method(
             opcode::IFGT => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 let v = match eval.pop() {
-                    JvmValue::Int { val: v } => v,
+                    JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IFGT at {}", current - 1),
                 };
                 if v > 0 {
@@ -430,7 +430,7 @@ pub fn exec_bytecode_method(
             opcode::IFLE => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 let v = match eval.pop() {
-                    JvmValue::Int { val: i } => i,
+                    JvmValue::Int(i) => i,
                     _ => panic!("Non-int seen on stack during IFLE at {}", current - 1),
                 };
                 //                dbg!(v);
@@ -445,7 +445,7 @@ pub fn exec_bytecode_method(
             opcode::IFLT => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 let v = match eval.pop() {
-                    JvmValue::Int { val: v } => v,
+                    JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IFGT at {}", current - 1),
                 };
                 if v < 0 {
@@ -457,7 +457,7 @@ pub fn exec_bytecode_method(
             opcode::IFNE => {
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
                 let i = match eval.pop() {
-                    JvmValue::Int { val: v } => v,
+                    JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IFEQ at {}", current - 1),
                 };
                 if i == 0 {
@@ -470,7 +470,7 @@ pub fn exec_bytecode_method(
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
 
                 match eval.pop() {
-                    JvmValue::ObjRef { val: v } => {
+                    JvmValue::ObjRef(v) => {
                         if v > 0 {
                             current += jump_to - 1;
                         } else {
@@ -487,7 +487,7 @@ pub fn exec_bytecode_method(
                 let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
 
                 match eval.pop() {
-                    JvmValue::ObjRef { val: v } => {
+                    JvmValue::ObjRef(v) => {
                         if v == 0 {
                             current += jump_to - 1;
                         } else {
@@ -595,11 +595,11 @@ pub fn exec_bytecode_method(
 
                 match current_klass.lookup_cp(cp_lookup) {
                     // FIXME Actually look up the class object properly
-                    CpEntry::class { idx: _ } => eval.aconst_null(),
-                    CpEntry::double { val: dcon } => eval.dconst(dcon),
-                    CpEntry::integer { val: icon } => eval.iconst(icon),
+                    CpEntry::Class(_) => eval.aconst_null(),
+                    CpEntry::Double(dcon) => eval.dconst(dcon),
+                    CpEntry::Integer(icon) => eval.iconst(icon),
                     // FIXME Actually look up the class object properly
-                    CpEntry::string { idx: _ } => eval.aconst_null(),
+                    CpEntry::String(idx) => eval.aconst_null(),
                     _ => panic!(
                         "Non-handled entry found in LDC op {} at CP index {}",
                         current_klass.get_name(),
@@ -617,11 +617,11 @@ pub fn exec_bytecode_method(
                 //                dbg!(current_klass.clone());
                 match entry {
                     // FIXME Actually look up the class object properly
-                    CpEntry::class { idx: _ } => eval.aconst_null(),
-                    CpEntry::double { val: dcon } => eval.dconst(dcon),
-                    CpEntry::integer { val: icon } => eval.iconst(icon),
+                    CpEntry::Class(_) => eval.aconst_null(),
+                    CpEntry::Double(dcon) => eval.dconst(dcon),
+                    CpEntry::Integer(icon) => eval.iconst(icon),
                     // FIXME Actually look up the string object properly
-                    CpEntry::string { idx: _ } => eval.aconst_null(),
+                    CpEntry::String(_) => eval.aconst_null(),
                     _ => panic!(
                         "Non-handled entry found in LDC op {} at CP index {}",
                         current_klass.get_name(),
@@ -693,7 +693,7 @@ pub fn exec_bytecode_method(
 
                 let alloc_klass_name = match current_klass.lookup_cp(cp_lookup) {
                     // FIXME Find class name from constant pool of the current class
-                    CpEntry::class { idx } => current_klass.cp_as_string(idx), // "DUMMY_CLASS".to_string(),
+                    CpEntry::Class(c) => current_klass.cp_as_string(c.0), // "DUMMY_CLASS".to_string(),
                     _ => panic!(
                         "Non-class found in {} at CP index {}",
                         current_klass.get_name(),
@@ -704,7 +704,7 @@ pub fn exec_bytecode_method(
                 let object_klass = repo.lookup_klass(&alloc_klass_name).clone();
 
                 let obj_id = HEAP.lock().unwrap().allocate_obj(&object_klass);
-                eval.push(JvmValue::ObjRef { val: obj_id });
+                eval.push(JvmValue::ObjRef(obj_id));
             }
             opcode::NEWARRAY => {
                 let arr_type = instr[current];
@@ -721,7 +721,7 @@ pub fn exec_bytecode_method(
                     // int: 10
                     // long: 11
                     10 => match eval.pop() {
-                        JvmValue::Int { val: arr_size } => {
+                        JvmValue::Int(arr_size) => {
                             HEAP.lock().unwrap().allocate_int_arr(arr_size)
                         }
                         _ => panic!("Not an int on the stack at {}", (current - 1)),
@@ -729,13 +729,9 @@ pub fn exec_bytecode_method(
                     _ => panic!("Unsupported primitive array type at {}", (current - 1)),
                 };
 
-                eval.push(JvmValue::ObjRef { val: arr_id });
+                eval.push(JvmValue::ObjRef(arr_id));
             }
-
-            opcode::NOP => {
-                ();
-            }
-
+            opcode::NOP => (),
             opcode::POP => {
                 eval.pop();
             }
@@ -755,7 +751,7 @@ pub fn exec_bytecode_method(
 
                 let recvp: JvmValue = eval.pop();
                 let obj_id = match recvp {
-                    JvmValue::ObjRef { val: v } => v,
+                    JvmValue::ObjRef(v) => v,
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
 
@@ -785,12 +781,12 @@ pub fn exec_bytecode_method(
                 eval.push(val2);
             }
             // Disallowed opcodes
-            opcode::BREAKPOINT => break Some(JvmValue::Boolean { val: false }),
-            opcode::IMPDEP1 => break Some(JvmValue::Boolean { val: false }),
-            opcode::IMPDEP2 => break Some(JvmValue::Boolean { val: false }),
-            opcode::JSR => break Some(JvmValue::Boolean { val: false }),
-            opcode::JSR_W => break Some(JvmValue::Boolean { val: false }),
-            opcode::RET => break Some(JvmValue::Boolean { val: false }),
+            opcode::BREAKPOINT => break Some(JvmValue::Boolean(false)),
+            opcode::IMPDEP1 => break Some(JvmValue::Boolean(false)),
+            opcode::IMPDEP2 => break Some(JvmValue::Boolean(false)),
+            opcode::JSR => break Some(JvmValue::Boolean(false)),
+            opcode::JSR_W => break Some(JvmValue::Boolean(false)),
+            opcode::RET => break Some(JvmValue::Boolean(false)),
 
             _ => panic!(
                 "Illegal opcode byte: {} encountered at position {}. Stopping.",
@@ -803,8 +799,8 @@ pub fn exec_bytecode_method(
 
 fn massage_to_int_and_compare(v1: JvmValue, v2: JvmValue, f: fn(i: i32, j: i32) -> bool) -> bool {
     match v1 {
-        JvmValue::Int { val: i } => match v2 {
-            JvmValue::Int { val: i1 } => f(i, i1),
+        JvmValue::Int(i) => match v2 {
+            JvmValue::Int(i1) => f(i, i1),
             _ => panic!("Values found to have differing type for IF_ICMP*"),
         },
         _ => panic!("Values found to have the wrong type for IF_ICMP*"),
@@ -820,7 +816,7 @@ fn dispatch_invoke(
 ) -> () {
     let fq_name_desc = current_klass.cp_as_string(cp_lookup);
     let klz_idx = match current_klass.lookup_cp(cp_lookup) {
-        CpEntry::methodref { clz_idx, nt_idx: _ } => clz_idx,
+        CpEntry::MethodRef(mr) => mr.clz_idx,
         _ => panic!(
             "Non-methodref found in {} at CP index {}",
             current_klass.get_name(),

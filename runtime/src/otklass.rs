@@ -2,7 +2,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt;
 
-use crate::constant_pool::CpEntry;
+use crate::constant_pool::*;
 use crate::otfield::OtField;
 use crate::otmethod::OtMethod;
 use crate::InterpLocalVars;
@@ -66,7 +66,7 @@ impl OtKlass {
             id: Cell::new(0), // This indicates that the class has not yet been loaded into a repo
             name: klass_name,
             super_name: super_klass,
-            flags: flags,
+            flags,
             cp_entries: cp_entries.to_vec(),
             methods: methods.to_vec(),
             i_fields: i_fields.to_vec(),
@@ -185,7 +185,7 @@ impl OtKlass {
         let mut out = Vec::new();
         while i < self.cp_entries.len() {
             let o_klass_name = match self.cp_entries.get(i).unwrap() {
-                CpEntry::class { idx: utf_idx } => Some(self.cp_as_string(*utf_idx)),
+                CpEntry::Class(ClassRef(utf_idx)) => Some(self.cp_as_string(*utf_idx)),
                 _ => None
             };
             match o_klass_name {
@@ -302,29 +302,21 @@ impl OtKlass {
     pub fn get_method_arg_count(&self, cp_idx: u16) -> u8 {
         let cp_entry = self.lookup_cp(cp_idx);
         let name_and_type = match cp_entry {
-            CpEntry::methodref {
-                clz_idx: _,
-                nt_idx: ntidx,
-            } => self.lookup_cp(ntidx),
+            CpEntry::MethodRef(mr) => self.lookup_cp(mr.nt_idx),
             _ => panic!(
                 "Attempt to count args of non-method in {} at index {} where {:?}",
                 self.name, cp_idx, self.cp_entries.get(cp_idx as usize)
             ),
         };
         let type_signature = match name_and_type {
-            CpEntry::name_and_type {
-                name_idx: _,
-                type_idx: tidx,
-            } => self.lookup_cp(tidx),
+            CpEntry::NameAndType(nt) => self.lookup_cp(nt.type_idx),
             _ => panic!(
                 "Attempt to count args of non-method in {} at index {} where {:?}",
                 self.name, cp_idx, self.cp_entries.get(cp_idx as usize)
             ),
         };
         match type_signature {
-            CpEntry::utf8 {
-                val: sig,
-            } => OtKlass::parse_sig_for_args(sig).len() as u8,
+            CpEntry::Utf8(sig) => OtKlass::parse_sig_for_args(sig).len() as u8,
             _ => panic!(
                 "Attempt to count args of non-method in {} at index {} found {}",
                 self.name, cp_idx, type_signature.name()
@@ -334,18 +326,11 @@ impl OtKlass {
 
     pub fn cp_as_string(&self, i: u16) -> String {
         match self.lookup_cp(i) {
-            CpEntry::utf8 { val: s } => s,
-            CpEntry::class { idx: utf_idx } => self.cp_as_string(utf_idx),
-            CpEntry::fieldref { clz_idx, nt_idx } => {
-                self.cp_as_string(clz_idx) + "." + &self.cp_as_string(nt_idx)
-            }
-            CpEntry::methodref { clz_idx, nt_idx } => {
-                self.cp_as_string(clz_idx) + "." + &self.cp_as_string(nt_idx)
-            }
-            CpEntry::name_and_type {
-                name_idx: nidx,
-                type_idx: tidx,
-            } => self.cp_as_string(nidx) + ":" + &self.cp_as_string(tidx),
+            CpEntry::Utf8(s) => s,
+            CpEntry::Class(c) => self.cp_as_string(c.0),
+            CpEntry::FieldRef(fr) => self.cp_as_string(fr.clz_idx) + "." + &self.cp_as_string(fr.nt_idx),
+            CpEntry::MethodRef(mr) => self.cp_as_string(mr.clz_idx) + "." + &self.cp_as_string(mr.nt_idx),
+            CpEntry::NameAndType(nt) => self.cp_as_string(nt.name_idx) + ":" + &self.cp_as_string(nt.type_idx),
             _ => panic!(
                 "Unimplemented stringify of CP entry found in {} at index {}",
                 self.name, i

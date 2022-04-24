@@ -144,7 +144,7 @@ impl SharedKlassRepo {
 //    fn double_mapper_factory(tfm: fn(f64) -> f64) -> fn(&InterpLocalVars) -> Option<JvmValue> {
 //        |args: &InterpLocalVars| -> Option<JvmValue> {
 //            let d = match args.load(0) {
-//                JvmValue::Double { val: v } => v,
+//                JvmValue::Double(v) => v,
 //                x => panic!("Non-double value {} of type {} encountered in Math", x, x.name())
 //            };
 //

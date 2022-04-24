@@ -39,19 +39,72 @@ pub const CP_METHODHANDLE: u8 = 15;
 pub const CP_METHODTYPE: u8 = 16;
 pub const CP_INVOKEDYNAMIC: u8 = 18;
 
+#[derive(Clone,Debug)]
+pub struct ClassRef(pub u16);
+#[derive(Clone,Debug)]
+pub struct StringRef(pub u16);
+
+#[derive(Clone, Copy, Debug)]
+pub struct FieldRef {
+    pub clz_idx: u16,
+    pub nt_idx:  u16,
+}
+
+impl FieldRef {
+    pub fn new(clz_idx: u16, nt_idx: u16) -> Self {
+        FieldRef { clz_idx, nt_idx }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct MethodRef {
+    pub clz_idx: u16,
+    pub nt_idx:  u16,
+}
+
+impl MethodRef {
+    pub fn new(clz_idx: u16, nt_idx: u16) -> Self {
+        MethodRef { clz_idx, nt_idx }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct InterfaceMethodRef {
+    pub clz_idx: u16,
+    pub nt_idx:  u16,
+}
+    
+impl InterfaceMethodRef {
+    pub fn new(clz_idx: u16, nt_idx: u16) -> Self {
+        InterfaceMethodRef { clz_idx, nt_idx }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct NameAndType {
+    pub name_idx: u16,
+    pub type_idx: u16,
+}
+
+impl NameAndType {
+    pub fn new(name_idx: u16, type_idx: u16) -> Self {
+        NameAndType { name_idx, type_idx }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum CpEntry {
-    utf8 { val: String },
-    integer { val: i32 },
-    float { val: f32 },
-    long { val: i64 },
-    double { val: f64 },
-    class { idx: u16 },
-    string { idx: u16 },
-    fieldref { clz_idx: u16, nt_idx: u16 },
-    methodref { clz_idx: u16, nt_idx: u16 },
-    interface_methodref { clz_idx: u16, nt_idx: u16 },
-    name_and_type { name_idx: u16, type_idx: u16 },
+    Utf8(String),
+    Integer(i32),
+    Float(f32),
+    Long(i64),
+    Double(f64),
+    Class(ClassRef),
+    String(StringRef),
+    FieldRef(FieldRef),
+    MethodRef(MethodRef),
+    InterfaceMethodRef(InterfaceMethodRef),
+    NameAndType(NameAndType),
 }
 
 impl CpEntry {
@@ -66,17 +119,17 @@ impl CpEntry {
 
     pub fn name(&self) -> String {
         match *self {
-            CpEntry::utf8 { val: _ } => "Utf8".to_string(),
-            CpEntry::integer { val: _ } => "Integer".to_string(),
-            CpEntry::float { val: _ } => "Float".to_string(),
-            CpEntry::long { val: _ } => "Long".to_string(),
-            CpEntry::double { val: _ } => "Double".to_string(),
-            CpEntry::class { idx: _ } => "Class".to_string(),
-            CpEntry::string { idx: _ } => "String".to_string(),
-            CpEntry::fieldref { clz_idx: _, nt_idx: _ } => "Fieldref".to_string(),
-            CpEntry::methodref { clz_idx: _, nt_idx: _ } => "Methodref".to_string(),
-            CpEntry::interface_methodref { clz_idx: _, nt_idx: _ } => "Instance_Methodref".to_string(),
-            CpEntry::name_and_type { name_idx: _, type_idx: _ } => "NameAndType".to_string(),
+            CpEntry::Utf8(_) => "Utf8".to_string(),
+            CpEntry::Integer(_) => "Integer".to_string(),
+            CpEntry::Float(_) => "Float".to_string(),
+            CpEntry::Long(_) => "Long".to_string(),
+            CpEntry::Double(_) => "Double".to_string(),
+            CpEntry::Class(_) => "Class".to_string(),
+            CpEntry::String(_) => "String".to_string(),
+            CpEntry::FieldRef(_) => "Fieldref".to_string(),
+            CpEntry::MethodRef(_) => "Methodref".to_string(),
+            CpEntry::InterfaceMethodRef(_) => "Instance_Methodref".to_string(),
+            CpEntry::NameAndType(_) => "NameAndType".to_string(),
         }
     }
 
@@ -89,7 +142,7 @@ pub struct CpAttr {
 
 impl CpAttr {
     pub fn of(name_idx: u16) -> CpAttr {
-        CpAttr { name_idx: name_idx }
+        CpAttr { name_idx }
     }
 }
 
