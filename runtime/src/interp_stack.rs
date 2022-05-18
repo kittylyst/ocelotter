@@ -383,14 +383,14 @@ impl InterpEvalStack {
     }
 
     pub fn dcmpg(&mut self) {
-        let v1 = self.pop().as_double().expect("Non-double seen on stack during DCMPG");
         let v2 = self.pop().as_double().expect("Non-double seen on stack during DCMPG");
+        let v1 = self.pop().as_double().expect("Non-double seen on stack during DCMPG");
         self.push(f64::partial_cmp(&v1, &v2).map(ordering).unwrap_or(JvmValue::Int(1)))
     }
 
     pub fn dcmpl(&mut self) {
-        let v1 = self.pop().as_double().expect("Non-double seen on stack during DCMPL");
         let v2 = self.pop().as_double().expect("Non-double seen on stack during DCMPL");
+        let v1 = self.pop().as_double().expect("Non-double seen on stack during DCMPL");
         self.push(f64::partial_cmp(&v1, &v2).map(ordering).unwrap_or(JvmValue::Int(-1)));
     }
 

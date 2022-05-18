@@ -2,9 +2,6 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-#[macro_use]
-extern crate assert_float_eq;
-
 use ocelotter_runtime::constant_pool::*;
 use ocelotter_runtime::interp_stack::InterpEvalStack;
 use ocelotter_runtime::klass_repo::SharedKlassRepo;
@@ -275,7 +272,7 @@ pub fn exec_bytecode_method(
                 dbg!(arrayid.clone());
 
                 let unwrapped_val = match HEAP.lock().unwrap().get_obj(arrayid) {
-                    ocelotter_runtime::object::OtObj::vm_arr_int {
+                    ocelotter_runtime::object::OtObj::VmArrInt {
                         id: _,
                         mark: _,
                         klassid: _,

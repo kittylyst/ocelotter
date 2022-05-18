@@ -7,20 +7,20 @@ use crate::OtField;
 // If we need this, we'd better impl it manually
 // #[derive(Debug)]
 pub enum OtObj {
-    vm_obj {
+    VmObj {
         id: usize,
         mark: u64,
         klassid: usize,
         fields: Vec<Cell<JvmValue>>,
     },
-    vm_arr_int {
+    VmArrInt {
         id: usize,
         mark: u64,
         klassid: usize,
         length: i32,
         elements: Vec<i32>,
     },
-    vm_arr_long {
+    VmArrLong {
         id: usize,
         mark: u64,
         klassid: usize,
@@ -31,7 +31,7 @@ pub enum OtObj {
 
 impl OtObj {
     pub fn obj_of(klass_id: usize, obj_id: usize, initial: Vec<JvmValue>) -> OtObj {
-        OtObj::vm_obj {
+        OtObj::VmObj {
             id: obj_id,
             mark: 0u64,
             klassid: klass_id,
@@ -43,7 +43,7 @@ impl OtObj {
         let sz = size as usize;
         let mut elts = Vec::with_capacity(sz);
         elts.resize(sz, 0);
-        OtObj::vm_arr_int {
+        OtObj::VmArrInt {
             id: obj_id,
             mark: 0u64,
             klassid: 2, // FIXME Need Object in the mix soon...
@@ -54,7 +54,7 @@ impl OtObj {
 
     pub fn put_field(&self, offset : usize, val: JvmValue) -> () {
         let (kid, fields) = match self {
-            OtObj::vm_obj {
+            OtObj::VmObj {
                 id: _,
                 mark: _,
                 klassid: id,
@@ -67,7 +67,7 @@ impl OtObj {
         // Lookup offset in klass
         // let offset = REPO.lock().get_field_offset(*kid, f);
         match self {
-            OtObj::vm_obj {
+            OtObj::VmObj {
                 id: _,
                 mark: _,
                 klassid: _,
@@ -81,7 +81,7 @@ impl OtObj {
 
     pub fn get_field_value(&self, offset : usize) -> JvmValue {
         let (kid, fields) = match self {
-            OtObj::vm_obj {
+            OtObj::VmObj {
                 id: _,
                 mark: _,
                 klassid: id,
@@ -101,7 +101,7 @@ impl OtObj {
     }
 
     pub fn get_null() -> OtObj {
-        OtObj::vm_obj {
+        OtObj::VmObj {
             id: 0,
             mark: 0u64,
             klassid: 0, // klassid of 0 implies null
@@ -119,20 +119,20 @@ impl OtObj {
 
     pub fn get_id(&self) -> usize {
         match *self {
-            OtObj::vm_obj {
+            OtObj::VmObj {
                 id: i,
                 mark: _,
                 klassid: _,
                 fields: _,
             } => i,
-            OtObj::vm_arr_int {
+            OtObj::VmArrInt {
                 id: i,
                 mark: _,
                 klassid: _,
                 length: _,
                 elements: _,
             } => i,
-            OtObj::vm_arr_long {
+            OtObj::VmArrLong {
                 id: i,
                 mark: _,
                 klassid: _,
@@ -144,20 +144,20 @@ impl OtObj {
 
     pub fn get_mark(&self) -> u64 {
         match *self {
-            OtObj::vm_obj {
+            OtObj::VmObj {
                 id: _,
                 mark: m,
                 klassid: _,
                 fields: _,
             } => m,
-            OtObj::vm_arr_int {
+            OtObj::VmArrInt {
                 id: _,
                 mark: m,
                 klassid: _,
                 length: _,
                 elements: _,
             } => m,
-            OtObj::vm_arr_long {
+            OtObj::VmArrLong {
                 id: _,
                 mark: m,
                 klassid: _,
@@ -169,20 +169,20 @@ impl OtObj {
 
     pub fn get_klassid(&self) -> usize {
         match *self {
-            OtObj::vm_obj {
+            OtObj::VmObj {
                 id: _,
                 mark: _,
                 klassid: k,
                 fields: _,
             } => k,
-            OtObj::vm_arr_int {
+            OtObj::VmArrInt {
                 id: _,
                 mark: _,
                 klassid: k,
                 length: _,
                 elements: _,
             } => k,
-            OtObj::vm_arr_long {
+            OtObj::VmArrLong {
                 id: _,
                 mark: _,
                 klassid: k,
@@ -194,20 +194,20 @@ impl OtObj {
 
     pub fn length(&self) -> i32 {
         match *self {
-            OtObj::vm_obj {
+            OtObj::VmObj {
                 id: _,
                 mark: _,
                 klassid: _,
                 fields: _,
             } => panic!("Attempted to take the length of a normal object!"),
-            OtObj::vm_arr_int {
+            OtObj::VmArrInt {
                 id: _,
                 mark: _,
                 klassid: _,
                 length: l,
                 elements: _,
             } => l,
-            OtObj::vm_arr_long {
+            OtObj::VmArrLong {
                 id: _,
                 mark: _,
                 klassid: _,

@@ -73,7 +73,7 @@ pub struct InterfaceMethodRef {
     pub clz_idx: u16,
     pub nt_idx:  u16,
 }
-    
+
 impl InterfaceMethodRef {
     pub fn new(clz_idx: u16, nt_idx: u16) -> Self {
         InterfaceMethodRef { clz_idx, nt_idx }
