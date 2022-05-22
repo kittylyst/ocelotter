@@ -72,7 +72,7 @@ impl SharedSimpleHeap {
             None => panic!("Error: object {} not found", id),
         };
         let t = match obj {
-            OtObj::vm_arr_int {
+            OtObj::VmArrInt {
                 id: i,
                 mark: m,
                 klassid: kid,
@@ -83,7 +83,7 @@ impl SharedSimpleHeap {
         };
         let mut elts = t.3.clone();
         elts[pos as usize] = v;
-        let obj = OtObj::vm_arr_int {
+        let obj = OtObj::VmArrInt {
             id: *t.0,
             mark: *t.1,
             klassid: *t.2,

@@ -18,7 +18,7 @@ pub fn main() {
     let options = Options::from_args();
 
     let mut repo = SharedKlassRepo::of();
-    repo.bootstrap(ocelotter::exec_method);
+    repo.bootstrap(exec_method);
 
     let fq_klass_name = options.fq_klass_name();
     let f_name = options.f_name();
@@ -62,8 +62,8 @@ pub fn main() {
 
     let ret = exec_method(&mut repo, &main, &mut vars)
         .map(|return_value| match return_value {
-            Int { val: i } => i,
-            _ => panic!("Error executing ".to_owned() + &f_name + " - non-int value returned"),
+            Int(i) => i,
+            _ => panic!("Error executing {} - non-int value returned", &f_name),
         })
         .expect(&format!("Error executing {} - no value returned", &f_name));
 

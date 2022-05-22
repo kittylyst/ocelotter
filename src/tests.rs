@@ -3,6 +3,12 @@ use std::path::Path;
 use super::*;
 
 use ocelotter_runtime::constant_pool::ACC_PUBLIC;
+// this crate is presumably old and not very good.
+use assert_float_eq::{
+  assert_f32_near, assert_f64_near,
+  afe_near_error_msg, afe_is_f32_near, afe_is_f64_near,
+};
+
 use ocelotter_util::file_to_bytes;
 
 // Helper fns
@@ -16,11 +22,8 @@ fn init_repo() -> SharedKlassRepo {
 fn execute_simple_bytecode(buf: &Vec<u8>) -> JvmValue {
     let mut repo = init_repo();
     let mut lvt = InterpLocalVars::of(10); // FIXME
-    exec_bytecode_method(&mut repo, "DUMMY".to_string(), &buf, &mut lvt).unwrap_or_else(|| {
-        JvmValue::ObjRef {
-            val: 0, // object::OtObj::get_null(),
-        }
-    })
+    exec_bytecode_method(&mut repo, "DUMMY".to_string(), buf, &mut lvt)
+        .unwrap_or_else(|| JvmValue::ObjRef(0)) // object::OtObj::get_null(),
 }
 
 fn simple_parse_klass(cname: String) -> OtKlass {
@@ -53,7 +56,7 @@ fn bc_adds_to_two() {
         opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&first_test) {
-        JvmValue::Int { val: i } => i,
+        JvmValue::Int(i) => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -66,7 +69,7 @@ fn bc_adds_to_two() {
 fn bc_iconst_dup() {
     let buf = vec![opcode::ICONST_1, opcode::DUP, opcode::IADD, opcode::IRETURN];
     let ret = match execute_simple_bytecode(&buf) {
-        JvmValue::Int { val: i } => i,
+        JvmValue::Int(i) => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -83,7 +86,7 @@ fn bc_iconst_dup() {
         opcode::IRETURN,
     ];
     let ret2 = match execute_simple_bytecode(&buf2) {
-        JvmValue::Int { val: i } => i,
+        JvmValue::Int(i) => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -101,7 +104,7 @@ fn bc_irem_works() {
         opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
-        JvmValue::Int { val: i } => i,
+        JvmValue::Int(i) => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -119,7 +122,7 @@ fn bc_idiv_works() {
         opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
-        JvmValue::Int { val: i } => i,
+        JvmValue::Int(i) => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -138,7 +141,7 @@ fn bc_iconst_dup_nop_pop() {
         opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
-        JvmValue::Int { val: i } => i,
+        JvmValue::Int(i) => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -158,7 +161,7 @@ fn bc_iconst_dup_x1() {
         opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
-        JvmValue::Int { val: i } => i,
+        JvmValue::Int(i) => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -177,7 +180,7 @@ fn bc_iconst_dup_x1() {
         opcode::IRETURN,
     ];
     let ret2 = match execute_simple_bytecode(&buf2) {
-        JvmValue::Int { val: i } => i,
+        JvmValue::Int(i) => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -199,7 +202,7 @@ fn bc_ifnonnull() {
         opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
-        JvmValue::Int { val: i } => i,
+        JvmValue::Int(i) => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -221,7 +224,7 @@ fn bc_ifnull() {
         opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
-        JvmValue::Int { val: i } => i,
+        JvmValue::Int(i) => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -248,7 +251,7 @@ fn bc_ifeq() {
         opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
-        JvmValue::Int { val: i } => i,
+        JvmValue::Int(i) => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -270,7 +273,7 @@ fn bc_goto() {
         opcode::IRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
-        JvmValue::Int { val: i } => i,
+        JvmValue::Int(i) => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -302,7 +305,7 @@ fn bc_lrem_works() {
         opcode::LRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
-        JvmValue::Long { val: i } => i,
+        JvmValue::Long(i) => i,
         _ => {
             println!("Unexpected, non-integer value encountered");
             0
@@ -326,7 +329,7 @@ fn bc_drem() {
         opcode::DRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
-        JvmValue::Double { val: i } => i,
+        JvmValue::Double(i) => i,
         _ => {
             println!("Unexpected, non-double value encountered");
             0.0
@@ -346,7 +349,7 @@ fn bc_fdiv() {
         opcode::FRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
-        JvmValue::Float { val: i } => i,
+        JvmValue::Float(i) => i,
         _ => {
             println!("Unexpected, non-float value encountered");
             0.0
@@ -370,7 +373,7 @@ fn bc_frem() {
         opcode::FRETURN,
     ];
     let ret = match execute_simple_bytecode(&buf) {
-        JvmValue::Float { val: i } => i,
+        JvmValue::Float(i) => i,
         _ => {
             println!("Unexpected, non-float value encountered");
             0.0
@@ -432,7 +435,7 @@ fn interp_invoke_simple() {
         let mut vars = InterpLocalVars::of(5);
         let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
         let ret2 = match ret {
-            JvmValue::Int { val: i } => i,
+            JvmValue::Int(i) => i,
             _ => panic!("Error executing SampleInvoke.bar:()I - non-int value returned"),
         };
         assert_eq!(7, ret2);
@@ -442,13 +445,13 @@ fn interp_invoke_simple() {
         let fq_meth = "SampleInvoke.foo:()I";
         let meth = k
             .get_method_by_name_and_desc(&fq_meth.to_string())
-            .expect(&format!("{} not found", fq_meth));
+            .unwrap_or_else(|| panic!("{} not found", fq_meth));
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
         let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
         let ret2 = match ret {
-            JvmValue::Int { val: i } => i,
+            JvmValue::Int(i) => i,
             _ => panic!("Error executing SampleInvoke.foo:()I - non-int value returned"),
         };
         assert_eq!(9, ret2);
@@ -465,13 +468,13 @@ fn test_math_sin() {
         let fq_meth = "TestMathSin.main_ifge:()I";
         let meth = k
             .get_method_by_name_and_desc(&fq_meth.to_string())
-            .expect(&format!("{} not found", fq_meth));
+            .unwrap_or_else(|| panic!("{} not found", fq_meth));
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
         let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
         let ret2 = match ret {
-            JvmValue::Int { val: i } => i,
+            JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fq_meth),
         };
         assert_eq!(1, ret2);
@@ -481,13 +484,13 @@ fn test_math_sin() {
         let fq_meth = "TestMathSin.main_ifle:()I";
         let meth = k
             .get_method_by_name_and_desc(&fq_meth.to_string())
-            .expect(&format!("{} not found", fq_meth));
+            .unwrap_or_else(|| panic!("{} not found", fq_meth));
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
         let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
         let ret2 = match ret {
-            JvmValue::Int { val: i } => i,
+            JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fq_meth),
         };
         assert_eq!(0, ret2);
@@ -497,13 +500,13 @@ fn test_math_sin() {
         let fq_meth = "TestMathSin.main_ifnull:()I";
         let meth = k
             .get_method_by_name_and_desc(&fq_meth.to_string())
-            .expect(&format!("{} not found", fq_meth));
+            .unwrap_or_else(|| panic!("{} not found", fq_meth));
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
         let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
         let ret2 = match ret {
-            JvmValue::Int { val: i } => i,
+            JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fq_meth),
         };
         assert_eq!(0, ret2);
@@ -526,7 +529,7 @@ fn interp_iffer() {
         let mut vars = InterpLocalVars::of(5);
         let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
         let ret2 = match ret {
-            JvmValue::Int { val: i } => i,
+            JvmValue::Int(i) => i,
             _ => panic!("Error executing Iffer.baz:()I - non-int value returned"),
         };
         assert_eq!(3, ret2);
@@ -548,7 +551,7 @@ fn interp_array_set() {
         let mut vars = InterpLocalVars::of(5);
         let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
         let ret2 = match ret {
-            JvmValue::Int { val: i } => i,
+            JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
         };
         assert_eq!(7, ret2);
@@ -569,7 +572,7 @@ fn interp_field_set() {
 
         let mut vars = InterpLocalVars::of(5);
         let ret = match exec_method(&mut repo, &meth, &mut vars).unwrap() {
-            JvmValue::Int { val: i } => i,
+            JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
         };
         assert_eq!(7, ret);
@@ -592,7 +595,7 @@ fn interp_system_current_timemillis() {
         let mut vars = InterpLocalVars::of(5);
         let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
         let ctm1 = match ret {
-            JvmValue::Int { val: i } => i,
+            JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
         };
         vars = InterpLocalVars::of(5);
@@ -602,7 +605,7 @@ fn interp_system_current_timemillis() {
             None => panic!("Error executing {} - no value returned", fqname),
         };
         let ctm2 = match ret2 {
-            JvmValue::Int { val: i } => i,
+            JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
         };
         assert_eq!(true, ctm2 >= ctm1, "System clock appears to go backwards");
@@ -610,7 +613,7 @@ fn interp_system_current_timemillis() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn interp_class_based_addition() {
     let mut repo = init_repo();
     let k = simple_parse_klass("AddFieldInteger".to_string());
@@ -623,9 +626,9 @@ fn interp_class_based_addition() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
+        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
         let ret2 = match ret {
-            JvmValue::Int { val: i } => i,
+            JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
         };
         assert_eq!(7, ret2);
@@ -645,9 +648,9 @@ fn interp_ldc_based_addition() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, &meth, &mut vars).unwrap();
+        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
         let ret2 = match ret {
-            JvmValue::Int { val: i } => i,
+            JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
         };
         assert_eq!(44451, ret2);

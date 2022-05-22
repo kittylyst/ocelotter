@@ -30,7 +30,7 @@ impl OtField {
         desc: u16,
     ) -> OtField {
         OtField {
-            offset: offset,
+            offset,
             klass_name: klass_name.to_string(),
             // FIXME
             flags: field_flags,
@@ -66,15 +66,15 @@ impl OtField {
 
     pub fn get_default(&self) -> JvmValue {
         match self.desc.as_str() {
-            "Z" => JvmValue::Boolean { val: false },
-            "B" => JvmValue::Byte { val: 0 },
-            "S" => JvmValue::Short { val: 0 },
-            "C" => JvmValue::Char { val: '\0' },
-            "I" => JvmValue::Int { val: 0i32 },
-            "J" => JvmValue::Long { val: 0i64 },
-            "F" => JvmValue::Float { val: 0.0 },
-            "D" => JvmValue::Double { val: 0.0 },
-            _ => JvmValue::ObjRef { val: 0 },
+            "Z" => JvmValue::Boolean(false),
+            "B" => JvmValue::Byte(0),
+            "S" => JvmValue::Short(0),
+            "C" => JvmValue::Char('\0'),
+            "I" => JvmValue::Int(0i32),
+            "J" => JvmValue::Long(0i64),
+            "F" => JvmValue::Float(0.0),
+            "D" => JvmValue::Double(0.0),
+            _ => JvmValue::ObjRef(0),
         }
     }
 }

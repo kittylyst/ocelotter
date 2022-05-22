@@ -5,7 +5,7 @@
 #![allow(non_camel_case_types)]
 
 use std::fmt;
-use std::sync::{Mutex};
+use std::sync::Mutex;
 
 #[macro_use]
 extern crate lazy_static;
@@ -36,68 +36,88 @@ lazy_static! {
 
 #[derive(Clone, Debug, Copy)]
 pub enum JvmValue {
-    Boolean { val: bool },
-    Byte { val: i8 },
-    Short { val: i16 },
-    Int { val: i32 },
-    Long { val: i64 },
-    Float { val: f32 },
-    Double { val: f64 },
-    Char { val: char },
-    ObjRef { val: usize }, // Access objects by id
+    Boolean(bool),
+    Byte(i8),
+    Short(i16),
+    Int(i32),
+    Long(i64),
+    Float(f32),
+    Double(f64),
+    Char(char),
+    ObjRef(usize), // Access objects by id
 }
+
+macro_rules! value_as {
+    ($name:ident : $ctor:ident($ty:ty)) => {
+        pub fn $name(self) -> Option<$ty> {
+            match self {
+                Self::$ctor(v) => Some(v),
+                other => None,
+            }
+        }
+    }
+}
+
 
 impl JvmValue {
     pub fn name(&self) -> char {
         match *self {
-            JvmValue::Boolean { val: _ } => 'Z',
-            JvmValue::Byte { val: _ } => 'B',
-            JvmValue::Short { val: _ } => 'S',
-            JvmValue::Int { val: _ } => 'I',
-            JvmValue::Long { val: _ } => 'J',
-            JvmValue::Float { val: _ } => 'F',
-            JvmValue::Double { val: _ } => 'D',
-            JvmValue::Char { val: _ } => 'C',
-            JvmValue::ObjRef { val: _ } => 'A',
+            JvmValue::Boolean(_) => 'Z',
+            JvmValue::Byte(_) => 'B',
+            JvmValue::Short(_) => 'S',
+            JvmValue::Int(_) => 'I',
+            JvmValue::Long(_) => 'J',
+            JvmValue::Float(_) => 'F',
+            JvmValue::Double(_) => 'D',
+            JvmValue::Char(_) => 'C',
+            JvmValue::ObjRef(_) => 'A',
         }
     }
 
     pub fn default_value(letter: char) -> JvmValue {
         match letter {
-            'Z' => JvmValue::Boolean { val: false } ,
-            'B' => JvmValue::Byte { val: 0 },
-            'S' => JvmValue::Short { val: 0 },
-            'I' => JvmValue::Int { val: 0 },
-            'J' => JvmValue::Long { val: 0 },
-            'F' => JvmValue::Float { val: 0.0 },
-            'D' => JvmValue::Double { val: 0.0 },
-            'C' => JvmValue::Char { val: '\0' },
-            'A' => JvmValue::ObjRef { val: 0 },
+            'Z' => JvmValue::Boolean(false),
+            'B' => JvmValue::Byte(0),
+            'S' => JvmValue::Short(0),
+            'I' => JvmValue::Int(0),
+            'J' => JvmValue::Long(0),
+            'F' => JvmValue::Float(0.0),
+            'D' => JvmValue::Double(0.0),
+            'C' => JvmValue::Char('\0'),
+            'A' => JvmValue::ObjRef(0),
             _   => panic!("Illegal type {} seen when trying to parse", letter)
         }
     }
+
+    value_as!(as_bool:   Boolean(bool));
+    value_as!(as_byte:   Byte(i8));
+    value_as!(as_short:  Short(i16));
+    value_as!(as_int:    Int(i32));
+    value_as!(as_long:   Long(i64));
+    value_as!(as_float:  Float(f32));
+    value_as!(as_double: Double(f64));
+    value_as!(as_char:   Char(char));
+    value_as!(as_objref: ObjRef(usize));
 }
 
 impl fmt::Display for JvmValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            JvmValue::Boolean { val: v } => write!(f, "{}", v),
-            JvmValue::Byte { val: v } => write!(f, "{}", v),
-            JvmValue::Short { val: v } => write!(f, "{}", v),
-            JvmValue::Int { val: v } => write!(f, "{}", v),
-            JvmValue::Long { val: v } => write!(f, "{}", v),
-            JvmValue::Float { val: v } => write!(f, "{}", v),
-            JvmValue::Double { val: v } => write!(f, "{}", v),
-            JvmValue::Char { val: v } => write!(f, "{}", v),
-            JvmValue::ObjRef { val: v } => write!(f, "{}", v.clone()),
+            JvmValue::Boolean(v) => write!(f, "{}", v),
+            JvmValue::Byte(v)    => write!(f, "{}", v),
+            JvmValue::Short(v)   => write!(f, "{}", v),
+            JvmValue::Int(v)     => write!(f, "{}", v),
+            JvmValue::Long(v)    => write!(f, "{}", v),
+            JvmValue::Float(v)   => write!(f, "{}", v),
+            JvmValue::Double(v)  => write!(f, "{}", v),
+            JvmValue::Char(v)    => write!(f, "{}", v),
+            JvmValue::ObjRef(v)  => write!(f, "{}", v),
         }
     }
 }
 
 impl Default for JvmValue {
-    fn default() -> JvmValue {
-        JvmValue::Int { val: 0i32 }
-    }
+    fn default() -> JvmValue { JvmValue::Int(0) }
 }
 
 //////////// LOCAL VARS
@@ -114,7 +134,6 @@ impl InterpLocalVars {
         for i in 0..var_count {
             out.lvt.push(JvmValue::default());
         }
-
         out
     }
 
@@ -127,12 +146,9 @@ impl InterpLocalVars {
     }
 
     pub fn iinc(&mut self, idx: u8, incr: u8) -> () {
-        match self.lvt[idx as usize] {
-            JvmValue::Int { val: v } => {
-                self.lvt[idx as usize] = JvmValue::Int { val: v + 1 };
-            }
-            _ => panic!("Non-integer value encountered in IINC of local var {}", idx),
-        }
+        let val = self.lvt[idx as usize].as_int()
+            .unwrap_or_else(|| panic!("Non-integer value encountered in IINC of local var {}", idx));
+        self.lvt[idx as usize] = JvmValue::Int(val + 1);
     }
 }
 

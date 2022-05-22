@@ -61,8 +61,8 @@ impl OtKlassParser {
     fn klass_name(&self) -> &String {
         // Lookup the name in the CP - note that CP indices are 1-indexed
         match self.cp_entries[self.cp_index_this as usize] {
-            CpEntry::class { idx: icl } => match &self.cp_entries[icl as usize] {
-                CpEntry::utf8 { val: s } => s,
+            CpEntry::Class(ClassRef(icl)) => match &self.cp_entries[icl as usize] {
+                CpEntry::Utf8(s) => s,
                 _ => panic!(
                     "Class index {} does not point at utf8 string in constant pool",
                     icl
@@ -83,8 +83,8 @@ impl OtKlassParser {
 
         // Lookup the superclass name in the CP - note that CP indices are 1-indexed
         match self.cp_entries[self.cp_index_super as usize] {
-            CpEntry::class { idx: scl } => match &self.cp_entries[scl as usize] {
-                CpEntry::utf8 { val: s } => s,
+            CpEntry::Class(ClassRef(scl)) => match &self.cp_entries[scl as usize] {
+                CpEntry::Utf8(s) => s,
                 _ => panic!(
                     "Superclass index {} does not point at utf8 string in constant pool",
                     scl
@@ -99,7 +99,7 @@ impl OtKlassParser {
 
     fn stringref_from_cp(&mut self, idx: u16) -> &String {
         match &self.cp_entries[idx as usize] {
-            CpEntry::utf8 { val: s } => s,
+            CpEntry::Utf8(s) => s,
             _ => panic!(
                 "Superclass index {} does not point at utf8 string in constant pool",
                 idx
@@ -145,7 +145,7 @@ impl OtKlassParser {
         // dbg!(self.get_pool_size());
         self.cp_entries.resize(
             (self.pool_item_count as usize) + 1,
-            CpEntry::integer { val: 0 },
+            CpEntry::Integer(0),
         );
         let mut current_cp = 0;
         let mut double_width = false;
@@ -173,7 +173,7 @@ impl OtKlassParser {
                             }
                             .to_owned();
                             // dbg!(str_c.clone());
-                            CpEntry::utf8 { val: str_c }
+                            CpEntry::Utf8(str_c)
                         }
                         Err(e) => panic!("error parsing constant pool: {:?}", e),
                     }
@@ -186,9 +186,7 @@ impl OtKlassParser {
                     self.current += 4;
 
                     let buf = &[b1, b2, b3, b4];
-                    CpEntry::integer {
-                        val: BigEndian::read_i32(buf),
-                    }
+                    CpEntry::Integer(BigEndian::read_i32(buf))
                 }
                 CP_FLOAT => {
                     let b1 = self.clz_read[self.current];
@@ -198,9 +196,7 @@ impl OtKlassParser {
                     self.current += 4;
 
                     let buf = &[b1, b2, b3, b4];
-                    CpEntry::float {
-                        val: BigEndian::read_f32(buf),
-                    }
+                    CpEntry::Float(BigEndian::read_f32(buf))
                 }
 
                 CP_LONG => {
@@ -217,9 +213,7 @@ impl OtKlassParser {
                     double_width = true;
 
                     let buf = &[b1, b2, b3, b4, b5, b6, b7, b8];
-                    CpEntry::long {
-                        val: BigEndian::read_i64(buf),
-                    }
+                    CpEntry::Long(BigEndian::read_i64(buf))
                 }
 
                 CP_DOUBLE => {
@@ -234,29 +228,20 @@ impl OtKlassParser {
                     self.current += 8;
                     // Doubles are double width
                     double_width = true;
-
                     let buf = &[b1, b2, b3, b4, b5, b6, b7, b8];
-                    CpEntry::double {
-                        val: BigEndian::read_f64(buf),
-                    }
+                    CpEntry::Double(BigEndian::read_f64(buf))
                 }
                 CP_CLASS => {
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
                     self.current += 2;
-
-                    CpEntry::class {
-                        idx: ((b1 as u16) << 8) + b2 as u16,
-                    }
+                    CpEntry::Class(ClassRef(((b1 as u16) << 8) + b2 as u16))
                 }
                 CP_STRING => {
                     let b1 = self.clz_read[self.current];
                     let b2 = self.clz_read[self.current + 1];
                     self.current += 2;
-
-                    CpEntry::string {
-                        idx: ((b1 as u16) << 8) + b2 as u16,
-                    }
+                    CpEntry::String(StringRef(((b1 as u16) << 8) + b2 as u16))
                 }
                 CP_FIELDREF => {
                     // println!("Parsing a fieldref");
@@ -265,11 +250,10 @@ impl OtKlassParser {
                     let b3 = self.clz_read[self.current + 2];
                     let b4 = self.clz_read[self.current + 3];
                     self.current += 4;
-
-                    CpEntry::fieldref {
-                        clz_idx: ((b1 as u16) << 8) + b2 as u16,
-                        nt_idx: ((b3 as u16) << 8) + b4 as u16,
-                    }
+                    CpEntry::FieldRef(FieldRef::new(
+                        ((b1 as u16) << 8) + b2 as u16,
+                        ((b3 as u16) << 8) + b4 as u16
+                    ))
                 }
                 CP_METHODREF => {
                     // println!("Parsing a methodref");
@@ -279,11 +263,11 @@ impl OtKlassParser {
                     let b4 = self.clz_read[self.current + 3];
                     self.current += 4;
 
-                    CpEntry::methodref {
-                        clz_idx: ((b1 as u16) << 8) + b2 as u16,
-                        nt_idx: ((b3 as u16) << 8) + b4 as u16,
-                    }
-                }
+                    CpEntry::MethodRef(MethodRef::new(
+                        ((b1 as u16) << 8) + b2 as u16,
+                        ((b3 as u16) << 8) + b4 as u16
+                    ))
+                } 
                 CP_INTERFACE_METHODREF => {
                     // println!("Parsing an interface_methodref");
                     let b1 = self.clz_read[self.current];
@@ -291,11 +275,10 @@ impl OtKlassParser {
                     let b3 = self.clz_read[self.current + 2];
                     let b4 = self.clz_read[self.current + 3];
                     self.current += 4;
-
-                    CpEntry::interface_methodref {
-                        clz_idx: ((b1 as u16) << 8) + b2 as u16,
-                        nt_idx: ((b3 as u16) << 8) + b4 as u16,
-                    }
+                    CpEntry::InterfaceMethodRef(InterfaceMethodRef::new(
+                        ((b1 as u16) << 8) + b2 as u16,
+                        ((b3 as u16) << 8) + b4 as u16
+                    ))
                 }
                 CP_NAMEANDTYPE => {
                     // println!("Parsing a name_and_type");
@@ -304,11 +287,10 @@ impl OtKlassParser {
                     let b3 = self.clz_read[self.current + 2];
                     let b4 = self.clz_read[self.current + 3];
                     self.current += 4;
-
-                    CpEntry::name_and_type {
-                        name_idx: ((b1 as u16) << 8) + b2 as u16,
-                        type_idx: ((b3 as u16) << 8) + b4 as u16,
-                    }
+                    CpEntry::NameAndType(NameAndType::new(
+                        ((b1 as u16) << 8) + b2 as u16,
+                        ((b3 as u16) << 8) + b4 as u16
+                    ))
                 }
                 _ => panic!("Unsupported Constant Pool type {} at {} of {}", tag, self.current, self.filename),
             };
@@ -358,14 +340,14 @@ impl OtKlassParser {
             self.current += 8;
 
             let f_name = match &self.cp_entries[name_idx as usize] {
-                CpEntry::utf8 { val: s } => s,
+                CpEntry::Utf8(s) => s,
                 _ => panic!(
                     "Name index {} does not point at utf8 string in constant pool for {}",
                     name_idx, self.filename
                 ),
             };
             let f_desc = match &self.cp_entries[desc_idx as usize] {
-                CpEntry::utf8 { val: s } => s,
+                CpEntry::Utf8(s) => s,
                 _ => panic!(
                     "Desc index {} does not point at utf8 string in constant pool for {}",
                     desc_idx, self.filename
@@ -446,14 +428,14 @@ impl OtKlassParser {
             self.current += 8;
 
             let m_name = match &self.cp_entries[name_idx as usize] {
-                CpEntry::utf8 { val: s } => s,
+                CpEntry::Utf8(s) => s,
                 _ => panic!(
                     "Name index {} does not point at utf8 string in constant pool",
                     name_idx
                 ),
             };
             let m_desc = match &self.cp_entries[desc_idx as usize] {
-                CpEntry::utf8 { val: s } => s,
+                CpEntry::Utf8(s) => s,
                 _ => panic!(
                     "Desc index {} does not point at utf8 string in constant pool",
                     desc_idx
