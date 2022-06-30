@@ -5,8 +5,7 @@ use super::*;
 use ocelotter_runtime::constant_pool::ACC_PUBLIC;
 // this crate is presumably old and not very good.
 use assert_float_eq::{
-  assert_f32_near, assert_f64_near,
-  afe_near_error_msg, afe_is_f32_near, afe_is_f64_near,
+    afe_is_f32_near, afe_is_f64_near, afe_near_error_msg, assert_f32_near, assert_f64_near,
 };
 
 use ocelotter_util::file_to_bytes;

@@ -718,9 +718,7 @@ pub fn exec_bytecode_method(
                     // int: 10
                     // long: 11
                     10 => match eval.pop() {
-                        JvmValue::Int(arr_size) => {
-                            HEAP.lock().unwrap().allocate_int_arr(arr_size)
-                        }
+                        JvmValue::Int(arr_size) => HEAP.lock().unwrap().allocate_int_arr(arr_size),
                         _ => panic!("Not an int on the stack at {}", (current - 1)),
                     },
                     _ => panic!("Unsupported primitive array type at {}", (current - 1)),
