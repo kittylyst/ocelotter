@@ -18,9 +18,9 @@ pub fn exec_method(
 ) -> Option<JvmValue> {
     if meth.is_native() {
         // Explicit type hint here to document the type of n_f
-        let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = meth.get_native_code().expect(
-            &format!("Native code not found {}", meth.get_fq_name_desc()),
-        );
+        let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = meth
+            .get_native_code()
+            .unwrap_or_else(|| panic!("Native code not found {}", meth.get_fq_name_desc()));
 
         // FIXME Parameter passing
         n_f(lvt)
@@ -42,7 +42,7 @@ pub fn exec_bytecode_method(
         // let my_klass_name = klass_name.clone();
         let ins: u8 = *instr
             .get(current)
-            .expect(&format!("Byte {} has no value", current));
+            .unwrap_or_else(|| panic!("Byte {} has no value", current));
 
         current += 1;
 
@@ -234,7 +234,7 @@ pub fn exec_bytecode_method(
                 let klass = repo.lookup_klass(&getf.get_klass_name()).clone();
 
                 let ret = klass.get_static(&getf);
-                eval.push(ret.clone());
+                eval.push(ret);
             }
             opcode::GOTO => {
                 current += ((instr[current] as usize) << 8) + instr[current + 1] as usize
@@ -269,7 +269,7 @@ pub fn exec_bytecode_method(
                     JvmValue::ObjRef(v) => v,
                     _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
                 };
-                dbg!(arrayid.clone());
+                dbg!(arrayid);
 
                 let unwrapped_val = match HEAP.lock().unwrap().get_obj(arrayid) {
                     ocelotter_runtime::object::OtObj::VmArrInt {
@@ -808,7 +808,7 @@ fn dispatch_invoke(
     cp_lookup: u16,
     eval: &mut InterpEvalStack,
     additional_args: u8,
-) -> () {
+) {
     let fq_name_desc = current_klass.cp_as_string(cp_lookup);
     let klz_idx = match current_klass.lookup_cp(cp_lookup) {
         CpEntry::MethodRef(mr) => mr.clz_idx,

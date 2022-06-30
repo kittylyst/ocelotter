@@ -40,8 +40,8 @@ pub fn main() {
     //Not using a classpath jar, just a class
     } else {
         let bytes = file_to_bytes(Path::new(&fq_klass_name))
-            .expect(&format!("Problem reading {}", &fq_klass_name));
-        let mut parser = OtKlassParser::of(bytes, fq_klass_name.clone());
+            .unwrap_or_else(|_| panic!("Problem reading {}", &fq_klass_name));
+        let mut parser = OtKlassParser::of(bytes, fq_klass_name);
         parser.parse();
         let k = parser.klass();
         repo.add_klass(&k);
@@ -52,20 +52,17 @@ pub fn main() {
     let main_klass = repo.lookup_klass(&f_name);
     let main = main_klass
         .get_method_by_name_and_desc(&main_str)
-        .expect(&format!(
-            "Error: Main method not found {}",
-            main_str.clone()
-        ));
+        .unwrap_or_else(|| panic!("Error: Main method not found {}", main_str.clone()));
 
     // FIXME Parameter passing
     let mut vars = InterpLocalVars::of(5);
 
-    let ret = exec_method(&mut repo, &main, &mut vars)
+    let ret = exec_method(&mut repo, main, &mut vars)
         .map(|return_value| match return_value {
             Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", &f_name),
         })
-        .expect(&format!("Error executing {} - no value returned", &f_name));
+        .unwrap_or_else(|| panic!("Error executing {} - no value returned", &f_name));
 
     println!("Ret: {}", ret);
 }
