@@ -18,7 +18,7 @@ fn init_repo() -> SharedKlassRepo {
     repo
 }
 
-fn execute_simple_bytecode(buf: &Vec<u8>) -> JvmValue {
+fn execute_simple_bytecode(buf: &[u8]) -> JvmValue {
     let mut repo = init_repo();
     let mut lvt = InterpLocalVars::of(10); // FIXME
     exec_bytecode_method(&mut repo, "DUMMY".to_string(), buf, &mut lvt)
@@ -606,7 +606,7 @@ fn interp_system_current_timemillis() {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
         };
-        assert_eq!(true, ctm2 >= ctm1, "System clock appears to go backwards");
+        assert!(ctm2 >= ctm1, "System clock appears to go backwards");
     }
 }
 
