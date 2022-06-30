@@ -32,7 +32,7 @@ pub fn exec_method(
 pub fn exec_bytecode_method(
     repo: &mut SharedKlassRepo,
     klass_name: String,
-    instr: &Vec<u8>,
+    instr: &[u8],
     lvt: &mut InterpLocalVars,
 ) -> Option<JvmValue> {
     let mut current = 0;
