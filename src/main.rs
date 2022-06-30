@@ -26,10 +26,7 @@ pub fn main() {
     if let Some(file) = &options.classpath {
         ZipFiles::new(file)
             .into_iter()
-            .filter(|f| match f {
-                Ok((name, _)) if name.ends_with(".class") => true,
-                _ => false,
-            })
+            .filter(|f| matches!(f, Ok((name, _)) if name.ends_with(".class")))
             .for_each(|z| {
                 if let Ok((name, bytes)) = z {
                     let mut parser = OtKlassParser::of(bytes, name);
