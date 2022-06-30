@@ -220,7 +220,7 @@ pub fn exec_bytecode_method(
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
                 let heap = HEAP.lock().unwrap();
-                let obj = heap.get_obj(obj_id).clone();
+                let obj = heap.get_obj(obj_id);
                 let getf = repo.lookup_instance_field(&klass_name, cp_lookup);
 
                 let ret = obj.get_field_value(getf.get_offset() as usize);
