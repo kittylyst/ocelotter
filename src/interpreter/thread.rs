@@ -79,6 +79,7 @@ pub fn exec_bytecode_method(
     let mut current = 0;
     let mut eval = InterpEvalStack::of();
 
+    // println!("Getting to interpreter loop");
     loop {
         // let my_klass_name = klass_name.clone();
         let ins: u8 = *instr

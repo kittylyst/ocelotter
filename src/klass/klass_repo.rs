@@ -87,7 +87,6 @@ impl SharedKlassRepo {
 
             let fq_klass_name = options.fq_klass_name();
             let f_name = options.f_name();
-            thread_tx_fname.send(f_name);
 
             if let Some(file) = &options.classpath {
                 ZipFiles::new(file)
@@ -109,6 +108,7 @@ impl SharedKlassRepo {
                 let k = parser.klass();
                 (*guard).add_klass(&k);
             }
+            thread_tx_fname.send(f_name);
         });
         k_clinit.join().unwrap();
         n.lock().unwrap().receive_loop();

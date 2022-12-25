@@ -17,15 +17,48 @@ use assert_float_eq::{
 
 // Helper fns
 
-fn init_repo() -> (Sender<OtKlassComms>, SharedKlassRepo) {
+fn init_fake_repo() -> (Sender<OtKlassComms>, SharedKlassRepo) {
     let (tx, rx): (Sender<OtKlassComms>, Receiver<OtKlassComms>) = mpsc::channel();
     let mut repo = SharedKlassRepo::of(rx);
     repo.bootstrap();
     (tx, repo)
 }
 
+// pub fn run_test_returning_int(class_name : String, name_and_sig : String, class_fname : String, k : OtKlass) -> i32 {
+pub fn run_test_returning_int(
+    class_name: String,
+    name_and_sig: String,
+    class_fname: String,
+    k: OtKlass,
+) {
+    let mut vec = Vec::new();
+    vec.push(class_fname);
+    let options = Options {
+        classpath: None,
+        classname: vec,
+    };
+
+    // Comms for initial lookup
+    let (tx_fname, rx_fname): (Sender<String>, Receiver<String>) = mpsc::channel();
+
+    // Handle the "send fname, get klass back"
+    let (tx, rx): (Sender<OtKlassComms>, Receiver<OtKlassComms>) = mpsc::channel();
+
+    let k_keep = thread::spawn(move || SharedKlassRepo::start(options, tx_fname, rx));
+    let f_name = rx_fname.recv().unwrap();
+
+    let j_main = thread::spawn(move || start_new_jthread(f_name, tx.clone()));
+    j_main.join().unwrap();
+
+    // k_keep.clean_shutdown();
+    // k_keep.join().unwrap();
+
+    // FIXME need to get the return value back from the jthread
+    // ret2
+}
+
 fn execute_simple_bytecode(buf: &[u8]) -> JvmValue {
-    let (tx, _repo) = init_repo();
+    let (tx, _repo) = init_fake_repo();
     let mut lvt = InterpLocalVars::of(10); // FIXME
     exec_bytecode_method(tx, "DUMMY".to_string(), buf, &mut lvt).unwrap_or(JvmValue::ObjRef(0))
     // object::OtObj::get_null(),
@@ -426,7 +459,7 @@ fn parse_signatures() {
 #[test]
 #[ignore]
 fn interp_invoke_simple() {
-    let (tx, mut repo) = init_repo();
+    let (tx, mut repo) = init_fake_repo();
     let k = simple_parse_klass("SampleInvoke".to_string());
     repo.add_klass(&k);
 
@@ -466,7 +499,7 @@ fn interp_invoke_simple() {
 #[test]
 #[ignore]
 fn test_math_sin() {
-    let (tx, mut repo) = init_repo();
+    let (tx, mut repo) = init_fake_repo();
     let k = simple_parse_klass("TestMathSin".to_string());
     repo.add_klass(&k);
 
@@ -521,7 +554,7 @@ fn test_math_sin() {
 
 #[test]
 fn interp_iffer() {
-    let (tx, mut repo) = init_repo();
+    let (tx, mut repo) = init_fake_repo();
     let k = simple_parse_klass("Iffer".to_string());
     repo.add_klass(&k);
 
@@ -544,7 +577,7 @@ fn interp_iffer() {
 
 #[test]
 fn interp_array_set() {
-    let (tx, mut repo) = init_repo();
+    let (tx, mut repo) = init_fake_repo();
     let k = simple_parse_klass("ArraySimple".to_string());
     repo.add_klass(&k);
 
@@ -567,7 +600,7 @@ fn interp_array_set() {
 #[test]
 #[ignore]
 fn interp_field_set() {
-    let (tx, mut repo) = init_repo();
+    let (tx, mut repo) = init_fake_repo();
     let k = simple_parse_klass("FieldHaver".to_string());
     repo.add_klass(&k);
 
@@ -589,7 +622,7 @@ fn interp_field_set() {
 #[test]
 #[ignore]
 fn interp_system_current_timemillis() {
-    let (tx, mut repo) = init_repo();
+    let (tx, mut repo) = init_fake_repo();
     let k = simple_parse_klass("Main3".to_string());
     repo.add_klass(&k);
 
@@ -625,7 +658,7 @@ fn interp_system_current_timemillis() {
 // Fails b/c "java/lang/Integer.valueOf:(I)Ljava/lang/Integer;" is indeed not known
 // to the loaded Integer as per OtKlass.m_name_desc_lookup
 fn interp_class_based_addition() {
-    let (tx, mut repo) = init_repo();
+    let (tx, mut repo) = init_fake_repo();
     let k = simple_parse_klass("AddFieldInteger".to_string());
     repo.add_klass(&k);
 
@@ -648,22 +681,11 @@ fn interp_class_based_addition() {
 #[test]
 #[ignore]
 fn interp_ldc_based_addition() {
-    let (tx, mut repo) = init_repo();
+    let class_fname = "resources/test/AddLdc.class".to_string();
+    let class_name = "AddLdc".to_string();
+    let name_and_sig = "main2:([Ljava/lang/String;)I".to_string();
+
     let k = simple_parse_klass("AddLdc".to_string());
-    repo.add_klass(&k);
-
-    {
-        let fqname = "AddLdc.main2:([Ljava/lang/String;)I".to_string();
-        let meth = k.get_method_by_name_and_desc(&fqname).unwrap();
-
-        assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
-
-        let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(tx, meth, &mut vars).unwrap();
-        let ret2 = match ret {
-            JvmValue::Int(i) => i,
-            _ => panic!("Error executing {} - non-int value returned", fqname),
-        };
-        assert_eq!(44451, ret2);
-    }
+    // let ret2 = run_test_returning_int(class_name, name_and_sig, class_fname, k);
+    // assert_eq!(44451, ret2);
 }
