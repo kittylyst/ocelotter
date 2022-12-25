@@ -1,0 +1,869 @@
+diff --git a/README.md b/README.md
+index 1d3267b..832afe8 100644
+--- a/README.md
++++ b/README.md
+@@ -1,2 +1,8 @@
+ # ocelotter
+ An experiment to implement a simple JVM in Rust
++
++### Current State:
++
++* Minimal bootstrap of classes.jar works
++* No verifier
++* Many opcodes implemented
+diff --git a/resources/lib/classes.jar b/resources/lib/classes.jar
+index c8570d1..e188707 100644
+Binary files a/resources/lib/classes.jar and b/resources/lib/classes.jar differ
+diff --git a/runtime/src/interp_stack.rs b/runtime/src/interp_stack.rs
+index eff6164..2a83d4b 100644
+--- a/runtime/src/interp_stack.rs
++++ b/runtime/src/interp_stack.rs
+@@ -1,6 +1,7 @@
+ #![deny(unreachable_patterns)]
+ 
+ use crate::JvmValue;
++use std::fmt;
+ 
+ pub struct InterpEvalStack {
+     stack: Vec<JvmValue>,
+@@ -24,6 +25,14 @@ impl InterpEvalStack {
+         }
+     }
+ 
++    pub fn at(&self, i: usize)  -> &JvmValue {
++        self.stack.get(i).unwrap()
++    }
++
++    pub fn size(&self)  -> usize {
++        self.stack.len()
++    }
++
+     pub fn aconst_null(&mut self) -> () {
+         self.push(JvmValue::ObjRef {
+             val: 0, // OtObj::get_null(),
+@@ -759,5 +768,15 @@ impl InterpEvalStack {
+         self.push(v2.to_owned());
+         self.push(v2.to_owned());
+     }
++}
+ 
++impl fmt::Display for InterpEvalStack {
++    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
++        write!(
++            f,
++            "Stack {:?}",
++            self.stack
++        )
++    }
+ }
++
+diff --git a/runtime/src/klass_parser.rs b/runtime/src/klass_parser.rs
+index af332ba..b3d9475 100644
+--- a/runtime/src/klass_parser.rs
++++ b/runtime/src/klass_parser.rs
+@@ -346,6 +346,7 @@ impl OtKlassParser {
+             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
+         self.current += 2;
+ 
++        let mut static_count = 0;
+         for idx in 0..f_count {
+             let f_flags = ((self.clz_read[self.current] as u16) << 8)
+                 + self.clz_read[self.current + 1] as u16;
+@@ -373,8 +374,13 @@ impl OtKlassParser {
+             };
+ 
+             let k_name = &self.klass_name();
++            let mut offset = idx - static_count;
++            if f_flags & ACC_STATIC == ACC_STATIC {
++                offset = static_count;
++                static_count += 1;
++            }
+             let f = OtField::of(
+-                idx,
++                offset,
+                 k_name.to_string(),
+                 f_name.to_string(),
+                 f_desc.to_string(),
+diff --git a/runtime/src/klass_repo.rs b/runtime/src/klass_repo.rs
+index df4a06f..51b06c4 100644
+--- a/runtime/src/klass_repo.rs
++++ b/runtime/src/klass_repo.rs
+@@ -13,6 +13,7 @@ use crate::otklass::OtKlass;
+ 
+ use ocelotter_util::file_to_bytes;
+ use ocelotter_util::ZipFiles;
++use crate::klass_parser::OtKlassParser;
+ 
+ //////////// SHARED RUNTIME KLASS REPO
+ 
+@@ -26,6 +27,7 @@ pub enum KlassLoadingStatus {
+ #[derive(Debug)]
+ pub struct SharedKlassRepo {
+     klass_lookup: HashMap<String, RefCell<KlassLoadingStatus>>,
++    classpath_dirs: Vec<String>
+ }
+ 
+ impl SharedKlassRepo {
+@@ -58,16 +60,28 @@ impl SharedKlassRepo {
+     pub fn of() -> SharedKlassRepo {
+         SharedKlassRepo {
+             klass_lookup: HashMap::new(),
++            classpath_dirs: Vec::new()
+         }
+     }
+ 
++    pub fn set_classpath(&mut self, cp_str: &String) {
++        let split = cp_str.split(":");
++        for s in split {
++            self.classpath_dirs.push(s.to_string())
++        }
++    }
++
++    // FIXME What about if we need to perform classloading. Does this need to be mut
+     pub fn lookup_klass(&self, klass_name: &String) -> OtKlass {
+-        // let s = format!("{}", self);
+-        // dbg!(s);
+ 
+         match self.klass_lookup.get(klass_name) {
+             Some(cell) => match &*(cell.borrow()) {
+-                KlassLoadingStatus::Mentioned {} => panic!("Klass {} is not loaded yet", klass_name),
++                KlassLoadingStatus::Mentioned {} => {
++                    // println!("{}", self);
++                    // Attempt to perform classloading
++                    // self.load_from_classpath(klass_name);
++                    panic!("Klass {} is not loaded yet", klass_name);
++                },
+                 KlassLoadingStatus::Loaded { klass : k } => k.clone(),
+                 KlassLoadingStatus::Live { klass : k } => k.clone()
+             },
+@@ -75,6 +89,43 @@ impl SharedKlassRepo {
+         }
+     }
+ 
++    pub fn eager_load_everything_mentioned(&mut self) {
++        for (k_name, cell) in self.klass_lookup.clone().into_iter() {
++            // println!("Examining {}", k_name);
++            match &*(cell.borrow()) {
++                KlassLoadingStatus::Mentioned {} => {
++                    // println!("{}", self);
++                    // Attempt to perform classloading
++                    println!("Eagerly loading {}", k_name);
++                    self.load_from_classpath(&k_name);
++                },
++                KlassLoadingStatus::Loaded { klass : k } => (),
++                KlassLoadingStatus::Live { klass : k } => ()
++            }
++        }
++    }
++
++    pub fn load_from_classpath(&mut self, fq_name: &String) {
++        // FIXME: Turn fq_name into a path
++
++        for s in self.classpath_dirs.clone().into_iter() {
++            let mut path = s;
++            path.push_str("/");
++            path.push_str(&fq_name);
++            path.push_str(".class");
++
++            let bytes = file_to_bytes(Path::new(&path))
++                .expect(&format!("Problem reading {}", &fq_name));
++            self.parse_and_add(fq_name.clone(), bytes);
++        }
++    }
++
++    pub fn parse_and_add(&mut self, name: String, bytes : Vec<u8>) {
++        let mut parser = OtKlassParser::of(bytes, name);
++        parser.parse();
++        self.add_klass(&parser.klass());
++    }
++
+     pub fn add_klass(&mut self, k: &OtKlass) -> () {
+         // First check to see if we already have this class and which state it's in
+         let klass_name = k.get_name();
+@@ -298,12 +349,24 @@ impl SharedKlassRepo {
+         0
+     }
+ 
+-    pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {
++
++    pub fn get_method_by_name_and_desc(&self, fq_name_desc: String) -> OtMethod {
++        let split : Vec<&str> = fq_name_desc.split(".").collect();
++        let size = split.len();
++
++        let klass_name = split[0].to_string();
++        let name_desc = fq_name_desc;
++
++        self.lookup_method_exact(&klass_name, name_desc)
++    }
++
++    pub fn lookup_method_exact(&self, klass_name: &String, name_desc: String) -> OtMethod {
++        // println!("{} : {}", klass_name, fq_name_desc);
+         match self.klass_lookup.get(klass_name) {
+             Some(cell) => match &*(cell.borrow()) {
+                 KlassLoadingStatus::Mentioned {} => panic!("Klass with ID {} is not loaded yet", klass_name),
+-                KlassLoadingStatus::Loaded { klass : k } => k.get_method_by_name_and_desc(&fq_name_desc).unwrap().clone(),
+-                KlassLoadingStatus::Live { klass : k } => k.get_method_by_name_and_desc(&fq_name_desc).unwrap().clone(),
++                KlassLoadingStatus::Loaded { klass : k } => k.get_method_by_name_and_desc(&name_desc).unwrap().clone(),
++                KlassLoadingStatus::Live { klass : k } => k.get_method_by_name_and_desc(&name_desc).unwrap().clone(),
+             },
+             None => panic!("No klass with ID {} found in repo", klass_name),
+         }
+@@ -336,6 +399,7 @@ impl Clone for SharedKlassRepo {
+     fn clone(&self) -> SharedKlassRepo {
+         SharedKlassRepo {
+             klass_lookup: self.klass_lookup.clone(),
++            classpath_dirs: self.classpath_dirs.clone()
+         }
+     }
+ }
+diff --git a/runtime/src/lib.rs b/runtime/src/lib.rs
+index 366e624..a7a6cc3 100644
+--- a/runtime/src/lib.rs
++++ b/runtime/src/lib.rs
+@@ -136,5 +136,16 @@ impl InterpLocalVars {
+     }
+ }
+ 
++impl fmt::Display for InterpLocalVars {
++    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
++        write!(
++            f,
++            "{:?}",
++            self.lvt
++        )
++    }
++}
++
++
+ #[cfg(test)]
+ mod tests;
+diff --git a/runtime/src/object.rs b/runtime/src/object.rs
+index f7f3c6a..b551930 100644
+--- a/runtime/src/object.rs
++++ b/runtime/src/object.rs
+@@ -53,19 +53,15 @@ impl OtObj {
+     }
+ 
+     pub fn put_field(&self, offset : usize, val: JvmValue) -> () {
+-        let (kid, fields) = match self {
+-            OtObj::vm_obj {
+-                id: _,
+-                mark: _,
+-                klassid: id,
+-                fields: fs,
+-            } => (id, fs),
+-            _ => panic!("Not an object"),
+-        };
+-        // Get klass
+-        dbg!("Made it to object get_field_offset");
+-        // Lookup offset in klass
+-        // let offset = REPO.lock().get_field_offset(*kid, f);
++        // let (kid, fields) = match self {
++        //     OtObj::vm_obj {
++        //         id: _,
++        //         mark: _,
++        //         klassid: id,
++        //         fields: fs,
++        //     } => (id, fs),
++        //     _ => panic!("Not an object"),
++        // };
+         match self {
+             OtObj::vm_obj {
+                 id: _,
+@@ -73,6 +69,7 @@ impl OtObj {
+                 klassid: _,
+                 fields: fs,
+             } => {
++                println!("Offset: {} fields: {:?}", offset, fs);
+                 fs[offset].set(val);
+             }
+             _ => panic!("Not an object"),
+diff --git a/runtime/src/otfield.rs b/runtime/src/otfield.rs
+index ecb18f3..2c4bed4 100644
+--- a/runtime/src/otfield.rs
++++ b/runtime/src/otfield.rs
+@@ -64,6 +64,20 @@ impl OtField {
+         self.klass_name.clone() + "." + &self.name + ":" + &self.desc
+     }
+ 
++    pub fn get_field_size(&self) -> usize {
++        match self.desc.as_str() {
++            "Z" => 1,
++            "B" => 1,
++            "S" => 2,
++            "C" => 2,
++            "I" => 4,
++            "J" => 8,
++            "F" => 4,
++            "D" => 8,
++            _ => 8, // pointer
++        }
++    }
++
+     pub fn get_default(&self) -> JvmValue {
+         match self.desc.as_str() {
+             "Z" => JvmValue::Boolean { val: false },
+@@ -81,6 +95,6 @@ impl OtField {
+ 
+ impl fmt::Display for OtField {
+     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+-        write!(f, "{}.{}:{}", self.klass_name, self.name, self.desc_idx)
++        write!(f, "{}.{}:{} at {} with {:?}", self.klass_name, self.name, self.desc, self.offset, self.attrs)
+     }
+ }
+diff --git a/runtime/src/otklass.rs b/runtime/src/otklass.rs
+index 9be533a..05b6b27 100644
+--- a/runtime/src/otklass.rs
++++ b/runtime/src/otklass.rs
+@@ -23,6 +23,7 @@ pub struct OtKlass {
+     s_field_vals: Vec<Cell<JvmValue>>,
+     m_name_desc_lookup: HashMap<String, usize>,
+     f_name_desc_lookup: HashMap<String, usize>,
++    object_size: usize
+ }
+ 
+ impl OtKlass {
+@@ -62,6 +63,8 @@ impl OtKlass {
+         }
+         // dbg!(m_lookup.clone());
+         // dbg!(f_lookup.clone());
++        // FIXME Compute size of an object as opaque block in bytes
++        let object_size = 16; //  + map over i_fields & call get_field_size on each
+         OtKlass {
+             id: Cell::new(0), // This indicates that the class has not yet been loaded into a repo
+             name: klass_name,
+@@ -75,6 +78,7 @@ impl OtKlass {
+             // FIXME
+             m_name_desc_lookup: m_lookup,
+             f_name_desc_lookup: f_lookup,
++            object_size
+         }
+     }
+ 
+@@ -258,6 +262,11 @@ impl OtKlass {
+ 
+     // NOTE: This is fully-qualified
+     pub fn get_method_by_name_and_desc(&self, name_desc: &String) -> Option<&OtMethod> {
++        // println!("In klass {} : {}", self.name, name_desc);
++        // for m in self.methods.iter() {
++        //     println!("Method: {}", m.get_fq_name_desc())
++        // }
++
+         let opt_idx = self.m_name_desc_lookup.get(name_desc);
+         let idx: usize = match opt_idx {
+             Some(value) => value.clone(),
+diff --git a/runtime/src/otmethod.rs b/runtime/src/otmethod.rs
+index b98499c..aa5985d 100644
+--- a/runtime/src/otmethod.rs
++++ b/runtime/src/otmethod.rs
+@@ -61,6 +61,10 @@ impl OtMethod {
+         self.name_desc.clone()
+     }
+ 
++    pub fn get_simple_name(&self) -> String {
++        self.name.clone()
++    }
++
+     pub fn get_fq_name_desc(&self) -> String {
+         self.klass_name.clone() + "." + &self.name_desc.clone()
+     }
+diff --git a/runtime/src/simple_heap.rs b/runtime/src/simple_heap.rs
+index 23d8aaa..abfd7dd 100644
+--- a/runtime/src/simple_heap.rs
++++ b/runtime/src/simple_heap.rs
+@@ -50,6 +50,7 @@ impl SharedSimpleHeap {
+     // FIXME Handle storage properly
+     pub fn put_field(&self, id: usize, f: OtField, v: JvmValue) -> () {
+         // Get object from heap
++        println!("{}", f);
+         match self.alloc.get(id) {
+             Some(val) => val.put_field(f.get_offset() as usize, v),
+             None => panic!("Error: object {} not found", id),
+diff --git a/src/lib.rs b/src/lib.rs
+index 679a542..e1189f6 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -28,13 +28,20 @@ pub fn exec_method(
+         // FIXME Parameter passing
+         n_f(lvt)
+     } else {
+-        exec_bytecode_method(repo, meth.get_klass_name(), &meth.get_code(), lvt)
++        exec_bytecode_method(
++            repo,
++            meth.get_klass_name(),
++            meth.get_simple_name(),
++            &meth.get_code(),
++            lvt,
++        )
+     }
+ }
+ 
+ pub fn exec_bytecode_method(
+     repo: &mut SharedKlassRepo,
+     klass_name: String,
++    method_name: String,
+     instr: &Vec<u8>,
+     lvt: &mut InterpLocalVars,
+ ) -> Option<JvmValue> {
+@@ -152,7 +159,10 @@ pub fn exec_bytecode_method(
+ 
+             opcode::DSUB => eval.dsub(),
+ 
+-            opcode::DUP => eval.dup(),
++            opcode::DUP => {
++                eval.dup();
++                println!("DUP in {}:{} {}", klass_name, method_name, eval);
++            }
+ 
+             opcode::DUP_X1 => eval.dup_x1(),
+ 
+@@ -220,7 +230,19 @@ pub fn exec_bytecode_method(
+                 let recvp: JvmValue = eval.pop();
+                 let obj_id = match recvp {
+                     JvmValue::ObjRef { val: v } => v,
+-                    _ => panic!("Not an object ref at {}", (current - 1)),
++                    _ => {
++                        println!(
++                            "GETFIELD at {} in {}:{} calling on {:?} with stack {}",
++                            current, klass_name, method_name, recvp, eval
++                        );
++
++                        panic!(
++                            "Not an object ref at {}:{} offset {}",
++                            klass_name,
++                            method_name,
++                            (current - 1)
++                        )
++                    }
+                 };
+                 let heap = HEAP.lock().unwrap();
+                 let obj = heap.get_obj(obj_id).clone();
+@@ -524,25 +546,34 @@ pub fn exec_bytecode_method(
+ 
+             opcode::INVOKESPECIAL => {
+                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
+-                current += 2;
+                 let current_klass = repo.lookup_klass(&klass_name).clone();
+-                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 1);
++                let arg_count = 1 + current_klass.get_method_arg_count(cp_lookup);
++                println!(
++                    "INVOKESPECIAL at {} - predispatch in {}:{} {} with {} args",
++                    current, klass_name, method_name, eval, arg_count
++                );
++                current += 2;
++                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, arg_count);
+             }
+             opcode::INVOKESTATIC => {
+                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
+                 current += 2;
+                 let current_klass = repo.lookup_klass(&klass_name).clone();
+-                //                dbg!(cp_lookup);
+                 let arg_count = current_klass.get_method_arg_count(cp_lookup);
+                 dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, arg_count);
+             }
+             opcode::INVOKEVIRTUAL => {
+                 // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
+                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
+-                current += 2;
+                 let current_klass = repo.lookup_klass(&klass_name).clone();
+-                dbg!(current_klass.clone());
+-                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 1);
++                let arg_count = 1 + current_klass.get_method_arg_count(cp_lookup);
++                println!(
++                    "INVOKEVIRTUAL at {} - predispatch in {}:{} {} with {} args and lvars {}",
++                    current, klass_name, method_name, eval, arg_count, lvt
++                );
++                current += 2;
++                // dbg!(current_klass.clone());
++                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, arg_count);
+             }
+             opcode::IOR => eval.ior(),
+ 
+@@ -700,11 +731,11 @@ pub fn exec_bytecode_method(
+                         cp_lookup
+                     ),
+                 };
+-                //                dbg!(alloc_klass_name.clone());
+                 let object_klass = repo.lookup_klass(&alloc_klass_name).clone();
+ 
+                 let obj_id = HEAP.lock().unwrap().allocate_obj(&object_klass);
+                 eval.push(JvmValue::ObjRef { val: obj_id });
++                println!("NEW in {}:{} {}", klass_name, method_name, eval);
+             }
+             opcode::NEWARRAY => {
+                 let arr_type = instr[current];
+@@ -748,15 +779,30 @@ pub fn exec_bytecode_method(
+                 eval.pop();
+             }
+             opcode::PUTFIELD => {
++                println!(
++                    "PUTFIELD at {} - predispatch in {}:{} {}",
++                    current, klass_name, method_name, eval
++                );
+                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
+                 current += 2;
+ 
+                 let val = eval.pop();
+-
+                 let recvp: JvmValue = eval.pop();
++
+                 let obj_id = match recvp {
+                     JvmValue::ObjRef { val: v } => v,
+-                    _ => panic!("Not an object ref at {}", (current - 1)),
++                    _ => {
++                        println!(
++                            "PUTFIELD in {}:{} - receiver {:?} - val {:?} stack {}",
++                            klass_name, method_name, recvp, val, eval
++                        );
++                        panic!(
++                            "Not an object ref at {} in {}:{}",
++                            (current - 1),
++                            klass_name,
++                            method_name
++                        )
++                    }
+                 };
+ 
+                 let putf = repo.lookup_instance_field(&klass_name, cp_lookup);
+@@ -816,7 +862,7 @@ fn dispatch_invoke(
+     current_klass: OtKlass,
+     cp_lookup: u16,
+     eval: &mut InterpEvalStack,
+-    additional_args: u8,
++    arg_count: u8,
+ ) -> () {
+     let fq_name_desc = current_klass.cp_as_string(cp_lookup);
+     let klz_idx = match current_klass.lookup_cp(cp_lookup) {
+@@ -831,10 +877,15 @@ fn dispatch_invoke(
+ 
+     let callee = repo.lookup_method_exact(&dispatch_klass_name, fq_name_desc);
+ 
++    // FIXME Arg handling
+     // FIXME - General setup requires call args from the stack
+     let mut vars = InterpLocalVars::of(255);
+-    if additional_args > 0 {
+-        vars.store(0, eval.pop());
++    if arg_count > 0 {
++        let mut i = 0;
++        while i < arg_count {
++            vars.store(i, *eval.at(i as usize));
++            i += 1;
++        }
+     }
+     // Explicit use of match expression to be clear about the semantics
+     match exec_method(repo, &callee, &mut vars) {
+diff --git a/src/main.rs b/src/main.rs
+index c2e5a2c..d0f3955 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -1,10 +1,6 @@
+-use std::path::Path;
+-
+-use ocelotter_runtime::klass_parser::*;
+ use ocelotter_runtime::klass_repo::SharedKlassRepo;
+ use ocelotter_runtime::InterpLocalVars;
+ use ocelotter_runtime::JvmValue::*;
+-use ocelotter_util::file_to_bytes;
+ use structopt::StructOpt;
+ 
+ use ocelotter::exec_method;
+@@ -22,8 +18,11 @@ pub fn main() {
+ 
+     let fq_klass_name = options.fq_klass_name();
+     let f_name = options.f_name();
++    if let Some(cp_str) = &options.classpath {
++        repo.set_classpath(cp_str);
++    }
+ 
+-    if let Some(file) = &options.classpath {
++    if let Some(file) = &options.jar {
+         ZipFiles::new(file)
+             .into_iter()
+             .filter(|f| match f {
+@@ -32,20 +31,15 @@ pub fn main() {
+             })
+             .for_each(|z| {
+                 if let Ok((name, bytes)) = z {
+-                    let mut parser = OtKlassParser::of(bytes, name);
+-                    parser.parse();
+-                    repo.add_klass(&parser.klass());
++                    repo.parse_and_add(name, bytes);
+                 }
+             });
+     //Not using a classpath jar, just a class
+     } else {
+-        let bytes = file_to_bytes(Path::new(&fq_klass_name))
+-            .expect(&format!("Problem reading {}", &fq_klass_name));
+-        let mut parser = OtKlassParser::of(bytes, fq_klass_name.clone());
+-        parser.parse();
+-        let k = parser.klass();
+-        repo.add_klass(&k);
++        repo.load_from_classpath(&fq_klass_name);
+     }
++    // Hack until we figure out classloading properly
++    repo.eager_load_everything_mentioned();
+ 
+     // FIXME Real main() signature required, dummying for ease of testing
+     let main_str: String = f_name.clone() + ".main2:([Ljava/lang/String;)I";
+@@ -63,7 +57,10 @@ pub fn main() {
+     let ret = exec_method(&mut repo, &main, &mut vars)
+         .map(|return_value| match return_value {
+             Int { val: i } => i,
+-            _ => panic!("Error executing ".to_owned() + &f_name + " - non-int value returned"),
++            _ => panic!(
++                "{}",
++                "Error executing ".to_owned() + &f_name + " - non-int value returned"
++            ),
+         })
+         .expect(&format!("Error executing {} - no value returned", &f_name));
+ 
+diff --git a/src/options.rs b/src/options.rs
+index f88428e..9919237 100644
+--- a/src/options.rs
++++ b/src/options.rs
+@@ -7,6 +7,9 @@ pub struct Options {
+     /// class search path of directories and zip/jar files
+     pub classpath: Option<String>,
+ 
++    /// Jar option
++    pub jar: Option<String>,
++
+     #[structopt()]
+     /// Class name
+     pub classname: Vec<String>,
+diff --git a/src/tests.rs b/src/tests.rs
+index 764c77c..c213b98 100644
+--- a/src/tests.rs
++++ b/src/tests.rs
+@@ -1,47 +1,37 @@
+-use std::path::Path;
+-
+ use super::*;
+ 
+ use ocelotter_runtime::constant_pool::ACC_PUBLIC;
+-use ocelotter_util::file_to_bytes;
+ 
+ // Helper fns
+ 
+-fn init_repo() -> SharedKlassRepo {
++fn init_repo_and_add_class(cname: String) -> SharedKlassRepo {
+     let mut repo = SharedKlassRepo::of();
+     repo.bootstrap(exec_method);
++    repo.set_classpath(&"./resources/test/".to_string());
++    repo.load_from_classpath(&cname);
++    repo.eager_load_everything_mentioned();
++
+     repo
+ }
+ 
+ fn execute_simple_bytecode(buf: &Vec<u8>) -> JvmValue {
+-    let mut repo = init_repo();
++    let mut repo = SharedKlassRepo::of();
++    repo.bootstrap(exec_method);
+     let mut lvt = InterpLocalVars::of(10); // FIXME
+-    exec_bytecode_method(&mut repo, "DUMMY".to_string(), &buf, &mut lvt).unwrap_or_else(|| {
++    exec_bytecode_method(
++        &mut repo,
++        "DUMMY_CLASS".to_string(),
++        "DUMMY_METHOD".to_string(),
++        &buf,
++        &mut lvt,
++    )
++    .unwrap_or_else(|| {
+         JvmValue::ObjRef {
+             val: 0, // object::OtObj::get_null(),
+         }
+     })
+ }
+ 
+-fn simple_parse_klass(cname: String) -> OtKlass {
+-    let mut path = "./resources/test/".to_string();
+-    path.push_str(&cname);
+-    path.push_str(".class");
+-    let bytes = match file_to_bytes(Path::new(&path)) {
+-        Ok(buf) => buf,
+-        _ => panic!("Error reading {}", cname),
+-    };
+-    let mut kname = cname;
+-    kname.push_str(".class");
+-    let mut parser = klass_parser::OtKlassParser::of(bytes, kname);
+-    parser.parse();
+-    let k = parser.klass();
+-
+-    // Add our klass
+-    // &mut REPO.unwrap().add_klass(&k);
+-    k
+-}
+-
+ /////////////////////////////////////////////////////////////////////////////
+ 
+ #[test]
+@@ -418,15 +408,11 @@ fn parse_signatures() {
+ 
+ #[test]
+ fn interp_invoke_simple() {
+-    let mut repo = init_repo();
+-    let k = simple_parse_klass("SampleInvoke".to_string());
+-    repo.add_klass(&k);
++    let mut repo = init_repo_and_add_class("SampleInvoke".to_string());
+ 
+     {
+         let fq_meth = "SampleInvoke.bar:()I";
+-        let meth = k
+-            .get_method_by_name_and_desc(&fq_meth.to_string())
+-            .expect(&format!("{} not found", fq_meth));
++        let meth = repo.get_method_by_name_and_desc(fq_meth.to_string());
+         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+ 
+         let mut vars = InterpLocalVars::of(5);
+@@ -440,9 +426,7 @@ fn interp_invoke_simple() {
+ 
+     {
+         let fq_meth = "SampleInvoke.foo:()I";
+-        let meth = k
+-            .get_method_by_name_and_desc(&fq_meth.to_string())
+-            .expect(&format!("{} not found", fq_meth));
++        let meth = repo.get_method_by_name_and_desc(fq_meth.to_string());
+         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+ 
+         let mut vars = InterpLocalVars::of(5);
+@@ -457,15 +441,11 @@ fn interp_invoke_simple() {
+ 
+ #[test]
+ fn test_math_sin() {
+-    let mut repo = init_repo();
+-    let k = simple_parse_klass("TestMathSin".to_string());
+-    repo.add_klass(&k);
++    let mut repo = init_repo_and_add_class("TestMathSin".to_string());
+ 
+     {
+         let fq_meth = "TestMathSin.main_ifge:()I";
+-        let meth = k
+-            .get_method_by_name_and_desc(&fq_meth.to_string())
+-            .expect(&format!("{} not found", fq_meth));
++        let meth = repo.get_method_by_name_and_desc(fq_meth.to_string());
+         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+ 
+         let mut vars = InterpLocalVars::of(5);
+@@ -479,9 +459,7 @@ fn test_math_sin() {
+ 
+     {
+         let fq_meth = "TestMathSin.main_ifle:()I";
+-        let meth = k
+-            .get_method_by_name_and_desc(&fq_meth.to_string())
+-            .expect(&format!("{} not found", fq_meth));
++        let meth = repo.get_method_by_name_and_desc(fq_meth.to_string());
+         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+ 
+         let mut vars = InterpLocalVars::of(5);
+@@ -495,9 +473,7 @@ fn test_math_sin() {
+ 
+     {
+         let fq_meth = "TestMathSin.main_ifnull:()I";
+-        let meth = k
+-            .get_method_by_name_and_desc(&fq_meth.to_string())
+-            .expect(&format!("{} not found", fq_meth));
++        let meth = repo.get_method_by_name_and_desc(fq_meth.to_string());
+         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+ 
+         let mut vars = InterpLocalVars::of(5);
+@@ -512,15 +488,11 @@ fn test_math_sin() {
+ 
+ #[test]
+ fn interp_iffer() {
+-    let mut repo = init_repo();
+-    let k = simple_parse_klass("Iffer".to_string());
+-    repo.add_klass(&k);
++    let mut repo = init_repo_and_add_class("Iffer".to_string());
+ 
+     {
+         let fq_meth = "Iffer.baz:()I";
+-        let meth = k
+-            .get_method_by_name_and_desc(&fq_meth.to_string())
+-            .expect(&format!("{} not found", fq_meth));
++        let meth = repo.get_method_by_name_and_desc(fq_meth.to_string());
+         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+ 
+         let mut vars = InterpLocalVars::of(5);
+@@ -535,13 +507,11 @@ fn interp_iffer() {
+ 
+ #[test]
+ fn interp_array_set() {
+-    let mut repo = init_repo();
+-    let k = simple_parse_klass("ArraySimple".to_string());
+-    repo.add_klass(&k);
++    let mut repo = init_repo_and_add_class("ArraySimple".to_string());
+ 
+     {
+         let fqname = "ArraySimple.baz:()I".to_string();
+-        let meth = k.get_method_by_name_and_desc(&fqname).unwrap();
++        let meth = repo.get_method_by_name_and_desc(fqname.clone());
+ 
+         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+ 
+@@ -557,13 +527,11 @@ fn interp_array_set() {
+ 
+ #[test]
+ fn interp_field_set() {
+-    let mut repo = init_repo();
+-    let k = simple_parse_klass("FieldHaver".to_string());
+-    repo.add_klass(&k);
++    let mut repo = init_repo_and_add_class("FieldHaver".to_string());
+ 
+     {
+         let fqname = "FieldHaver.main2:([Ljava/lang/String;)I".to_string();
+-        let meth = k.get_method_by_name_and_desc(&fqname).unwrap();
++        let meth = repo.get_method_by_name_and_desc(fqname.clone());
+ 
+         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+ 
+@@ -578,15 +546,11 @@ fn interp_field_set() {
+ 
+ #[test]
+ fn interp_system_current_timemillis() {
+-    let mut repo = init_repo();
+-    let k = simple_parse_klass("Main3".to_string());
+-    repo.add_klass(&k);
++    let mut repo = init_repo_and_add_class("Main3".to_string());
+ 
+     {
+         let fqname = "Main3.main2:([Ljava/lang/String;)I";
+-        let meth = k
+-            .get_method_by_name_and_desc(&fqname.to_string())
+-            .expect(&format!("{} not found", fqname));
++        let meth = repo.get_method_by_name_and_desc(fqname.to_string());
+         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+ 
+         let mut vars = InterpLocalVars::of(5);
+@@ -612,13 +576,11 @@ fn interp_system_current_timemillis() {
+ #[test]
+ #[ignore]
+ fn interp_class_based_addition() {
+-    let mut repo = init_repo();
+-    let k = simple_parse_klass("AddFieldInteger".to_string());
+-    repo.add_klass(&k);
++    let mut repo = init_repo_and_add_class("AddFieldInteger".to_string());
+ 
+     {
+         let fqname = "AddFieldInteger.main2:([Ljava/lang/String;)I".to_string();
+-        let meth = k.get_method_by_name_and_desc(&fqname).unwrap();
++        let meth = repo.get_method_by_name_and_desc(fqname.clone());
+ 
+         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+ 
+@@ -634,13 +596,11 @@ fn interp_class_based_addition() {
+ 
+ #[test]
+ fn interp_ldc_based_addition() {
+-    let mut repo = init_repo();
+-    let k = simple_parse_klass("AddLdc".to_string());
+-    repo.add_klass(&k);
++    let mut repo = init_repo_and_add_class("AddLdc".to_string());
+ 
+     {
+         let fqname = "AddLdc.main2:([Ljava/lang/String;)I".to_string();
+-        let meth = k.get_method_by_name_and_desc(&fqname).unwrap();
++        let meth = repo.get_method_by_name_and_desc(fqname.clone());
+ 
+         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
+ 
