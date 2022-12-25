@@ -828,9 +828,8 @@ fn dispatch_invoke(
         vars.store(0, eval.pop());
     }
     // Explicit use of match expression to be clear about the semantics
-    match exec_method(repo, &callee, &mut vars) {
-        Some(val) => eval.push(val),
-        None => (),
+    if let Some(val) = exec_method(repo, &callee, &mut vars) {
+        eval.push(val);
     }
 }
 
