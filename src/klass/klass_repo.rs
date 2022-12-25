@@ -123,10 +123,9 @@ impl SharedKlassRepo {
 
     pub fn receive_loop(&self) {
         // FIXME Main dispatch loop goes here!!!!
-        // while (self.rx_kname.recv()) {
-        //
-        //     // self.tx_klass.send();
-        // }
+        while let comms = self.rx.recv().unwrap() {
+            comms.reply_via.send(self.lookup_klass(&comms.kname));
+        }
     }
 
     pub fn add_klass(&mut self, k: &OtKlass) -> () {
