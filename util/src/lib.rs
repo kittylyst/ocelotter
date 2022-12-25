@@ -1,8 +1,8 @@
-use std::path::Path;
 use std::fs::File;
-use zip::ZipArchive;
 use std::io::{Read, Seek};
+use std::path::Path;
 use zip::result::ZipResult;
+use zip::ZipArchive;
 
 pub fn file_to_bytes(path: &Path) -> Result<Vec<u8>, std::io::Error> {
     File::open(path).and_then(|mut file| {
@@ -11,7 +11,6 @@ pub fn file_to_bytes(path: &Path) -> Result<Vec<u8>, std::io::Error> {
         Ok(bytes)
     })
 }
-
 
 pub struct ZipFiles<R: Read + Seek> {
     i: usize,
@@ -38,11 +37,10 @@ impl<R: Read + Seek> Iterator for ZipFiles<R> {
 
 impl ZipFiles<File> {
     pub fn new(file_name: &str) -> ZipFiles<File> {
-        let file = File::open(&file_name)
-            .expect(&format!("Couldn't open file {}", &file_name));
+        let file = File::open(&file_name).expect(&format!("Couldn't open file {}", &file_name));
 
-        let archive = ZipArchive::new(file)
-            .expect(&format!("Problem reading archive {}", &file_name));
+        let archive =
+            ZipArchive::new(file).expect(&format!("Problem reading archive {}", &file_name));
 
         ZipFiles { i: 0, archive }
     }

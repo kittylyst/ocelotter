@@ -1,15 +1,21 @@
 use super::*;
 
-use std::path::Path;
 use ocelotter_util::file_to_bytes;
+use std::path::Path;
 
 #[test]
 fn test_klass_name_from_fq() {
     let jli_value = "java/lang/Integer.valueOf:(I)Ljava/lang/Integer;".to_string();
-    assert_eq!("java/lang/Integer", &SharedKlassRepo::klass_name_from_fq(&jli_value));
+    assert_eq!(
+        "java/lang/Integer",
+        &SharedKlassRepo::klass_name_from_fq(&jli_value)
+    );
 
     let jli_dotted = "java.lang.Integer.high:I".to_string();
-    assert_eq!("java.lang.Integer", &SharedKlassRepo::klass_name_from_dotted_fq(&jli_dotted));
+    assert_eq!(
+        "java.lang.Integer",
+        &SharedKlassRepo::klass_name_from_dotted_fq(&jli_dotted)
+    );
 }
 
 #[test]
