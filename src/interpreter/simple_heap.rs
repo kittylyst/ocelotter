@@ -1,11 +1,11 @@
 #![deny(unreachable_patterns)]
 
-use crate::JvmValue;
-use crate::OtField;
-use crate::OtKlass;
-use crate::OtObj;
-
 use std::sync::atomic::{AtomicUsize, Ordering};
+
+use crate::interpreter::values::JvmValue;
+use crate::interpreter::object::OtObj;
+use crate::klass::otfield::OtField;
+use crate::klass::otklass::OtKlass;
 
 pub struct SharedSimpleHeap {
     obj_count: AtomicUsize,

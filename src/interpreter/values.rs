@@ -7,13 +7,13 @@
 use std::fmt;
 use std::sync::Mutex;
 
-// use crate::simple_heap::SharedSimpleHeap;
 // use object::OtObj;
 // use klass_repo::SharedKlassRepo;
 
 use crate::klass::otfield::OtField;
 use crate::klass::otklass::OtKlass;
 use crate::klass::otmethod::OtMethod;
+use crate::interpreter::simple_heap::SharedSimpleHeap;
 
 lazy_static! {
     pub static ref HEAP: Mutex<SharedSimpleHeap> = Mutex::new(SharedSimpleHeap::of());
@@ -139,5 +139,5 @@ impl InterpLocalVars {
     }
 }
 
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;
