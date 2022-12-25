@@ -2,6 +2,7 @@ use std::fmt;
 use std::path::Path;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::sync::mpsc::Sender;
 
 use regex::Regex;
 
@@ -57,7 +58,8 @@ impl SharedKlassRepo {
     //////////////////////////////////////////////
 
     // We keep a mutable reference to the shared klass repo b/c we're the only thread allowed to modify it.
-    pub fn start(options: Options) {
+    pub fn start(options: Options, tx: Sender<String>) {
+        let thread_tx = tx.clone();
         let mut repo = SharedKlassRepo::of();
         repo.bootstrap(exec_method);
 
