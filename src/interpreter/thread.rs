@@ -2,8 +2,6 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-// use ocelotter_runtime::klass_repo::SharedKlassRepo;
-
 use crate::interpreter::opcode;
 use crate::interpreter::interp_stack::InterpEvalStack;
 use crate::interpreter::values::*;
@@ -27,7 +25,7 @@ pub fn start_new_jthread(f_name: String) {
 
     let ret = exec_method(&mut repo, main, &mut vars)
         .map(|return_value| match return_value {
-            Int(i) => i,
+            JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", &f_name),
         })
         .unwrap_or_else(|| panic!("Error executing {} - no value returned", &f_name));
