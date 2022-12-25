@@ -21,7 +21,7 @@ use crate::OtKlassComms;
 
 //////////// RUNTIME KLASS REPO
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum KlassLoadingStatus {
     Mentioned {},
     Loaded { klass: OtKlass },

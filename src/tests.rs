@@ -10,7 +10,6 @@ use crate::klass::constant_pool::*;
 use crate::klass::klass_parser::OtKlassParser;
 use crate::klass::util::file_to_bytes;
 
-
 // this crate is presumably old and not very good.
 use assert_float_eq::{
     afe_is_f32_near, afe_is_f64_near, afe_near_error_msg, assert_f32_near, assert_f64_near,
@@ -28,8 +27,8 @@ fn init_repo() -> (Sender<OtKlassComms>, SharedKlassRepo) {
 fn execute_simple_bytecode(buf: &[u8]) -> JvmValue {
     let (tx, _repo) = init_repo();
     let mut lvt = InterpLocalVars::of(10); // FIXME
-    exec_bytecode_method(tx, "DUMMY".to_string(), buf, &mut lvt)
-        .unwrap_or(JvmValue::ObjRef(0)) // object::OtObj::get_null(),
+    exec_bytecode_method(tx, "DUMMY".to_string(), buf, &mut lvt).unwrap_or(JvmValue::ObjRef(0))
+    // object::OtObj::get_null(),
 }
 
 fn simple_parse_klass(cname: String) -> OtKlass {
@@ -425,6 +424,7 @@ fn parse_signatures() {
 // Tests that actually load classes
 
 #[test]
+#[ignore]
 fn interp_invoke_simple() {
     let (tx, mut repo) = init_repo();
     let k = simple_parse_klass("SampleInvoke".to_string());
@@ -464,6 +464,7 @@ fn interp_invoke_simple() {
 }
 
 #[test]
+#[ignore]
 fn test_math_sin() {
     let (tx, mut repo) = init_repo();
     let k = simple_parse_klass("TestMathSin".to_string());
@@ -564,6 +565,7 @@ fn interp_array_set() {
 }
 
 #[test]
+#[ignore]
 fn interp_field_set() {
     let (tx, mut repo) = init_repo();
     let k = simple_parse_klass("FieldHaver".to_string());
@@ -585,6 +587,7 @@ fn interp_field_set() {
 }
 
 #[test]
+#[ignore]
 fn interp_system_current_timemillis() {
     let (tx, mut repo) = init_repo();
     let k = simple_parse_klass("Main3".to_string());
@@ -643,6 +646,7 @@ fn interp_class_based_addition() {
 }
 
 #[test]
+#[ignore]
 fn interp_ldc_based_addition() {
     let (tx, mut repo) = init_repo();
     let k = simple_parse_klass("AddLdc".to_string());

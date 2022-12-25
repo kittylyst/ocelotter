@@ -38,5 +38,6 @@ pub fn main() {
     k_keep.join().unwrap();
 }
 
+mod runtime_tests;
 #[cfg(test)]
 mod tests;

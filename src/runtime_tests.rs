@@ -1,24 +1,32 @@
 use super::*;
 
 use std::path::Path;
-use ocelotter_util::file_to_bytes;
+
+use crate::klass::klass_parser::OtKlassParser;
+use crate::klass::util::file_to_bytes;
 
 #[test]
 fn test_klass_name_from_fq() {
     let jli_value = "java/lang/Integer.valueOf:(I)Ljava/lang/Integer;".to_string();
-    assert_eq!("java/lang/Integer", &SharedKlassRepo::klass_name_from_fq(&jli_value));
+    assert_eq!(
+        "java/lang/Integer",
+        &SharedKlassRepo::klass_name_from_fq(&jli_value)
+    );
 
     let jli_dotted = "java.lang.Integer.high:I".to_string();
-    assert_eq!("java.lang.Integer", &SharedKlassRepo::klass_name_from_dotted_fq(&jli_dotted));
+    assert_eq!(
+        "java.lang.Integer",
+        &SharedKlassRepo::klass_name_from_dotted_fq(&jli_dotted)
+    );
 }
 
 #[test]
 fn test_read_header() {
-    let bytes = match file_to_bytes(Path::new("../resources/test/Foo.class")) {
+    let bytes = match file_to_bytes(Path::new("resources/test/Foo.class")) {
         Ok(buf) => buf,
         _ => panic!("Error reading Foo"),
     };
-    let mut parser = klass_parser::OtKlassParser::of(bytes, "Foo.class".to_string());
+    let mut parser = OtKlassParser::of(bytes, "Foo.class".to_string());
     parser.parse();
     assert_eq!(16, parser.get_pool_size());
     let k = parser.klass();
@@ -28,11 +36,11 @@ fn test_read_header() {
 
 #[test]
 fn test_read_simple_class() {
-    let bytes = match file_to_bytes(Path::new("../resources/test/Foo2.class")) {
+    let bytes = match file_to_bytes(Path::new("resources/test/Foo2.class")) {
         Ok(buf) => buf,
         _ => panic!("Error reading Foo2"),
     };
-    let mut parser = klass_parser::OtKlassParser::of(bytes, "Foo2.class".to_string());
+    let mut parser = OtKlassParser::of(bytes, "Foo2.class".to_string());
     parser.parse();
     assert_eq!(30, parser.get_pool_size());
     let k = parser.klass();
@@ -44,13 +52,12 @@ fn test_read_simple_class() {
 #[test]
 fn check_simple_fields_methods() {
     let bytes = match file_to_bytes(Path::new(
-        "../resources/test/octest/SimpleFieldsAndMethods.class",
+        "resources/test/octest/SimpleFieldsAndMethods.class",
     )) {
         Ok(buf) => buf,
         _ => panic!("Error reading SimpleFieldsAndMethods"),
     };
-    let mut parser =
-        klass_parser::OtKlassParser::of(bytes, "octest/SimpleFieldsAndMethods.class".to_string());
+    let mut parser = OtKlassParser::of(bytes, "octest/SimpleFieldsAndMethods.class".to_string());
     parser.parse();
     assert_eq!(23, parser.get_pool_size());
     let k = parser.klass();
@@ -62,11 +69,11 @@ fn check_simple_fields_methods() {
 
 #[test]
 fn check_system_current_timemillis() {
-    let bytes = match file_to_bytes(Path::new("../resources/test/Main3.class")) {
+    let bytes = match file_to_bytes(Path::new("resources/test/Main3.class")) {
         Ok(buf) => buf,
         _ => panic!("Error reading Main3"),
     };
-    let mut parser = klass_parser::OtKlassParser::of(bytes, "Main3.class".to_string());
+    let mut parser = OtKlassParser::of(bytes, "Main3.class".to_string());
     parser.parse();
     assert_eq!(20, parser.get_pool_size());
     let k = parser.klass();
