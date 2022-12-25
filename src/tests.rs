@@ -612,6 +612,8 @@ fn interp_system_current_timemillis() {
 
 #[test]
 #[ignore]
+// Fails b/c "java/lang/Integer.valueOf:(I)Ljava/lang/Integer;" is indeed not known
+// to the loaded Integer as per OtKlass.m_name_desc_lookup
 fn interp_class_based_addition() {
     let mut repo = init_repo();
     let k = simple_parse_klass("AddFieldInteger".to_string());
