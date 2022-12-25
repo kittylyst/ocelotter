@@ -22,11 +22,11 @@ pub mod otmethod;
 pub mod simple_heap;
 
 use crate::simple_heap::SharedSimpleHeap;
+use klass_repo::SharedKlassRepo;
 use object::OtObj;
 use otfield::OtField;
 use otklass::OtKlass;
 use otmethod::OtMethod;
-use klass_repo::SharedKlassRepo;
 
 lazy_static! {
     pub static ref HEAP: Mutex<SharedSimpleHeap> = Mutex::new(SharedSimpleHeap::of());
@@ -55,9 +55,8 @@ macro_rules! value_as {
                 other => None,
             }
         }
-    }
+    };
 }
-
 
 impl JvmValue {
     pub fn name(&self) -> char {
@@ -85,18 +84,18 @@ impl JvmValue {
             'D' => JvmValue::Double(0.0),
             'C' => JvmValue::Char('\0'),
             'A' => JvmValue::ObjRef(0),
-            _   => panic!("Illegal type {} seen when trying to parse", letter)
+            _ => panic!("Illegal type {} seen when trying to parse", letter),
         }
     }
 
-    value_as!(as_bool:   Boolean(bool));
-    value_as!(as_byte:   Byte(i8));
-    value_as!(as_short:  Short(i16));
-    value_as!(as_int:    Int(i32));
-    value_as!(as_long:   Long(i64));
-    value_as!(as_float:  Float(f32));
+    value_as!(as_bool: Boolean(bool));
+    value_as!(as_byte: Byte(i8));
+    value_as!(as_short: Short(i16));
+    value_as!(as_int: Int(i32));
+    value_as!(as_long: Long(i64));
+    value_as!(as_float: Float(f32));
     value_as!(as_double: Double(f64));
-    value_as!(as_char:   Char(char));
+    value_as!(as_char: Char(char));
     value_as!(as_objref: ObjRef(usize));
 }
 
@@ -104,20 +103,22 @@ impl fmt::Display for JvmValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             JvmValue::Boolean(v) => write!(f, "{}", v),
-            JvmValue::Byte(v)    => write!(f, "{}", v),
-            JvmValue::Short(v)   => write!(f, "{}", v),
-            JvmValue::Int(v)     => write!(f, "{}", v),
-            JvmValue::Long(v)    => write!(f, "{}", v),
-            JvmValue::Float(v)   => write!(f, "{}", v),
-            JvmValue::Double(v)  => write!(f, "{}", v),
-            JvmValue::Char(v)    => write!(f, "{}", v),
-            JvmValue::ObjRef(v)  => write!(f, "{}", v),
+            JvmValue::Byte(v) => write!(f, "{}", v),
+            JvmValue::Short(v) => write!(f, "{}", v),
+            JvmValue::Int(v) => write!(f, "{}", v),
+            JvmValue::Long(v) => write!(f, "{}", v),
+            JvmValue::Float(v) => write!(f, "{}", v),
+            JvmValue::Double(v) => write!(f, "{}", v),
+            JvmValue::Char(v) => write!(f, "{}", v),
+            JvmValue::ObjRef(v) => write!(f, "{}", v),
         }
     }
 }
 
 impl Default for JvmValue {
-    fn default() -> JvmValue { JvmValue::Int(0) }
+    fn default() -> JvmValue {
+        JvmValue::Int(0)
+    }
 }
 
 //////////// LOCAL VARS
@@ -146,8 +147,9 @@ impl InterpLocalVars {
     }
 
     pub fn iinc(&mut self, idx: u8, incr: u8) -> () {
-        let val = self.lvt[idx as usize].as_int()
-            .unwrap_or_else(|| panic!("Non-integer value encountered in IINC of local var {}", idx));
+        let val = self.lvt[idx as usize].as_int().unwrap_or_else(|| {
+            panic!("Non-integer value encountered in IINC of local var {}", idx)
+        });
         self.lvt[idx as usize] = JvmValue::Int(val + 1);
     }
 }
