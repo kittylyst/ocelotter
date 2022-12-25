@@ -24,13 +24,18 @@ fn init_fake_repo() -> (Sender<OtKlassComms>, SharedKlassRepo) {
     (tx, repo)
 }
 
-// pub fn run_test_returning_int(class_name : String, name_and_sig : String, class_fname : String, k : OtKlass) -> i32 {
 pub fn run_test_returning_int(
     class_name: String,
     name_and_sig: String,
     class_fname: String,
     k: OtKlass,
-) {
+) -> i32 {
+    // pub fn run_test_returning_int(
+    //     class_name: String,
+    //     name_and_sig: String,
+    //     class_fname: String,
+    //     k: OtKlass,
+    // ) {
     let mut vec = Vec::new();
     vec.push(class_fname);
     let options = Options {
@@ -47,14 +52,19 @@ pub fn run_test_returning_int(
     let k_keep = thread::spawn(move || SharedKlassRepo::start(options, tx_fname, rx));
     let f_name = rx_fname.recv().unwrap();
 
-    let j_main = thread::spawn(move || start_new_jthread(f_name, tx.clone()));
-    j_main.join().unwrap();
-
+    let j_main = thread::spawn(move || {
+        let ret = start_new_jthread(f_name.clone(), tx.clone());
+        println!("Back from start_new_jthread");
+        ret
+    });
+    let return_val = j_main.join().unwrap();
     // k_keep.clean_shutdown();
     // k_keep.join().unwrap();
 
-    // FIXME need to get the return value back from the jthread
-    // ret2
+    match return_val {
+        Some(JvmValue::Int(i)) => i,
+        _ => panic!("Error executing {} - non-int value returned",),
+    }
 }
 
 fn execute_simple_bytecode(buf: &[u8]) -> JvmValue {
@@ -686,6 +696,10 @@ fn interp_ldc_based_addition() {
     let name_and_sig = "main2:([Ljava/lang/String;)I".to_string();
 
     let k = simple_parse_klass("AddLdc".to_string());
-    // let ret2 = run_test_returning_int(class_name, name_and_sig, class_fname, k);
-    // assert_eq!(44451, ret2);
+
+    // FIXME The test is executing the wrong method
+    // let m: Vec<Vec<u8>> = k.clone().get_methods().clone().iter().map(f).collect();
+    // dbg!(m);
+    let ret2 = run_test_returning_int(class_name, name_and_sig, class_fname, k);
+    assert_eq!(44451, ret2);
 }

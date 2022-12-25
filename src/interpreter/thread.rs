@@ -14,7 +14,7 @@ use crate::klass::otklass::OtKlass;
 use crate::klass::otmethod::OtMethod;
 use crate::OtKlassComms;
 
-pub fn start_new_jthread(f_name: String, tx: Sender<OtKlassComms>) {
+pub fn start_new_jthread(f_name: String, tx: Sender<OtKlassComms>) -> Option<JvmValue> {
     let thread_tx = tx.clone();
 
     // FIXME Real main() signature required, dummying for ease of testing
@@ -36,15 +36,17 @@ pub fn start_new_jthread(f_name: String, tx: Sender<OtKlassComms>) {
     let mut vars = InterpLocalVars::of(5);
 
     let return_val = exec_method(tx, main, &mut vars);
-    let ret = match return_val {
-        Some(JvmValue::Int(i)) => i,
-        _ => panic!(
-            "Error executing {} - non-int value returned",
-            f_name.clone()
-        ),
-    };
-
-    println!("Ret: {}", ret);
+    // let ret = match return_val {
+    //     Some(JvmValue::Int(i)) => i,
+    //     _ => panic!(
+    //         "Error executing {} - non-int value returned",
+    //         f_name.clone()
+    //     ),
+    // };
+    //
+    // println!("Ret: {}", ret);
+    //
+    return_val
 }
 
 // Transmits a class name, receives a klass
@@ -79,7 +81,10 @@ pub fn exec_bytecode_method(
     let mut current = 0;
     let mut eval = InterpEvalStack::of();
 
-    // println!("Getting to interpreter loop");
+    dbg!("Getting to interpreter loop");
+    for p_x in instr.into_iter() {
+        println!("{}", *p_x);
+    }
     loop {
         // let my_klass_name = klass_name.clone();
         let ins: u8 = *instr
@@ -88,7 +93,8 @@ pub fn exec_bytecode_method(
 
         current += 1;
 
-        // dbg!(ins);
+        dbg!(ins);
+        dbg!(current);
         match ins {
             opcode::ACONST_NULL => eval.aconst_null(),
 
@@ -118,6 +124,7 @@ pub fn exec_bytecode_method(
             opcode::ASTORE_3 => lvt.store(3, eval.pop()),
 
             opcode::BIPUSH => {
+                println!("Getting to bipush");
                 eval.iconst(instr[current] as i32);
                 current += 1;
             }
@@ -639,7 +646,9 @@ pub fn exec_bytecode_method(
             opcode::LDC => {
                 let cp_lookup = instr[current] as u16;
                 current += 1;
+                println!("Getting to lookup_klass");
                 let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
+                println!("Back from lookup_klass");
 
                 match current_klass.lookup_cp(cp_lookup) {
                     // FIXME Actually look up the class object properly
@@ -735,6 +744,7 @@ pub fn exec_bytecode_method(
                 eval.pop();
             }
             opcode::NEW => {
+                dbg!("Getting to NEW");
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
@@ -837,11 +847,13 @@ pub fn exec_bytecode_method(
             opcode::JSR_W => break Some(JvmValue::Boolean(false)),
             opcode::RET => break Some(JvmValue::Boolean(false)),
 
-            _ => panic!(
-                "Illegal opcode byte: {} encountered at position {}. Stopping.",
-                ins,
-                (current - 1)
-            ),
+            _ => {
+                panic!(
+                    "Illegal opcode byte: {} encountered at position {}. Stopping.",
+                    ins,
+                    (current - 1)
+                )
+            }
         }
     }
 }
