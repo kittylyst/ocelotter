@@ -1,13 +1,15 @@
-use std::fmt;
+use std::{fmt, thread};
 use std::path::Path;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, Sender};
 
 use regex::Regex;
 
-use crate::interpreter::values::*;
 use crate::interpreter::native_methods::*;
+use crate::interpreter::thread::exec_method;
+use crate::interpreter::values::*;
 
 use crate::klass::otfield::OtField;
 use crate::klass::otmethod::OtMethod;
@@ -16,7 +18,7 @@ use crate::klass::klass_parser::OtKlassParser;
 use crate::klass::options::Options;
 use crate::klass::util::*;
 
-//////////// SHARED RUNTIME KLASS REPO
+//////////// RUNTIME KLASS REPO
 
 #[derive(Debug, Clone)]
 pub enum KlassLoadingStatus {
@@ -28,6 +30,8 @@ pub enum KlassLoadingStatus {
 #[derive(Debug)]
 pub struct SharedKlassRepo {
     klass_lookup: HashMap<String, RefCell<KlassLoadingStatus>>,
+    pub rx_kname: Receiver<String>,
+    pub tx_klass: Sender<OtKlass>,
 }
 
 impl SharedKlassRepo {
@@ -58,13 +62,29 @@ impl SharedKlassRepo {
     //////////////////////////////////////////////
 
     // We keep a mutable reference to the shared klass repo b/c we're the only thread allowed to modify it.
-    pub fn start(options: Options, tx: Sender<String>) {
-        let thread_tx = tx.clone();
-        let mut repo = SharedKlassRepo::of();
-        repo.bootstrap(exec_method);
+    pub fn start(options: Options, tx_fname: Sender<String>, rx_kname: Receiver<String>, tx_klass: Sender<OtKlass>) {
+        let thread_tx_fname = tx_fname.clone();
+        let thread_tx_klass = tx_klass.clone();
+
+        let mut repo = SharedKlassRepo::of(rx_kname, thread_tx_klass);
+        repo.bootstrap();
+
+        // All native methods are installed for the bootstrap classes
+        // Now, we need to run the static initializers in the right order
+        // On a separate thread
+        let (tx_kname, rx_kname): (Sender<String>, Receiver<String>) = mpsc::channel();
+        let (tx_klass, rx_klass): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
+
+        let k_clinit = thread::spawn(move || {
+            repo.run_clinit_method(&"java/io/FileDescriptor".to_string(), tx_kname, rx_klass );
+            // This requires the file descriptor handling to already exist
+            // self.run_clinit_method(&"java/lang/System".to_string(), tx_kname, rx_klass);
+        });
+        k_clinit.join().unwrap();
 
         let fq_klass_name = options.fq_klass_name();
         let f_name = options.f_name();
+        thread_tx_fname.send(f_name);
 
         if let Some(file) = &options.classpath {
             ZipFiles::new(file)
@@ -86,10 +106,23 @@ impl SharedKlassRepo {
             let k = parser.klass();
             repo.add_klass(&k);
         }
+
+        repo.receive_loop();
     }
 
-    pub fn of() -> SharedKlassRepo {
+    pub fn receive_loop(&self) {
+        // FIXME Main dispatch loop goes here!!!!
+        // while (self.rx_kname.recv()) {
+        //
+        //     // self.tx_klass.send();
+        // }
+
+    }
+
+    pub fn of(rx_kname: Receiver<String>, tx_klass: Sender<OtKlass>) -> SharedKlassRepo {
         SharedKlassRepo {
+            rx_kname: rx_kname,
+            tx_klass: tx_klass,
             klass_lookup: HashMap::new(),
         }
     }
@@ -152,7 +185,7 @@ impl SharedKlassRepo {
         }
     }
 
-    fn run_clinit_method(&mut self, klass_name: &String, i_callback: fn(&mut SharedKlassRepo, &OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) {
+    fn run_clinit_method(&mut self, klass_name: &String, tx_kname: Sender<String>, rx_klass: Receiver<OtKlass>) {
         let m_str = klass_name.to_owned() + ".<clinit>:()V";
         let k = self.lookup_klass(klass_name);
         let clinit = match k.get_method_by_name_and_desc(&m_str) {
@@ -162,7 +195,7 @@ impl SharedKlassRepo {
         };
         // FIXME Parameter passing
         let mut vars = InterpLocalVars::of(5);
-        i_callback(self, &clinit, &mut vars);
+        exec_method(tx_kname, rx_klass, &clinit, &mut vars);
     }
 
     fn install_native_method(&mut self, klass_name: &String, name_desc: &String,
@@ -189,7 +222,7 @@ impl SharedKlassRepo {
     // the bits of native code that we have working
     //
     // An interpreter callback, i_callback is needed to run the static initializers
-    pub fn bootstrap(&mut self, i_callback: fn(&mut SharedKlassRepo, &OtMethod, &mut InterpLocalVars) -> Option<JvmValue>) -> () {
+    pub fn bootstrap(&mut self) -> () {
         let file = "resources/lib/classes.jar";
         ZipFiles::new(file)
         .into_iter()
@@ -277,13 +310,6 @@ impl SharedKlassRepo {
 
         // let s = format!("{:?}", self.klass_lookup);
         // dbg!(s);
-
-        // All native methods are installed for the bootstrap classes 
-        // Now, we need to run the static initializers in the right order
-        self.run_clinit_method(&"java/io/FileDescriptor".to_string(), i_callback);
-
-        // // This requires the file descriptor handling to already exist
-        // self.run_clinit_method(&"java/lang/System".to_string(), i_callback);
     }
 
     pub fn lookup_static_field(&self, klass_name: &String, idx: u16) -> OtField {
@@ -365,12 +391,13 @@ impl fmt::Display for SharedKlassRepo {
     }
 }
 
-impl Clone for SharedKlassRepo {
-    fn clone(&self) -> SharedKlassRepo {
-        SharedKlassRepo {
-            klass_lookup: self.klass_lookup.clone(),
-        }
-    }
-}
+// impl Clone for SharedKlassRepo {
+//     fn clone(&self) -> SharedKlassRepo {
+//         SharedKlassRepo {
+//             rx_kname: se
+//             klass_lookup: self.klass_lookup.clone(),
+//         }
+//     }
+// }
 
 /////////////////////////////////////////////////////////////////

@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use std::sync::mpsc::{Receiver, Sender};
 use crate::interpreter::opcode;
 use crate::interpreter::interp_stack::InterpEvalStack;
 use crate::interpreter::values::*;
@@ -10,12 +11,16 @@ use crate::klass::constant_pool::*;
 use crate::klass::otklass::OtKlass;
 use crate::klass::otmethod::OtMethod;
 
-use crate::SharedKlassRepo;
+pub fn start_new_jthread(f_name: String, tx_kname: Sender<String>, rx_klass: Receiver<OtKlass>) {
+    let thread_tx_kname = tx_kname.clone();
 
-pub fn start_new_jthread(f_name: String) {
     // FIXME Real main() signature required, dummying for ease of testing
     let main_str: String = f_name.clone() + ".main2:([Ljava/lang/String;)I";
-    let main_klass = repo.lookup_klass(&f_name);
+
+    // Send the main klass name and receive back the klass
+    thread_tx_kname.send(f_name);
+    let main_klass = rx_klass.recv().unwrap();
+
     let main = main_klass
         .get_method_by_name_and_desc(&main_str)
         .unwrap_or_else(|| panic!("Error: Main method not found {}", main_str.clone()));
@@ -23,7 +28,7 @@ pub fn start_new_jthread(f_name: String) {
     // FIXME Parameter passing
     let mut vars = InterpLocalVars::of(5);
 
-    let ret = exec_method(&mut repo, main, &mut vars)
+    let ret = exec_method(tx_kname, rx_klass, main, &mut vars)
         .map(|return_value| match return_value {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", &f_name),
@@ -33,11 +38,15 @@ pub fn start_new_jthread(f_name: String) {
     println!("Ret: {}", ret);
 }
 
+// Transmits a class name, receives a klass
 pub fn exec_method(
-    repo: &mut SharedKlassRepo,
+    tx_kname: Sender<String>,
+    rx_klass: Receiver<OtKlass>,
     meth: &OtMethod,
     lvt: &mut InterpLocalVars,
 ) -> Option<JvmValue> {
+    let thread_tx_kname = tx_kname.clone();
+
     if meth.is_native() {
         // Explicit type hint here to document the type of n_f
         let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = meth
@@ -47,16 +56,19 @@ pub fn exec_method(
         // FIXME Parameter passing
         n_f(lvt)
     } else {
-        exec_bytecode_method(repo, meth.get_klass_name(), &meth.get_code(), lvt)
+        exec_bytecode_method(tx_kname, rx_klass, meth.get_klass_name(), &meth.get_code(), lvt)
     }
 }
 
 pub fn exec_bytecode_method(
-    repo: &mut SharedKlassRepo,
+    tx_kname: Sender<String>,
+    rx_klass: Receiver<OtKlass>,
     klass_name: String,
     instr: &[u8],
     lvt: &mut InterpLocalVars,
 ) -> Option<JvmValue> {
+    let thread_tx_kname = tx_kname.clone();
+
     let mut current = 0;
     let mut eval = InterpEvalStack::of();
 
@@ -545,7 +557,7 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 let current_klass = repo.lookup_klass(&klass_name).clone();
-                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 1);
+                dispatch_invoke(tx_kname.clone(), rx_klass, current_klass, cp_lookup, &mut eval, 1);
             }
             opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
@@ -553,7 +565,7 @@ pub fn exec_bytecode_method(
                 let current_klass = repo.lookup_klass(&klass_name).clone();
                 //                dbg!(cp_lookup);
                 let arg_count = current_klass.get_method_arg_count(cp_lookup);
-                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, arg_count);
+                dispatch_invoke(tx_kname.clone(), rx_klass, current_klass, cp_lookup, &mut eval, arg_count);
             }
             opcode::INVOKEVIRTUAL => {
                 // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
@@ -561,7 +573,7 @@ pub fn exec_bytecode_method(
                 current += 2;
                 let current_klass = repo.lookup_klass(&klass_name).clone();
                 dbg!(current_klass.clone());
-                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 1);
+                dispatch_invoke(tx_kname.clone(), rx_klass, current_klass, cp_lookup, &mut eval, 1);
             }
             opcode::IOR => eval.ior(),
 
@@ -825,7 +837,8 @@ fn massage_to_int_and_compare(v1: JvmValue, v2: JvmValue, f: fn(i: i32, j: i32) 
 }
 
 fn dispatch_invoke(
-    repo: &mut SharedKlassRepo,
+    tx_kname: Sender<String>,
+    rx_klass: Receiver<OtKlass>,
     current_klass: OtKlass,
     cp_lookup: u16,
     eval: &mut InterpEvalStack,
@@ -850,11 +863,11 @@ fn dispatch_invoke(
         vars.store(0, eval.pop());
     }
     // Explicit use of match expression to be clear about the semantics
-    match exec_method(repo, &callee, &mut vars) {
+    match exec_method(tx_kname, rx_klass, &callee, &mut vars, ) {
         Some(val) => eval.push(val),
         None => (),
     }
 }
 
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;
