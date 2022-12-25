@@ -4,11 +4,11 @@ use byteorder::{BigEndian, ByteOrder};
 use std::io::Read;
 use std::str;
 
-use crate::constant_pool::*;
+use crate::klass::constant_pool::*;
 
-use crate::OtField;
-use crate::OtKlass;
-use crate::OtMethod;
+use crate::klass::otfield::OtField;
+use crate::klass::otklass::OtKlass;
+use crate::klass::otmethod::OtMethod;
 
 pub struct OtKlassParser {
     clz_read: Vec<u8>,

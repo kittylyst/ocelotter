@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::constant_pool::CpAttr;
 use crate::constant_pool::ACC_STATIC;
-use crate::JvmValue;
+use ocelotter_runtime::JvmValue;
 
 #[derive(Debug, Clone)]
 pub struct OtField {

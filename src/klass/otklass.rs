@@ -2,11 +2,13 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt;
 
-use crate::constant_pool::*;
-use crate::otfield::OtField;
-use crate::otmethod::OtMethod;
-use crate::InterpLocalVars;
-use crate::JvmValue;
+// use ocelotter_runtime::InterpLocalVars;
+// use ocelotter_runtime::JvmValue;
+
+use crate::klass::constant_pool::*;
+use crate::klass::otfield::OtField;
+use crate::klass::otmethod::OtMethod;
+use crate::interpreter::values::*;
 
 //////////// RUNTIME KLASS AND RELATED HANDLING
 

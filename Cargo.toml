@@ -10,8 +10,8 @@ byteorder = "1.2.7"
 lazy_static = "1.2.0"
 structopt = { version = "0.3" }
 zip = "0.5.3"
-ocelotter_runtime = {path = "runtime"}
-ocelotter_util = {path = "util"}
+#ocelotter_runtime = {path = "runtime"}
+#ocelotter_util = {path = "util"}
 
 [profile.release]
 lto = true

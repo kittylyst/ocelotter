@@ -3,8 +3,8 @@ use std::fmt;
 
 use crate::constant_pool::CpAttr;
 use crate::constant_pool::ACC_NATIVE;
-use crate::InterpLocalVars;
-use crate::JvmValue;
+use ocelotter_runtime::InterpLocalVars;
+use ocelotter_runtime::JvmValue;
 
 #[derive(Clone)]
 pub struct OtMethod {

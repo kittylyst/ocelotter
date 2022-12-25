@@ -9,6 +9,7 @@ use assert_float_eq::{
 };
 
 use ocelotter_util::file_to_bytes;
+use ocelotter::interpreter::opcode;
 
 // Helper fns
 

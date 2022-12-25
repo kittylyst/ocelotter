@@ -5,14 +5,18 @@ use std::collections::HashMap;
 
 use regex::Regex;
 
-use crate::JvmValue;
-use crate::InterpLocalVars;
-use crate::otfield::OtField;
-use crate::otmethod::OtMethod;
-use crate::otklass::OtKlass;
+use crate::interpreter::values::*;
+use crate::interpreter::native_methods::*;
 
-use ocelotter_util::file_to_bytes;
-use ocelotter_util::ZipFiles;
+use crate::klass::otfield::OtField;
+use crate::klass::otmethod::OtMethod;
+use crate::klass::otklass::OtKlass;
+use crate::klass::klass_parser::OtKlassParser;
+use crate::klass::options::Options;
+
+// use ocelotter_util::file_to_bytes;
+// use ocelotter_util::ZipFiles;
+
 
 //////////// SHARED RUNTIME KLASS REPO
 
@@ -54,6 +58,36 @@ impl SharedKlassRepo {
     }
 
     //////////////////////////////////////////////
+
+    // We keep a mutable reference to the shared klass repo b/c we're the only thread allowed to modify it.
+    pub fn start(options: Options) {
+        let mut repo = SharedKlassRepo::of();
+        repo.bootstrap(exec_method);
+
+        let fq_klass_name = options.fq_klass_name();
+        let f_name = options.f_name();
+
+        if let Some(file) = &options.classpath {
+            ZipFiles::new(file)
+                .into_iter()
+                .filter(|f| matches!(f, Ok((name, _)) if name.ends_with(".class")))
+                .for_each(|z| {
+                    if let Ok((name, bytes)) = z {
+                        let mut parser = OtKlassParser::of(bytes, name);
+                        parser.parse();
+                        repo.add_klass(&parser.klass());
+                    }
+                });
+            //Not using a classpath jar, just a class
+        } else {
+            let bytes = file_to_bytes(Path::new(&fq_klass_name))
+                .unwrap_or_else(|_| panic!("Problem reading {}", &fq_klass_name));
+            let mut parser = OtKlassParser::of(bytes, fq_klass_name);
+            parser.parse();
+            let k = parser.klass();
+            repo.add_klass(&k);
+        }
+    }
 
     pub fn of() -> SharedKlassRepo {
         SharedKlassRepo {
@@ -172,75 +206,75 @@ impl SharedKlassRepo {
             }
         });
 
-//        self.install_native_method(&"java/lang/Object".to_string(), &"getClass:()Ljava/lang/Class;".to_string(), crate::native_methods::java_lang_Object__getClass);
-        self.install_native_method(&"java/lang/Object".to_string(), &"hashCode:()I".to_string(), crate::native_methods::java_lang_Object__hashcode);
-//        self.install_native_method(&"java/lang/Object".to_string(), &"clone:()Ljava/lang/Object;".to_string(), crate::native_methods::java_lang_Object__clone);
-        self.install_native_method(&"java/lang/Object".to_string(), &"notify:()V".to_string(), crate::native_methods::java_lang_Object__notify);
-        self.install_native_method(&"java/lang/Object".to_string(), &"notifyAll:()V".to_string(), crate::native_methods::java_lang_Object__notifyAll);
-        self.install_native_method(&"java/lang/Object".to_string(), &"wait:(J)V".to_string(), crate::native_methods::java_lang_Object__wait);
+//        self.install_native_method(&"java/lang/Object".to_string(), &"getClass:()Ljava/lang/Class;".to_string(), java_lang_Object__getClass);
+        self.install_native_method(&"java/lang/Object".to_string(), &"hashCode:()I".to_string(), java_lang_Object__hashcode);
+//        self.install_native_method(&"java/lang/Object".to_string(), &"clone:()Ljava/lang/Object;".to_string(), java_lang_Object__clone);
+        self.install_native_method(&"java/lang/Object".to_string(), &"notify:()V".to_string(), java_lang_Object__notify);
+        self.install_native_method(&"java/lang/Object".to_string(), &"notifyAll:()V".to_string(), java_lang_Object__notifyAll);
+        self.install_native_method(&"java/lang/Object".to_string(), &"wait:(J)V".to_string(), java_lang_Object__wait);
 
 
 //        public static final native java.lang.Class forName(java.lang.String) throws java.lang.ClassNotFoundException;
 //        public final native java.lang.Object newInstance() throws java.lang.InstantiationException, java.lang.IllegalAccessException;
 
-        self.install_native_method(&"java/lang/Class".to_string(), &"getName:()Ljava/lang/String;".to_string(), crate::native_methods::java_lang_Class__getName);
+        self.install_native_method(&"java/lang/Class".to_string(), &"getName:()Ljava/lang/String;".to_string(), java_lang_Class__getName);
 //        public final native java.lang.String getName();
 //        public final native java.lang.Class getSuperclass();
 //        public final native java.lang.Class[] getInterfaces();
 //        public final native java.lang.ClassLoader getClassLoader();
 //        public final native boolean isInterface();
 
-        self.install_native_method(&"java/lang/Compiler".to_string(), &"compileClass:(Ljava/lang/Class;)Z".to_string(), crate::native_methods::java_lang_Compiler__compileClass);
-        self.install_native_method(&"java/lang/Compiler".to_string(), &"compileClasses:(Ljava/lang/String;)Z".to_string(), crate::native_methods::java_lang_Compiler__compileClasses);
+        self.install_native_method(&"java/lang/Compiler".to_string(), &"compileClass:(Ljava/lang/Class;)Z".to_string(), java_lang_Compiler__compileClass);
+        self.install_native_method(&"java/lang/Compiler".to_string(), &"compileClasses:(Ljava/lang/String;)Z".to_string(), java_lang_Compiler__compileClasses);
 //        public static final native java.lang.Object command(java.lang.Object);
-        self.install_native_method(&"java/lang/Compiler".to_string(), &"enable:()V".to_string(), crate::native_methods::java_lang_Compiler__enable);
-        self.install_native_method(&"java/lang/Compiler".to_string(), &"disable:()V".to_string(), crate::native_methods::java_lang_Compiler__disable);
+        self.install_native_method(&"java/lang/Compiler".to_string(), &"enable:()V".to_string(), java_lang_Compiler__enable);
+        self.install_native_method(&"java/lang/Compiler".to_string(), &"disable:()V".to_string(), java_lang_Compiler__disable);
         
-        self.install_native_method(&"java/lang/Runtime".to_string(), &"freeMemory:()J".to_string(), crate::native_methods::java_lang_Runtime__freeMemory);
-        self.install_native_method(&"java/lang/Runtime".to_string(), &"totalMemory:()J".to_string(), crate::native_methods::java_lang_Runtime__totalMemory);
-        self.install_native_method(&"java/lang/Runtime".to_string(), &"gc:()V".to_string(), crate::native_methods::java_lang_Runtime__gc);
-        self.install_native_method(&"java/lang/Runtime".to_string(), &"runFinalization:()V".to_string(), crate::native_methods::java_lang_Runtime__runFinalization);
-        self.install_native_method(&"java/lang/Runtime".to_string(), &"traceInstructions:(Z)V".to_string(), crate::native_methods::java_lang_Runtime__traceInstructions);
-        self.install_native_method(&"java/lang/Runtime".to_string(), &"traceMethodCalls:(Z)V".to_string(), crate::native_methods::java_lang_Runtime__traceMethodCalls);
+        self.install_native_method(&"java/lang/Runtime".to_string(), &"freeMemory:()J".to_string(), java_lang_Runtime__freeMemory);
+        self.install_native_method(&"java/lang/Runtime".to_string(), &"totalMemory:()J".to_string(), java_lang_Runtime__totalMemory);
+        self.install_native_method(&"java/lang/Runtime".to_string(), &"gc:()V".to_string(), java_lang_Runtime__gc);
+        self.install_native_method(&"java/lang/Runtime".to_string(), &"runFinalization:()V".to_string(), java_lang_Runtime__runFinalization);
+        self.install_native_method(&"java/lang/Runtime".to_string(), &"traceInstructions:(Z)V".to_string(), java_lang_Runtime__traceInstructions);
+        self.install_native_method(&"java/lang/Runtime".to_string(), &"traceMethodCalls:(Z)V".to_string(), java_lang_Runtime__traceMethodCalls);
 
-        self.install_native_method(&"java/lang/System".to_string(), &"currentTimeMillis:()J".to_string(), crate::native_methods::java_lang_System__currentTimeMillis);
-        self.install_native_method(&"java/lang/System".to_string(), &"arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V".to_string(), crate::native_methods::java_lang_System__arraycopy);
+        self.install_native_method(&"java/lang/System".to_string(), &"currentTimeMillis:()J".to_string(), java_lang_System__currentTimeMillis);
+        self.install_native_method(&"java/lang/System".to_string(), &"arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V".to_string(), java_lang_System__arraycopy);
 
         // Load j.l.Math native methods
 //        let sin_f = SharedKlassRepo::double_mapper_factory(|i: f64| -> f64 { i.sin() });
 //        self.install_native_method(&"java/lang/Math".to_string(), &"sin:(D)D".to_string(), sin_f);
-        self.install_native_method(&"java/lang/Math".to_string(), &"sin:(D)D".to_string(), crate::native_methods::java_lang_Math__sin);
-        self.install_native_method(&"java/lang/Math".to_string(), &"cos:(D)D".to_string(), crate::native_methods::java_lang_Math__cos);
-        self.install_native_method(&"java/lang/Math".to_string(), &"tan:(D)D".to_string(), crate::native_methods::java_lang_Math__tan);
-        self.install_native_method(&"java/lang/Math".to_string(), &"asin:(D)D".to_string(), crate::native_methods::java_lang_Math__asin);
-        self.install_native_method(&"java/lang/Math".to_string(), &"acos:(D)D".to_string(), crate::native_methods::java_lang_Math__acos);
-        self.install_native_method(&"java/lang/Math".to_string(), &"atan:(D)D".to_string(), crate::native_methods::java_lang_Math__atan);
-        self.install_native_method(&"java/lang/Math".to_string(), &"exp:(D)D".to_string(), crate::native_methods::java_lang_Math__exp);
-        self.install_native_method(&"java/lang/Math".to_string(), &"log:(D)D".to_string(), crate::native_methods::java_lang_Math__log);
-        self.install_native_method(&"java/lang/Math".to_string(), &"sqrt:(D)D".to_string(), crate::native_methods::java_lang_Math__sqrt);
+        self.install_native_method(&"java/lang/Math".to_string(), &"sin:(D)D".to_string(), java_lang_Math__sin);
+        self.install_native_method(&"java/lang/Math".to_string(), &"cos:(D)D".to_string(), java_lang_Math__cos);
+        self.install_native_method(&"java/lang/Math".to_string(), &"tan:(D)D".to_string(), java_lang_Math__tan);
+        self.install_native_method(&"java/lang/Math".to_string(), &"asin:(D)D".to_string(), java_lang_Math__asin);
+        self.install_native_method(&"java/lang/Math".to_string(), &"acos:(D)D".to_string(), java_lang_Math__acos);
+        self.install_native_method(&"java/lang/Math".to_string(), &"atan:(D)D".to_string(), java_lang_Math__atan);
+        self.install_native_method(&"java/lang/Math".to_string(), &"exp:(D)D".to_string(), java_lang_Math__exp);
+        self.install_native_method(&"java/lang/Math".to_string(), &"log:(D)D".to_string(), java_lang_Math__log);
+        self.install_native_method(&"java/lang/Math".to_string(), &"sqrt:(D)D".to_string(), java_lang_Math__sqrt);
 //public static final native double IEEEremainder(double, double);
-        self.install_native_method(&"java/lang/Math".to_string(), &"ceil:(D)D".to_string(), crate::native_methods::java_lang_Math__ceil);
-        self.install_native_method(&"java/lang/Math".to_string(), &"floor:(D)D".to_string(), crate::native_methods::java_lang_Math__floor);
+        self.install_native_method(&"java/lang/Math".to_string(), &"ceil:(D)D".to_string(), java_lang_Math__ceil);
+        self.install_native_method(&"java/lang/Math".to_string(), &"floor:(D)D".to_string(), java_lang_Math__floor);
 //public static final native double rint(double);
-        self.install_native_method(&"java/lang/Math".to_string(), &"atan2:(DD)D".to_string(), crate::native_methods::java_lang_Math__atan2);
-        self.install_native_method(&"java/lang/Math".to_string(), &"pow:(DD)D".to_string(), crate::native_methods::java_lang_Math__pow);
+        self.install_native_method(&"java/lang/Math".to_string(), &"atan2:(DD)D".to_string(), java_lang_Math__atan2);
+        self.install_native_method(&"java/lang/Math".to_string(), &"pow:(DD)D".to_string(), java_lang_Math__pow);
 
         // TODO Get enough of java.io.PrintStream working to get System.out.println() to work
 
         // // private native void open(String name) throws IOException;
-        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"open:(Ljava/lang/String;)V".to_string(), crate::native_methods::java_io/_FileOutputStream__open);
+        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"open:(Ljava/lang/String;)V".to_string(), java_io/_FileOutputStream__open);
         
         // // public native void write(int b) throws IOException;
-        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"write:(I)V".to_string(), crate::native_methods::java_io/_FileOutputStream__write);
+        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"write:(I)V".to_string(), java_io/_FileOutputStream__write);
 
         // // private native void writeBytes(byte b[], int off, int len) throws IOException;
-        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"writeBytes:([BII])V".to_string(), crate::native_methods::java_io/_FileOutputStream__writeBytes);
+        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"writeBytes:([BII])V".to_string(), java_io/_FileOutputStream__writeBytes);
 
         // // public native void close() throws IOException;
-        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"close:()V".to_string(), crate::native_methods::java_io/_FileOutputStream__close);
+        // self.install_native_method(&"java/io/FileOutputStream".to_string(), &"close:()V".to_string(), java_io/_FileOutputStream__close);
 
         // // private static native FileDescriptor initSystemFD(FileDescriptor fdObj, int desc);
-        self.install_native_method(&"java/io/FileDescriptor".to_string(), &"initSystemFD:(Ljava/io/FileDescriptor;I)Ljava/io/FileDescriptor;".to_string(), crate::native_methods::java_io_FileDescriptor__initSystemFD);
+        self.install_native_method(&"java/io/FileDescriptor".to_string(), &"initSystemFD:(Ljava/io/FileDescriptor;I)Ljava/io/FileDescriptor;".to_string(), java_io_FileDescriptor__initSystemFD);
 
         // let s = format!("{:?}", self.klass_lookup);
         // dbg!(s);
