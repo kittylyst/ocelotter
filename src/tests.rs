@@ -2,27 +2,33 @@ use std::path::Path;
 
 use super::*;
 
-use ocelotter_runtime::constant_pool::ACC_PUBLIC;
+use crate::interpreter::opcode;
+use crate::interpreter::thread::exec_bytecode_method;
+use crate::interpreter::thread::exec_method;
+use crate::interpreter::values::*;
+use crate::klass::constant_pool::*;
+use crate::klass::klass_parser::OtKlassParser;
+use crate::klass::util::file_to_bytes;
+
+
 // this crate is presumably old and not very good.
 use assert_float_eq::{
     afe_is_f32_near, afe_is_f64_near, afe_near_error_msg, assert_f32_near, assert_f64_near,
 };
 
-use ocelotter_util::file_to_bytes;
-use ocelotter::interpreter::opcode;
-
 // Helper fns
 
-fn init_repo() -> SharedKlassRepo {
-    let mut repo = SharedKlassRepo::of();
-    repo.bootstrap(exec_method);
-    repo
+fn init_repo() -> (Sender<OtKlassComms>, SharedKlassRepo) {
+    let (tx, rx): (Sender<OtKlassComms>, Receiver<OtKlassComms>) = mpsc::channel();
+    let mut repo = SharedKlassRepo::of(rx);
+    repo.bootstrap();
+    (tx, repo)
 }
 
 fn execute_simple_bytecode(buf: &[u8]) -> JvmValue {
-    let mut repo = init_repo();
+    let (tx, _repo) = init_repo();
     let mut lvt = InterpLocalVars::of(10); // FIXME
-    exec_bytecode_method(&mut repo, "DUMMY".to_string(), buf, &mut lvt)
+    exec_bytecode_method(tx, "DUMMY".to_string(), buf, &mut lvt)
         .unwrap_or(JvmValue::ObjRef(0)) // object::OtObj::get_null(),
 }
 
@@ -36,7 +42,7 @@ fn simple_parse_klass(cname: String) -> OtKlass {
     };
     let mut kname = cname;
     kname.push_str(".class");
-    let mut parser = klass_parser::OtKlassParser::of(bytes, kname);
+    let mut parser = OtKlassParser::of(bytes, kname);
     parser.parse();
 
     // Add our klass
@@ -420,7 +426,7 @@ fn parse_signatures() {
 
 #[test]
 fn interp_invoke_simple() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_repo();
     let k = simple_parse_klass("SampleInvoke".to_string());
     repo.add_klass(&k);
 
@@ -432,7 +438,7 @@ fn interp_invoke_simple() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx.clone(), meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing SampleInvoke.bar:()I - non-int value returned"),
@@ -448,7 +454,7 @@ fn interp_invoke_simple() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx.clone(), meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing SampleInvoke.foo:()I - non-int value returned"),
@@ -459,7 +465,7 @@ fn interp_invoke_simple() {
 
 #[test]
 fn test_math_sin() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_repo();
     let k = simple_parse_klass("TestMathSin".to_string());
     repo.add_klass(&k);
 
@@ -471,7 +477,7 @@ fn test_math_sin() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx.clone(), meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fq_meth),
@@ -487,7 +493,7 @@ fn test_math_sin() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx.clone(), meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fq_meth),
@@ -503,7 +509,7 @@ fn test_math_sin() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx.clone(), meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fq_meth),
@@ -514,7 +520,7 @@ fn test_math_sin() {
 
 #[test]
 fn interp_iffer() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_repo();
     let k = simple_parse_klass("Iffer".to_string());
     repo.add_klass(&k);
 
@@ -526,7 +532,7 @@ fn interp_iffer() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx, meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing Iffer.baz:()I - non-int value returned"),
@@ -537,7 +543,7 @@ fn interp_iffer() {
 
 #[test]
 fn interp_array_set() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_repo();
     let k = simple_parse_klass("ArraySimple".to_string());
     repo.add_klass(&k);
 
@@ -548,7 +554,7 @@ fn interp_array_set() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx, meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
@@ -559,7 +565,7 @@ fn interp_array_set() {
 
 #[test]
 fn interp_field_set() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_repo();
     let k = simple_parse_klass("FieldHaver".to_string());
     repo.add_klass(&k);
 
@@ -570,7 +576,7 @@ fn interp_field_set() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = match exec_method(&mut repo, meth, &mut vars).unwrap() {
+        let ret = match exec_method(tx, meth, &mut vars).unwrap() {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
         };
@@ -580,7 +586,7 @@ fn interp_field_set() {
 
 #[test]
 fn interp_system_current_timemillis() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_repo();
     let k = simple_parse_klass("Main3".to_string());
     repo.add_klass(&k);
 
@@ -592,13 +598,13 @@ fn interp_system_current_timemillis() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx.clone(), meth, &mut vars).unwrap();
         let ctm1 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
         };
         vars = InterpLocalVars::of(5);
-        let opt_ret = exec_method(&mut repo, meth, &mut vars);
+        let opt_ret = exec_method(tx.clone(), meth, &mut vars);
         let ret2 = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing {} - no value returned", fqname),
@@ -616,7 +622,7 @@ fn interp_system_current_timemillis() {
 // Fails b/c "java/lang/Integer.valueOf:(I)Ljava/lang/Integer;" is indeed not known
 // to the loaded Integer as per OtKlass.m_name_desc_lookup
 fn interp_class_based_addition() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_repo();
     let k = simple_parse_klass("AddFieldInteger".to_string());
     repo.add_klass(&k);
 
@@ -627,7 +633,7 @@ fn interp_class_based_addition() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx, meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
@@ -638,7 +644,7 @@ fn interp_class_based_addition() {
 
 #[test]
 fn interp_ldc_based_addition() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_repo();
     let k = simple_parse_klass("AddLdc".to_string());
     repo.add_klass(&k);
 
@@ -649,7 +655,7 @@ fn interp_ldc_based_addition() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx, meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),

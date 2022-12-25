@@ -22,16 +22,15 @@ pub fn main() {
 
     // Advanced option handling would go here
 
-    // Handle the "send fname, get klass back"
+    // Comms for initial lookup
     let (tx_fname, rx_fname): (Sender<String>, Receiver<String>) = mpsc::channel();
-    let (tx_klass, rx_klass): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
 
-    // General comms
+    // Handle the "send fname, get klass back"
     let (tx, rx): (Sender<OtKlassComms>, Receiver<OtKlassComms>) = mpsc::channel();
 
     let k_keep = thread::spawn(move || SharedKlassRepo::start(options, tx_fname, rx));
-
     let f_name = rx_fname.recv().unwrap();
+
     let j_main = thread::spawn(move || start_new_jthread(f_name, tx));
 
     j_main.join().unwrap();
@@ -39,5 +38,5 @@ pub fn main() {
     k_keep.join().unwrap();
 }
 
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod tests;
