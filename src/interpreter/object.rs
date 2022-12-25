@@ -1,5 +1,5 @@
-use std::fmt;
 use std::cell::Cell;
+use std::fmt;
 
 use crate::interpreter::values::JvmValue;
 
@@ -51,7 +51,7 @@ impl OtObj {
         }
     }
 
-    pub fn put_field(&self, offset : usize, val: JvmValue) -> () {
+    pub fn put_field(&self, offset: usize, val: JvmValue) -> () {
         let (kid, fields) = match self {
             OtObj::VmObj {
                 id: _,
@@ -78,7 +78,7 @@ impl OtObj {
         };
     }
 
-    pub fn get_field_value(&self, offset : usize) -> JvmValue {
+    pub fn get_field_value(&self, offset: usize) -> JvmValue {
         let (kid, fields) = match self {
             OtObj::VmObj {
                 id: _,

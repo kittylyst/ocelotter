@@ -32,11 +32,14 @@ pub fn java_lang_Object__wait(args: &InterpLocalVars) -> Option<JvmValue> {
 ////////////////////////////////////////////
 // java.lang.Class
 
-
 pub fn java_lang_Class__getName(args: &InterpLocalVars) -> Option<JvmValue> {
     let obj = match args.load(0) {
         JvmValue::ObjRef(v) => v,
-        x => panic!("Non-object value {} of type {} encountered in Class.getName()", x, x.name())
+        x => panic!(
+            "Non-object value {} of type {} encountered in Class.getName()",
+            x,
+            x.name()
+        ),
     };
     // Lookup object in heap...
 
@@ -65,10 +68,8 @@ pub fn java_lang_Compiler__disable(args: &InterpLocalVars) -> Option<JvmValue> {
     None
 }
 
-
 ////////////////////////////////////////////
 // java.lang.Runtime
-
 
 pub fn java_lang_Runtime__freeMemory(args: &InterpLocalVars) -> Option<JvmValue> {
     // DUMMY
@@ -103,9 +104,9 @@ pub fn java_lang_Runtime__traceMethodCalls(args: &InterpLocalVars) -> Option<Jvm
 ////////////////////////////////////////////
 // java.lang.System
 
-
 pub fn java_lang_System__currentTimeMillis(args: &InterpLocalVars) -> Option<JvmValue> {
-    let millis = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)
+    let millis = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
         .expect("SystemTime before UNIX EPOCH!")
         .as_millis();
     Some(JvmValue::Long(millis as i64))
@@ -119,11 +120,14 @@ pub fn java_lang_System__arraycopy(args: &InterpLocalVars) -> Option<JvmValue> {
 ////////////////////////////////////////////
 // java.lang.Math simple maths methods
 
-
 pub fn java_lang_Math__sin(args: &InterpLocalVars) -> Option<JvmValue> {
     let d = match args.load(0) {
         JvmValue::Double(v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.sin", x, x.name())
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.sin",
+            x,
+            x.name()
+        ),
     };
     Some(JvmValue::Double(d.sin()))
 }
@@ -131,7 +135,11 @@ pub fn java_lang_Math__sin(args: &InterpLocalVars) -> Option<JvmValue> {
 pub fn java_lang_Math__cos(args: &InterpLocalVars) -> Option<JvmValue> {
     let d = match args.load(0) {
         JvmValue::Double(v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.cos", x, x.name())
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.cos",
+            x,
+            x.name()
+        ),
     };
     Some(JvmValue::Double(d.cos()))
 }
@@ -139,7 +147,11 @@ pub fn java_lang_Math__cos(args: &InterpLocalVars) -> Option<JvmValue> {
 pub fn java_lang_Math__tan(args: &InterpLocalVars) -> Option<JvmValue> {
     let d = match args.load(0) {
         JvmValue::Double(v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.tan", x, x.name())
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.tan",
+            x,
+            x.name()
+        ),
     };
     Some(JvmValue::Double(d.tan()))
 }
@@ -147,15 +159,23 @@ pub fn java_lang_Math__tan(args: &InterpLocalVars) -> Option<JvmValue> {
 pub fn java_lang_Math__asin(args: &InterpLocalVars) -> Option<JvmValue> {
     let d = match args.load(0) {
         JvmValue::Double(v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.asin", x, x.name())
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.asin",
+            x,
+            x.name()
+        ),
     };
     Some(JvmValue::Double(d.asin()))
 }
 
 pub fn java_lang_Math__acos(args: &InterpLocalVars) -> Option<JvmValue> {
     let d = match args.load(0) {
-        JvmValue::Double (v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.acos", x, x.name())
+        JvmValue::Double(v) => v,
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.acos",
+            x,
+            x.name()
+        ),
     };
 
     Some(JvmValue::Double(d.acos()))
@@ -163,8 +183,12 @@ pub fn java_lang_Math__acos(args: &InterpLocalVars) -> Option<JvmValue> {
 
 pub fn java_lang_Math__atan(args: &InterpLocalVars) -> Option<JvmValue> {
     let d = match args.load(0) {
-        JvmValue::Double (v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.atan", x, x.name())
+        JvmValue::Double(v) => v,
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.atan",
+            x,
+            x.name()
+        ),
     };
 
     Some(JvmValue::Double(d.atan()))
@@ -172,8 +196,12 @@ pub fn java_lang_Math__atan(args: &InterpLocalVars) -> Option<JvmValue> {
 
 pub fn java_lang_Math__exp(args: &InterpLocalVars) -> Option<JvmValue> {
     let d = match args.load(0) {
-        JvmValue::Double (v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.exp", x, x.name())
+        JvmValue::Double(v) => v,
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.exp",
+            x,
+            x.name()
+        ),
     };
 
     Some(JvmValue::Double(d.exp()))
@@ -181,8 +209,12 @@ pub fn java_lang_Math__exp(args: &InterpLocalVars) -> Option<JvmValue> {
 
 pub fn java_lang_Math__log(args: &InterpLocalVars) -> Option<JvmValue> {
     let d = match args.load(0) {
-        JvmValue::Double (v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.log", x, x.name())
+        JvmValue::Double(v) => v,
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.log",
+            x,
+            x.name()
+        ),
     };
 
     Some(JvmValue::Double(d.ln()))
@@ -190,8 +222,12 @@ pub fn java_lang_Math__log(args: &InterpLocalVars) -> Option<JvmValue> {
 
 pub fn java_lang_Math__sqrt(args: &InterpLocalVars) -> Option<JvmValue> {
     let d = match args.load(0) {
-        JvmValue::Double (v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.sqrt", x, x.name())
+        JvmValue::Double(v) => v,
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.sqrt",
+            x,
+            x.name()
+        ),
     };
 
     Some(JvmValue::Double(d.sqrt()))
@@ -199,8 +235,12 @@ pub fn java_lang_Math__sqrt(args: &InterpLocalVars) -> Option<JvmValue> {
 
 pub fn java_lang_Math__ceil(args: &InterpLocalVars) -> Option<JvmValue> {
     let d = match args.load(0) {
-        JvmValue::Double (v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.ceil", x, x.name())
+        JvmValue::Double(v) => v,
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.ceil",
+            x,
+            x.name()
+        ),
     };
 
     Some(JvmValue::Double(d.ceil()))
@@ -208,8 +248,12 @@ pub fn java_lang_Math__ceil(args: &InterpLocalVars) -> Option<JvmValue> {
 
 pub fn java_lang_Math__floor(args: &InterpLocalVars) -> Option<JvmValue> {
     let d = match args.load(0) {
-        JvmValue::Double (v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.floor", x, x.name())
+        JvmValue::Double(v) => v,
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.floor",
+            x,
+            x.name()
+        ),
     };
 
     Some(JvmValue::Double(d.floor()))
@@ -221,41 +265,53 @@ pub fn java_lang_Math__floor(args: &InterpLocalVars) -> Option<JvmValue> {
 
 pub fn java_lang_Math__atan2(args: &InterpLocalVars) -> Option<JvmValue> {
     let base = match args.load(0) {
-        JvmValue::Double (v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.atan2", x, x.name())
+        JvmValue::Double(v) => v,
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.atan2",
+            x,
+            x.name()
+        ),
     };
 
     let other = match args.load(0) {
-        JvmValue::Double (v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.atan2", x, x.name())
+        JvmValue::Double(v) => v,
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.atan2",
+            x,
+            x.name()
+        ),
     };
-
 
     Some(JvmValue::Double(base.atan2(other)))
 }
 
 pub fn java_lang_Math__pow(args: &InterpLocalVars) -> Option<JvmValue> {
     let base = match args.load(0) {
-        JvmValue::Double (v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.pow", x, x.name())
+        JvmValue::Double(v) => v,
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.pow",
+            x,
+            x.name()
+        ),
     };
 
     let raise = match args.load(0) {
-        JvmValue::Double (v) => v,
-        x => panic!("Non-double value {} of type {} encountered in Math.pow", x, x.name())
+        JvmValue::Double(v) => v,
+        x => panic!(
+            "Non-double value {} of type {} encountered in Math.pow",
+            x,
+            x.name()
+        ),
     };
-
 
     Some(JvmValue::Double(base.powf(raise)))
 }
-
 
 //public static final native double IEEEremainder(double, double);
 //public static final native double ceil(double);
 //public static final native double floor(double);
 //public static final native double rint(double);
 //public static final native double atan2(double, double);
-
 
 ////////////////////////////////////////////
 

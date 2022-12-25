@@ -1,9 +1,9 @@
 use std::cell::Cell;
 use std::fmt;
 
+use crate::interpreter::values::*;
 use crate::klass::constant_pool::CpAttr;
 use crate::klass::constant_pool::ACC_NATIVE;
-use crate::interpreter::values::*;
 
 #[derive(Clone)]
 pub struct OtMethod {

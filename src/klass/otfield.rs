@@ -1,8 +1,8 @@
 use std::fmt;
 
+use crate::interpreter::values::JvmValue;
 use crate::klass::constant_pool::CpAttr;
 use crate::klass::constant_pool::ACC_STATIC;
-use crate::interpreter::values::JvmValue;
 
 #[derive(Debug, Clone)]
 pub struct OtField {

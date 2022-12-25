@@ -143,10 +143,8 @@ impl OtKlassParser {
         self.current = 10;
         // dbg!("Pool size:");
         // dbg!(self.get_pool_size());
-        self.cp_entries.resize(
-            (self.pool_item_count as usize) + 1,
-            CpEntry::Integer(0),
-        );
+        self.cp_entries
+            .resize((self.pool_item_count as usize) + 1, CpEntry::Integer(0));
         let mut current_cp = 0;
         let mut double_width = false;
         while current_cp < self.pool_item_count - 1 {
@@ -252,7 +250,7 @@ impl OtKlassParser {
                     self.current += 4;
                     CpEntry::FieldRef(FieldRef::new(
                         ((b1 as u16) << 8) + b2 as u16,
-                        ((b3 as u16) << 8) + b4 as u16
+                        ((b3 as u16) << 8) + b4 as u16,
                     ))
                 }
                 CP_METHODREF => {
@@ -265,9 +263,9 @@ impl OtKlassParser {
 
                     CpEntry::MethodRef(MethodRef::new(
                         ((b1 as u16) << 8) + b2 as u16,
-                        ((b3 as u16) << 8) + b4 as u16
+                        ((b3 as u16) << 8) + b4 as u16,
                     ))
-                } 
+                }
                 CP_INTERFACE_METHODREF => {
                     // println!("Parsing an interface_methodref");
                     let b1 = self.clz_read[self.current];
@@ -277,7 +275,7 @@ impl OtKlassParser {
                     self.current += 4;
                     CpEntry::InterfaceMethodRef(InterfaceMethodRef::new(
                         ((b1 as u16) << 8) + b2 as u16,
-                        ((b3 as u16) << 8) + b4 as u16
+                        ((b3 as u16) << 8) + b4 as u16,
                     ))
                 }
                 CP_NAMEANDTYPE => {
@@ -289,17 +287,19 @@ impl OtKlassParser {
                     self.current += 4;
                     CpEntry::NameAndType(NameAndType::new(
                         ((b1 as u16) << 8) + b2 as u16,
-                        ((b3 as u16) << 8) + b4 as u16
+                        ((b3 as u16) << 8) + b4 as u16,
                     ))
                 }
-                _ => panic!("Unsupported Constant Pool type {} at {} of {}", tag, self.current, self.filename),
+                _ => panic!(
+                    "Unsupported Constant Pool type {} at {} of {}",
+                    tag, self.current, self.filename
+                ),
             };
             self.cp_entries[current_cp as usize] = item;
             if double_width {
                 current_cp = current_cp + 1;
                 double_width = false;
             }
-
         }
     }
 

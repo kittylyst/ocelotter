@@ -2,8 +2,8 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::interpreter::values::JvmValue;
 use crate::interpreter::object::OtObj;
+use crate::interpreter::values::JvmValue;
 use crate::klass::otfield::OtField;
 use crate::klass::otklass::OtKlass;
 

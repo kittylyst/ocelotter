@@ -1,20 +1,20 @@
 #[macro_use]
 extern crate lazy_static;
 
-use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
 use structopt::StructOpt;
 
+use crate::klass::otklass::OtKlass;
+use interpreter::thread::start_new_jthread;
 use klass::klass_repo::SharedKlassRepo;
 use klass::options::Options;
 use klass::otklass::OtKlassComms;
-use interpreter::thread::start_new_jthread;
-use crate::klass::otklass::OtKlass;
 
-pub mod klass;
 pub mod interpreter;
+pub mod klass;
 
 pub fn main() {
     // Parse any command-line arguments
@@ -29,14 +29,10 @@ pub fn main() {
     // General comms
     let (tx, rx): (Sender<OtKlassComms>, Receiver<OtKlassComms>) = mpsc::channel();
 
-    let k_keep = thread::spawn(move || {
-        SharedKlassRepo::start(options, tx_fname, rx)
-    });
+    let k_keep = thread::spawn(move || SharedKlassRepo::start(options, tx_fname, rx));
 
     let f_name = rx_fname.recv().unwrap();
-    let j_main = thread::spawn(move || {
-        start_new_jthread(f_name, tx)
-    });
+    let j_main = thread::spawn(move || start_new_jthread(f_name, tx));
 
     j_main.join().unwrap();
     // k_keep.clean_shutdown();
