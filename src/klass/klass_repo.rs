@@ -13,10 +13,7 @@ use crate::klass::otmethod::OtMethod;
 use crate::klass::otklass::OtKlass;
 use crate::klass::klass_parser::OtKlassParser;
 use crate::klass::options::Options;
-
-// use ocelotter_util::file_to_bytes;
-// use ocelotter_util::ZipFiles;
-
+use crate::klass::util::*;
 
 //////////// SHARED RUNTIME KLASS REPO
 
@@ -200,7 +197,7 @@ impl SharedKlassRepo {
         })
         .for_each(|z| {
             if let Ok((name, bytes)) = z {
-                let mut parser = crate::klass_parser::OtKlassParser::of(bytes, name);
+                let mut parser = OtKlassParser::of(bytes, name);
                 parser.parse();
                 self.add_klass(&parser.klass());
             }

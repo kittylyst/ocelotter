@@ -2,9 +2,6 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt;
 
-// use ocelotter_runtime::InterpLocalVars;
-// use ocelotter_runtime::JvmValue;
-
 use crate::klass::constant_pool::*;
 use crate::klass::otfield::OtField;
 use crate::klass::otmethod::OtMethod;

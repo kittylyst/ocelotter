@@ -1,7 +1,6 @@
 use std::time::SystemTime;
 
-use crate::InterpLocalVars;
-use crate::JvmValue;
+use crate::interpreter::values::*;
 
 ////////////////////////////////////////////
 // java.lang.Object

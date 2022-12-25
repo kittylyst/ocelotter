@@ -1,19 +1,12 @@
-use std::path::Path;
+#[macro_use]
+extern crate lazy_static;
+
 use std::thread;
 
 use structopt::StructOpt;
 
-// use ocelotter_runtime::JvmValue::*;
-// use ocelotter_util::file_to_bytes;
-//
-// use ocelotter::exec_method;
-// use ocelotter_util::ZipFiles;
-// use ocelotter_runtime::options::Options;
-
-use klass::klass_parser::*;
 use klass::klass_repo::SharedKlassRepo;
 use klass::options::Options;
-use interpreter::InterpLocalVars;
 use interpreter::thread::start_new_jthread;
 
 pub mod klass;

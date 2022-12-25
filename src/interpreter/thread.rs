@@ -5,11 +5,14 @@
 // use ocelotter_runtime::klass_repo::SharedKlassRepo;
 
 use crate::interpreter::opcode;
+use crate::interpreter::interp_stack::InterpEvalStack;
+use crate::interpreter::values::*;
+use crate::interpreter::object::OtObj;
 use crate::klass::constant_pool::*;
 use crate::klass::otklass::OtKlass;
 use crate::klass::otmethod::OtMethod;
-use crate::interpreter::interp_stack::InterpEvalStack;
-use crate::interpreter::values::*;
+
+use crate::SharedKlassRepo;
 
 pub fn start_new_jthread(f_name: String) {
     // FIXME Real main() signature required, dummying for ease of testing
@@ -293,7 +296,7 @@ pub fn exec_bytecode_method(
                 dbg!(arrayid);
 
                 let unwrapped_val = match HEAP.lock().unwrap().get_obj(arrayid) {
-                    ocelotter_runtime::object::OtObj::VmArrInt {
+                    OtObj::VmArrInt {
                         id: _,
                         mark: _,
                         klassid: _,

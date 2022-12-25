@@ -1,7 +1,7 @@
 #![deny(unreachable_patterns)]
 use std::cmp::Ordering;
 
-use crate::JvmValue;
+use crate::interpreter::values::JvmValue;
 
 pub struct InterpEvalStack {
     stack: Vec<JvmValue>,

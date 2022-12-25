@@ -1,8 +1,8 @@
 use std::fmt;
 use std::cell::Cell;
 
-use crate::JvmValue;
-use crate::OtField;
+use crate::interpreter::values::JvmValue;
+// use crate::OtField;
 
 // If we need this, we'd better impl it manually
 // #[derive(Debug)]

@@ -1,10 +1,9 @@
 use std::cell::Cell;
 use std::fmt;
 
-use crate::constant_pool::CpAttr;
-use crate::constant_pool::ACC_NATIVE;
-use ocelotter_runtime::InterpLocalVars;
-use ocelotter_runtime::JvmValue;
+use crate::klass::constant_pool::CpAttr;
+use crate::klass::constant_pool::ACC_NATIVE;
+use crate::interpreter::values::*;
 
 #[derive(Clone)]
 pub struct OtMethod {

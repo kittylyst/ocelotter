@@ -7,23 +7,13 @@
 use std::fmt;
 use std::sync::Mutex;
 
-#[macro_use]
-extern crate lazy_static;
+// use crate::simple_heap::SharedSimpleHeap;
+// use object::OtObj;
+// use klass_repo::SharedKlassRepo;
 
-// pub mod constant_pool;
-// pub mod interp_stack;
-// pub mod klass_parser;
-// pub mod klass_repo;
-pub mod native_methods;
-pub mod object;
-pub mod simple_heap;
-
-use crate::simple_heap::SharedSimpleHeap;
-use object::OtObj;
-use ocelotter::klass::otfield::OtField;
-use ocelotter::klass::otklass::OtKlass;
-use ocelotter::klass::otmethod::OtMethod;
-use klass_repo::SharedKlassRepo;
+use crate::klass::otfield::OtField;
+use crate::klass::otklass::OtKlass;
+use crate::klass::otmethod::OtMethod;
 
 lazy_static! {
     pub static ref HEAP: Mutex<SharedSimpleHeap> = Mutex::new(SharedSimpleHeap::of());
