@@ -2,6 +2,7 @@ use std::{fmt, thread};
 use std::path::Path;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 
@@ -16,6 +17,7 @@ use crate::klass::otklass::OtKlass;
 use crate::klass::klass_parser::OtKlassParser;
 use crate::klass::options::Options;
 use crate::klass::util::*;
+use crate::OtKlassComms;
 
 //////////// RUNTIME KLASS REPO
 
@@ -29,8 +31,7 @@ pub enum KlassLoadingStatus {
 #[derive(Debug)]
 pub struct SharedKlassRepo {
     klass_lookup: HashMap<String, RefCell<KlassLoadingStatus>>,
-    pub rx_kname: Receiver<String>,
-    pub tx_klass: Sender<OtKlass>,
+    rx: Receiver<OtKlassComms>,
 }
 
 impl SharedKlassRepo {
@@ -61,11 +62,10 @@ impl SharedKlassRepo {
     //////////////////////////////////////////////
 
     // We keep a mutable reference to the shared klass repo b/c we're the only thread allowed to modify it.
-    pub fn start(options: Options, tx_fname: Sender<String>, rx_kname: Receiver<String>, tx_klass: Sender<OtKlass>) {
+    pub fn start(options: Options, tx_fname: Sender<String>, rx: Receiver<OtKlassComms>) {
         let thread_tx_fname = tx_fname.clone();
-        let thread_tx_klass = tx_klass.clone();
 
-        let mut repo = SharedKlassRepo::of(rx_kname, thread_tx_klass);
+        let mut repo = SharedKlassRepo::of(rx);
         repo.bootstrap();
 
         // All native methods are installed for the bootstrap classes
@@ -74,45 +74,48 @@ impl SharedKlassRepo {
         let (tx_kname, rx_kname): (Sender<String>, Receiver<String>) = mpsc::channel();
         let (tx_klass, rx_klass): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
 
+        let n = Arc::new(Mutex::new(repo));
+        let n2 = Arc::clone(&n);
+        // let n = Mutex::new(repo);
         let k_clinit = thread::spawn(move || {
-            repo.run_clinit_method(&"java/io/FileDescriptor".to_string(), tx_kname, rx_klass );
+            let mut guard = n2.lock().unwrap();
+
+            (*guard).run_clinit_method(&"java/io/FileDescriptor".to_string(), tx_kname, rx_klass );
             // This requires the file descriptor handling to already exist
-            // self.run_clinit_method(&"java/lang/System".to_string(), tx_kname, rx_klass);
+            // *guard.run_clinit_method(&"java/lang/System".to_string(), tx_kname, rx_klass);
+
+            let fq_klass_name = options.fq_klass_name();
+            let f_name = options.f_name();
+            thread_tx_fname.send(f_name);
+
+            if let Some(file) = &options.classpath {
+                ZipFiles::new(file)
+                    .into_iter()
+                    .filter(|f| matches!(f, Ok((name, _)) if name.ends_with(".class")))
+                    .for_each(|z| {
+                        if let Ok((name, bytes)) = z {
+                            let mut parser = OtKlassParser::of(bytes, name);
+                            parser.parse();
+                            (*guard).add_klass(&parser.klass());
+                        }
+                    });
+                //Not using a classpath jar, just a class
+            } else {
+                let bytes = file_to_bytes(Path::new(&fq_klass_name))
+                    .unwrap_or_else(|_| panic!("Problem reading {}", &fq_klass_name));
+                let mut parser = OtKlassParser::of(bytes, fq_klass_name);
+                parser.parse();
+                let k = parser.klass();
+                (*guard).add_klass(&k);
+            }
         });
         k_clinit.join().unwrap();
-
-        let fq_klass_name = options.fq_klass_name();
-        let f_name = options.f_name();
-        thread_tx_fname.send(f_name);
-
-        if let Some(file) = &options.classpath {
-            ZipFiles::new(file)
-                .into_iter()
-                .filter(|f| matches!(f, Ok((name, _)) if name.ends_with(".class")))
-                .for_each(|z| {
-                    if let Ok((name, bytes)) = z {
-                        let mut parser = OtKlassParser::of(bytes, name);
-                        parser.parse();
-                        repo.add_klass(&parser.klass());
-                    }
-                });
-            //Not using a classpath jar, just a class
-        } else {
-            let bytes = file_to_bytes(Path::new(&fq_klass_name))
-                .unwrap_or_else(|_| panic!("Problem reading {}", &fq_klass_name));
-            let mut parser = OtKlassParser::of(bytes, fq_klass_name);
-            parser.parse();
-            let k = parser.klass();
-            repo.add_klass(&k);
-        }
-
-        repo.receive_loop();
+        n.lock().unwrap().receive_loop();
     }
 
-    pub fn of(rx_kname: Receiver<String>, tx_klass: Sender<OtKlass>) -> SharedKlassRepo {
+    pub fn of(rx: Receiver<OtKlassComms>) -> SharedKlassRepo {
         SharedKlassRepo {
-            rx_kname: rx_kname,
-            tx_klass: tx_klass,
+            rx: rx,
             klass_lookup: HashMap::new(),
         }
     }
@@ -183,7 +186,10 @@ impl SharedKlassRepo {
         };
         // FIXME Parameter passing
         let mut vars = InterpLocalVars::of(5);
-        exec_method(tx_kname, rx_klass, &clinit, &mut vars);
+
+        // FIXME Need to set up tx correctly - how's this?
+        let (tx, rx): (Sender<OtKlassComms>, Receiver<OtKlassComms>) = mpsc::channel();
+        exec_method(tx, &clinit, &mut vars);
     }
 
     fn install_native_method(&mut self, klass_name: &String, name_desc: &String,

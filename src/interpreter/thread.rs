@@ -2,7 +2,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc;
+
 use crate::interpreter::opcode;
 use crate::interpreter::interp_stack::InterpEvalStack;
 use crate::interpreter::values::*;
@@ -10,16 +12,18 @@ use crate::interpreter::object::OtObj;
 use crate::klass::constant_pool::*;
 use crate::klass::otklass::OtKlass;
 use crate::klass::otmethod::OtMethod;
+use crate::OtKlassComms;
 
-pub fn start_new_jthread(f_name: String, tx_kname: Sender<String>, rx_klass: Receiver<OtKlass>) {
-    let thread_tx_kname = tx_kname.clone();
+pub fn start_new_jthread(f_name: String, tx: Sender<OtKlassComms>) {
+    let thread_tx = tx.clone();
 
     // FIXME Real main() signature required, dummying for ease of testing
     let main_str: String = f_name.clone() + ".main2:([Ljava/lang/String;)I";
 
+    let (tx_main, rx_main): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
     // Send the main klass name and receive back the klass
-    thread_tx_kname.send(f_name);
-    let main_klass = rx_klass.recv().unwrap();
+    thread_tx.send(OtKlassComms { kname: f_name.clone(), reply_via: tx_main});
+    let main_klass = rx_main.recv().unwrap();
 
     let main = main_klass
         .get_method_by_name_and_desc(&main_str)
@@ -28,24 +32,22 @@ pub fn start_new_jthread(f_name: String, tx_kname: Sender<String>, rx_klass: Rec
     // FIXME Parameter passing
     let mut vars = InterpLocalVars::of(5);
 
-    let ret = exec_method(tx_kname, rx_klass, main, &mut vars)
-        .map(|return_value| match return_value {
-            JvmValue::Int(i) => i,
-            _ => panic!("Error executing {} - non-int value returned", &f_name),
-        })
-        .unwrap_or_else(|| panic!("Error executing {} - no value returned", &f_name));
+    let return_val = exec_method(tx, main, &mut vars);
+        let ret = match return_val {
+            Some(JvmValue::Int(i)) => i,
+            _ => panic!("Error executing {} - non-int value returned", f_name.clone()),
+        };
 
     println!("Ret: {}", ret);
 }
 
 // Transmits a class name, receives a klass
 pub fn exec_method(
-    tx_kname: Sender<String>,
-    rx_klass: Receiver<OtKlass>,
+    tx: Sender<OtKlassComms>,
     meth: &OtMethod,
     lvt: &mut InterpLocalVars,
 ) -> Option<JvmValue> {
-    let thread_tx_kname = tx_kname.clone();
+    let thread_tx = tx.clone();
 
     if meth.is_native() {
         // Explicit type hint here to document the type of n_f
@@ -56,18 +58,17 @@ pub fn exec_method(
         // FIXME Parameter passing
         n_f(lvt)
     } else {
-        exec_bytecode_method(tx_kname, rx_klass, meth.get_klass_name(), &meth.get_code(), lvt)
+        exec_bytecode_method(thread_tx,meth.get_klass_name(), &meth.get_code(), lvt)
     }
 }
 
 pub fn exec_bytecode_method(
-    tx_kname: Sender<String>,
-    rx_klass: Receiver<OtKlass>,
+    tx: Sender<OtKlassComms>,
     klass_name: String,
     instr: &[u8],
     lvt: &mut InterpLocalVars,
 ) -> Option<JvmValue> {
-    let thread_tx_kname = tx_kname.clone();
+    let thread_tx = tx.clone();
 
     let mut current = 0;
     let mut eval = InterpEvalStack::of();
@@ -255,7 +256,7 @@ pub fn exec_bytecode_method(
                 };
                 let heap = HEAP.lock().unwrap();
                 let obj = heap.get_obj(obj_id);
-                let getf = OtKlass::lookup_instance_field(&klass_name, cp_lookup);
+                let getf = OtKlass::lookup_instance_field(thread_tx.clone(), &klass_name, cp_lookup);
 
                 let ret = obj.get_field_value(getf.get_offset() as usize);
                 eval.push(ret);
@@ -264,8 +265,8 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let getf = OtKlass::lookup_static_field(&klass_name, cp_lookup).clone();
-                let klass = OtKlass::lookup_klass(&getf.get_klass_name()).clone();
+                let getf = OtKlass::lookup_static_field(thread_tx.clone(), &klass_name, cp_lookup).clone();
+                let klass = OtKlass::lookup_klass(thread_tx.clone(), &getf.get_klass_name()).clone();
 
                 let ret = klass.get_static(&getf);
                 eval.push(ret);
@@ -556,24 +557,24 @@ pub fn exec_bytecode_method(
             opcode::INVOKESPECIAL => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = OtKlass::lookup_klass(&klass_name).clone();
-                dispatch_invoke(tx_kname.clone(), rx_klass, current_klass, cp_lookup, &mut eval, 1);
+                let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
+                dispatch_invoke(thread_tx.clone(), current_klass, cp_lookup, &mut eval, 1);
             }
             opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = OtKlass::lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
                 //                dbg!(cp_lookup);
                 let arg_count = current_klass.get_method_arg_count(cp_lookup);
-                dispatch_invoke(tx_kname.clone(), rx_klass, current_klass, cp_lookup, &mut eval, arg_count);
+                dispatch_invoke(thread_tx.clone(), current_klass, cp_lookup, &mut eval, arg_count);
             }
             opcode::INVOKEVIRTUAL => {
                 // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = OtKlass::lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
                 dbg!(current_klass.clone());
-                dispatch_invoke(tx_kname.clone(), rx_klass, current_klass, cp_lookup, &mut eval, 1);
+                dispatch_invoke(thread_tx.clone(), current_klass, cp_lookup, &mut eval, 1);
             }
             opcode::IOR => eval.ior(),
 
@@ -622,7 +623,7 @@ pub fn exec_bytecode_method(
             opcode::LDC => {
                 let cp_lookup = instr[current] as u16;
                 current += 1;
-                let current_klass = OtKlass::lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
 
                 match current_klass.lookup_cp(cp_lookup) {
                     // FIXME Actually look up the class object properly
@@ -641,7 +642,7 @@ pub fn exec_bytecode_method(
             opcode::LDC2_W => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = OtKlass::lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
 
                 let entry: CpEntry = current_klass.lookup_cp(cp_lookup);
                 //                dbg!("Index: {} of type {}", cp_lookup, entry.name());
@@ -720,7 +721,7 @@ pub fn exec_bytecode_method(
             opcode::NEW => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = OtKlass::lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
 
                 let alloc_klass_name = match current_klass.lookup_cp(cp_lookup) {
                     // FIXME Find class name from constant pool of the current class
@@ -732,7 +733,7 @@ pub fn exec_bytecode_method(
                     ),
                 };
                 //                dbg!(alloc_klass_name.clone());
-                let object_klass = OtKlass::lookup_klass(&alloc_klass_name).clone();
+                let object_klass = OtKlass::lookup_klass(thread_tx.clone(), &alloc_klass_name).clone();
 
                 let obj_id = HEAP.lock().unwrap().allocate_obj(&object_klass);
                 eval.push(JvmValue::ObjRef(obj_id));
@@ -784,7 +785,7 @@ pub fn exec_bytecode_method(
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
 
-                let putf = OtKlass::lookup_instance_field(&klass_name, cp_lookup);
+                let putf = OtKlass::lookup_instance_field(thread_tx.clone(), &klass_name, cp_lookup);
 
                 HEAP.lock().unwrap().put_field(obj_id, putf, val);
             }
@@ -792,8 +793,8 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let puts = OtKlass::lookup_static_field(&klass_name, cp_lookup);
-                let klass = OtKlass::lookup_klass(&puts.get_klass_name()).clone();
+                let puts = OtKlass::lookup_static_field(thread_tx.clone(), &klass_name, cp_lookup);
+                let klass = OtKlass::lookup_klass(thread_tx.clone(), &puts.get_klass_name()).clone();
 
                 klass.put_static(&puts, eval.pop());
             }
@@ -837,12 +838,11 @@ fn massage_to_int_and_compare(v1: JvmValue, v2: JvmValue, f: fn(i: i32, j: i32) 
 }
 
 fn dispatch_invoke(
-    tx_kname: Sender<String>,
-    rx_klass: Receiver<OtKlass>,
+    tx: Sender<OtKlassComms>,
     current_klass: OtKlass,
     cp_lookup: u16,
     eval: &mut InterpEvalStack,
-    additional_args: u8,
+    additional_args: u8
 ) {
     let fq_name_desc = current_klass.cp_as_string(cp_lookup);
     let klz_idx = match current_klass.lookup_cp(cp_lookup) {
@@ -855,7 +855,7 @@ fn dispatch_invoke(
     };
     let dispatch_klass_name = current_klass.cp_as_string(klz_idx);
 
-    let callee = OtKlass::lookup_method_exact(&dispatch_klass_name, fq_name_desc);
+    let callee = OtKlass::lookup_method_exact(tx.clone(), &dispatch_klass_name, fq_name_desc);
 
     // FIXME - General setup requires call args from the stack
     let mut vars = InterpLocalVars::of(255);
@@ -863,7 +863,7 @@ fn dispatch_invoke(
         vars.store(0, eval.pop());
     }
     // Explicit use of match expression to be clear about the semantics
-    match exec_method(tx_kname, rx_klass, &callee, &mut vars, ) {
+    match exec_method(tx, &callee, &mut vars, ) {
         Some(val) => eval.push(val),
         None => (),
     }
