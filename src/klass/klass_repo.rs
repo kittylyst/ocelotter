@@ -12,7 +12,6 @@ use crate::interpreter::thread::exec_method;
 use crate::interpreter::values::*;
 
 use crate::klass::otfield::OtField;
-use crate::klass::otmethod::OtMethod;
 use crate::klass::otklass::OtKlass;
 use crate::klass::klass_parser::OtKlassParser;
 use crate::klass::options::Options;
@@ -110,15 +109,6 @@ impl SharedKlassRepo {
         repo.receive_loop();
     }
 
-    pub fn receive_loop(&self) {
-        // FIXME Main dispatch loop goes here!!!!
-        // while (self.rx_kname.recv()) {
-        //
-        //     // self.tx_klass.send();
-        // }
-
-    }
-
     pub fn of(rx_kname: Receiver<String>, tx_klass: Sender<OtKlass>) -> SharedKlassRepo {
         SharedKlassRepo {
             rx_kname: rx_kname,
@@ -127,18 +117,13 @@ impl SharedKlassRepo {
         }
     }
 
-    pub fn lookup_klass(&self, klass_name: &String) -> OtKlass {
-        // let s = format!("{}", self);
-        // dbg!(s);
+    pub fn receive_loop(&self) {
+        // FIXME Main dispatch loop goes here!!!!
+        // while (self.rx_kname.recv()) {
+        //
+        //     // self.tx_klass.send();
+        // }
 
-        match self.klass_lookup.get(klass_name) {
-            Some(cell) => match &*(cell.borrow()) {
-                KlassLoadingStatus::Mentioned {} => panic!("Klass {} is not loaded yet", klass_name),
-                KlassLoadingStatus::Loaded { klass : k } => k.clone(),
-                KlassLoadingStatus::Live { klass : k } => k.clone()
-            },
-            None => panic!("No klass called {} found in repo", klass_name),
-        }
     }
 
     pub fn add_klass(&mut self, k: &OtKlass) -> () {
@@ -185,6 +170,9 @@ impl SharedKlassRepo {
         }
     }
 
+    ////////////////////////////////
+    // These functions actually run code, so they can have direct access to our own data structures
+
     fn run_clinit_method(&mut self, klass_name: &String, tx_kname: Sender<String>, rx_klass: Receiver<OtKlass>) {
         let m_str = klass_name.to_owned() + ".<clinit>:()V";
         let k = self.lookup_klass(klass_name);
@@ -205,6 +193,21 @@ impl SharedKlassRepo {
 
         k.set_native_method(fq_name, n_code);
         self.klass_lookup.get(klass_name).unwrap().replace(KlassLoadingStatus::Live{ klass: k });
+    }
+
+    // Private lookup function
+    fn lookup_klass(&self, klass_name: &String) -> OtKlass {
+        // let s = format!("{}", self);
+        // dbg!(s);
+
+        match self.klass_lookup.get(klass_name) {
+            Some(cell) => match &*(cell.borrow()) {
+                KlassLoadingStatus::Mentioned {} => panic!("Klass {} is not loaded yet", klass_name),
+                KlassLoadingStatus::Loaded { klass : k } => k.clone(),
+                KlassLoadingStatus::Live { klass : k } => k.clone()
+            },
+            None => panic!("No klass called {} found in repo", klass_name),
+        }
     }
 
 //    fn double_mapper_factory(tfm: fn(f64) -> f64) -> fn(&InterpLocalVars) -> Option<JvmValue> {
@@ -312,73 +315,11 @@ impl SharedKlassRepo {
         // dbg!(s);
     }
 
-    pub fn lookup_static_field(&self, klass_name: &String, idx: u16) -> OtField {
-        let current_klass = self.lookup_klass(klass_name);
-
-        // Lookup the Fully-Qualified field name from the CP index
-        let fq_name_desc = current_klass.cp_as_string(idx);
-        let target_klass_name = &SharedKlassRepo::klass_name_from_fq(&fq_name_desc);
-        let target_klass = self.lookup_klass(&target_klass_name);
-
-        let opt_f = target_klass.get_static_field_by_name_and_desc(&fq_name_desc);
-
-        match opt_f {
-            Some(f) => f.clone(),
-            None => panic!(
-                "No static field {} found on klass {} ",
-                fq_name_desc.clone(),
-                target_klass_name
-            ),
-        }
-    }
-
-    pub fn lookup_instance_field(&self, klass_name: &String, idx: u16) -> OtField {
-        let current_klass = self.lookup_klass(klass_name);
-
-        // Lookup the Fully-Qualified field name from the CP index
-        let fq_name_desc = current_klass.cp_as_string(idx);
-        let target_klass_name = &SharedKlassRepo::klass_name_from_fq(&fq_name_desc);
-        let target_klass = self.lookup_klass(&target_klass_name);
-
-        let opt_f = target_klass.get_instance_field_by_name_and_desc(&fq_name_desc);
-
-        match opt_f {
-            Some(f) => f.clone(),
-            None => panic!(
-                "No instance field {} found on klass {} ",
-                fq_name_desc.clone(),
-                target_klass_name
-            ),
-        }
-    }
-
     // FIXME Lookup offset properly
     pub fn get_field_offset(&self, kid: usize, f: OtField) -> usize {
         0
     }
 
-    pub fn lookup_method_exact(&self, klass_name: &String, fq_name_desc: String) -> OtMethod {
-        match self.klass_lookup.get(klass_name) {
-            Some(cell) => match &*(cell.borrow()) {
-                KlassLoadingStatus::Mentioned {} => panic!("Klass with ID {} is not loaded yet", klass_name),
-                KlassLoadingStatus::Loaded { klass : k } => k.get_method_by_name_and_desc(&fq_name_desc).unwrap().clone(),
-                KlassLoadingStatus::Live { klass : k } => k.get_method_by_name_and_desc(&fq_name_desc).unwrap().clone(),
-            },
-            None => panic!("No klass with ID {} found in repo", klass_name),
-        }
-    }
-
-    // m_idx is IDX in CP of current class
-    pub fn lookup_method_virtual(&self, klass_name: &String, m_idx: u16) -> OtMethod {
-        match self.klass_lookup.get(klass_name) {
-            Some(cell) => match &*(cell.borrow()) {
-                KlassLoadingStatus::Mentioned {} => panic!("Klass with ID {} is not loaded yet", klass_name),
-                KlassLoadingStatus::Loaded { klass : k } => k.get_method_by_offset_virtual(m_idx),
-                KlassLoadingStatus::Live { klass : k } => k.get_method_by_offset_virtual(m_idx),
-            }
-            None => panic!("No klass with ID {} found in repo", klass_name),
-        }
-    }
 }
 
 impl fmt::Display for SharedKlassRepo {
@@ -390,14 +331,3 @@ impl fmt::Display for SharedKlassRepo {
         )
     }
 }
-
-// impl Clone for SharedKlassRepo {
-//     fn clone(&self) -> SharedKlassRepo {
-//         SharedKlassRepo {
-//             rx_kname: se
-//             klass_lookup: self.klass_lookup.clone(),
-//         }
-//     }
-// }
-
-/////////////////////////////////////////////////////////////////

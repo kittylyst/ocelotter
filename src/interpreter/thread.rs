@@ -255,7 +255,7 @@ pub fn exec_bytecode_method(
                 };
                 let heap = HEAP.lock().unwrap();
                 let obj = heap.get_obj(obj_id);
-                let getf = repo.lookup_instance_field(&klass_name, cp_lookup);
+                let getf = OtKlass::lookup_instance_field(&klass_name, cp_lookup);
 
                 let ret = obj.get_field_value(getf.get_offset() as usize);
                 eval.push(ret);
@@ -264,8 +264,8 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let getf = repo.lookup_static_field(&klass_name, cp_lookup).clone();
-                let klass = repo.lookup_klass(&getf.get_klass_name()).clone();
+                let getf = OtKlass::lookup_static_field(&klass_name, cp_lookup).clone();
+                let klass = OtKlass::lookup_klass(&getf.get_klass_name()).clone();
 
                 let ret = klass.get_static(&getf);
                 eval.push(ret);
@@ -556,13 +556,13 @@ pub fn exec_bytecode_method(
             opcode::INVOKESPECIAL => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = repo.lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(&klass_name).clone();
                 dispatch_invoke(tx_kname.clone(), rx_klass, current_klass, cp_lookup, &mut eval, 1);
             }
             opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = repo.lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(&klass_name).clone();
                 //                dbg!(cp_lookup);
                 let arg_count = current_klass.get_method_arg_count(cp_lookup);
                 dispatch_invoke(tx_kname.clone(), rx_klass, current_klass, cp_lookup, &mut eval, arg_count);
@@ -571,7 +571,7 @@ pub fn exec_bytecode_method(
                 // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = repo.lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(&klass_name).clone();
                 dbg!(current_klass.clone());
                 dispatch_invoke(tx_kname.clone(), rx_klass, current_klass, cp_lookup, &mut eval, 1);
             }
@@ -622,7 +622,7 @@ pub fn exec_bytecode_method(
             opcode::LDC => {
                 let cp_lookup = instr[current] as u16;
                 current += 1;
-                let current_klass = repo.lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(&klass_name).clone();
 
                 match current_klass.lookup_cp(cp_lookup) {
                     // FIXME Actually look up the class object properly
@@ -641,7 +641,7 @@ pub fn exec_bytecode_method(
             opcode::LDC2_W => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = repo.lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(&klass_name).clone();
 
                 let entry: CpEntry = current_klass.lookup_cp(cp_lookup);
                 //                dbg!("Index: {} of type {}", cp_lookup, entry.name());
@@ -720,7 +720,7 @@ pub fn exec_bytecode_method(
             opcode::NEW => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = repo.lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(&klass_name).clone();
 
                 let alloc_klass_name = match current_klass.lookup_cp(cp_lookup) {
                     // FIXME Find class name from constant pool of the current class
@@ -732,7 +732,7 @@ pub fn exec_bytecode_method(
                     ),
                 };
                 //                dbg!(alloc_klass_name.clone());
-                let object_klass = repo.lookup_klass(&alloc_klass_name).clone();
+                let object_klass = OtKlass::lookup_klass(&alloc_klass_name).clone();
 
                 let obj_id = HEAP.lock().unwrap().allocate_obj(&object_klass);
                 eval.push(JvmValue::ObjRef(obj_id));
@@ -784,7 +784,7 @@ pub fn exec_bytecode_method(
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
 
-                let putf = repo.lookup_instance_field(&klass_name, cp_lookup);
+                let putf = OtKlass::lookup_instance_field(&klass_name, cp_lookup);
 
                 HEAP.lock().unwrap().put_field(obj_id, putf, val);
             }
@@ -792,8 +792,8 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let puts = repo.lookup_static_field(&klass_name, cp_lookup);
-                let klass = repo.lookup_klass(&puts.get_klass_name()).clone();
+                let puts = OtKlass::lookup_static_field(&klass_name, cp_lookup);
+                let klass = OtKlass::lookup_klass(&puts.get_klass_name()).clone();
 
                 klass.put_static(&puts, eval.pop());
             }
@@ -855,7 +855,7 @@ fn dispatch_invoke(
     };
     let dispatch_klass_name = current_klass.cp_as_string(klz_idx);
 
-    let callee = repo.lookup_method_exact(&dispatch_klass_name, fq_name_desc);
+    let callee = OtKlass::lookup_method_exact(&dispatch_klass_name, fq_name_desc);
 
     // FIXME - General setup requires call args from the stack
     let mut vars = InterpLocalVars::of(255);

@@ -3,9 +3,11 @@ use std::collections::HashMap;
 use std::fmt;
 
 use crate::klass::constant_pool::*;
+use crate::klass::klass_repo::KlassLoadingStatus;
 use crate::klass::otfield::OtField;
 use crate::klass::otmethod::OtMethod;
 use crate::interpreter::values::*;
+use crate::SharedKlassRepo;
 
 //////////// RUNTIME KLASS AND RELATED HANDLING
 
@@ -77,7 +79,86 @@ impl OtKlass {
         }
     }
 
-    /////////////////////////////////////
+    //////////////////////////////////////////////
+    // Static methods
+
+    pub fn lookup_instance_field(klass_name: &String, idx: u16) -> OtField {
+        let current_klass = self.lookup_klass(klass_name);
+
+        // Lookup the Fully-Qualified field name from the CP index
+        let fq_name_desc = current_klass.cp_as_string(idx);
+        let target_klass_name = &SharedKlassRepo::klass_name_from_fq(&fq_name_desc);
+        let target_klass = self.lookup_klass(&target_klass_name);
+
+        let opt_f = target_klass.get_instance_field_by_name_and_desc(&fq_name_desc);
+
+        match opt_f {
+            Some(f) => f.clone(),
+            None => panic!(
+                "No instance field {} found on klass {} ",
+                fq_name_desc.clone(),
+                target_klass_name
+            ),
+        }
+    }
+
+
+    pub fn lookup_static_field(klass_name: &String, idx: u16) -> OtField {
+        let current_klass = self.lookup_klass(klass_name);
+
+        // Lookup the Fully-Qualified field name from the CP index
+        let fq_name_desc = current_klass.cp_as_string(idx);
+        let target_klass_name = &SharedKlassRepo::klass_name_from_fq(&fq_name_desc);
+        let target_klass = self.lookup_klass(&target_klass_name);
+
+        let opt_f = target_klass.get_static_field_by_name_and_desc(&fq_name_desc);
+
+        match opt_f {
+            Some(f) => f.clone(),
+            None => panic!(
+                "No static field {} found on klass {} ",
+                fq_name_desc.clone(),
+                target_klass_name
+            ),
+        }
+    }
+
+    pub fn lookup_klass(klass_name: &String) -> OtKlass {
+        // let s = format!("{}", self);
+        // dbg!(s);
+
+        match self.klass_lookup.get(klass_name) {
+            Some(cell) => match &*(cell.borrow()) {
+                KlassLoadingStatus::Mentioned {} => panic!("Klass {} is not loaded yet", klass_name),
+                KlassLoadingStatus::Loaded { klass : k } => k.clone(),
+                KlassLoadingStatus::Live { klass : k } => k.clone()
+            },
+            None => panic!("No klass called {} found in repo", klass_name),
+        }
+    }
+
+    pub fn lookup_method_exact(klass_name: &String, fq_name_desc: String) -> OtMethod {
+        match self.klass_lookup.get(klass_name) {
+            Some(cell) => match &*(cell.borrow()) {
+                KlassLoadingStatus::Mentioned {} => panic!("Klass with ID {} is not loaded yet", klass_name),
+                KlassLoadingStatus::Loaded { klass : k } => k.get_method_by_name_and_desc(&fq_name_desc).unwrap().clone(),
+                KlassLoadingStatus::Live { klass : k } => k.get_method_by_name_and_desc(&fq_name_desc).unwrap().clone(),
+            },
+            None => panic!("No klass with ID {} found in repo", klass_name),
+        }
+    }
+
+    // m_idx is IDX in CP of current class
+    pub fn lookup_method_virtual(klass_name: &String, m_idx: u16) -> OtMethod {
+        match self.klass_lookup.get(klass_name) {
+            Some(cell) => match &*(cell.borrow()) {
+                KlassLoadingStatus::Mentioned {} => panic!("Klass with ID {} is not loaded yet", klass_name),
+                KlassLoadingStatus::Loaded { klass : k } => k.get_method_by_offset_virtual(m_idx),
+                KlassLoadingStatus::Live { klass : k } => k.get_method_by_offset_virtual(m_idx),
+            }
+            None => panic!("No klass with ID {} found in repo", klass_name),
+        }
+    }
 
     pub fn parse_sig_for_args(signature : String) -> Vec<JvmValue> {
         let mut out: Vec<JvmValue> = Vec::new();
