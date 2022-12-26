@@ -19,7 +19,7 @@ use assert_float_eq::{
 
 fn init_fake_repo() -> (Sender<OtKlassComms>, SharedKlassRepo) {
     let (tx, rx): (Sender<OtKlassComms>, Receiver<OtKlassComms>) = mpsc::channel();
-    let mut repo = SharedKlassRepo::of(rx);
+    let mut repo = SharedKlassRepo::of(rx, None);
     repo.bootstrap();
     (tx, repo)
 }
@@ -30,12 +30,6 @@ pub fn run_test_returning_int(
     class_fname: String,
     k: OtKlass,
 ) -> i32 {
-    // pub fn run_test_returning_int(
-    //     class_name: String,
-    //     name_and_sig: String,
-    //     class_fname: String,
-    //     k: OtKlass,
-    // ) {
     let mut vec = Vec::new();
     vec.push(class_fname);
     let options = Options {
@@ -48,12 +42,20 @@ pub fn run_test_returning_int(
 
     // Handle the "send fname, get klass back"
     let (tx, rx): (Sender<OtKlassComms>, Receiver<OtKlassComms>) = mpsc::channel();
+    let (k_tx, k_rx): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
+    let kl_tx = tx.clone();
+    let j_tx = tx.clone();
 
-    let k_keep = thread::spawn(move || SharedKlassRepo::start(options, tx_fname, rx));
+    dbg!("About to start_with_klass_receiver");
+    let k_keep = thread::spawn(move || {
+        SharedKlassRepo::start_with_klass_receiver(options, tx_fname, kl_tx, rx, Some(k_rx))
+    });
     let f_name = rx_fname.recv().unwrap();
+    k_tx.clone().send(k);
 
+    dbg!("About to spawn start_new_jthread");
     let j_main = thread::spawn(move || {
-        let ret = start_new_jthread(f_name.clone(), tx.clone());
+        let ret = start_new_jthread(f_name.clone(), j_tx);
         println!("Back from start_new_jthread");
         ret
     });
@@ -699,7 +701,7 @@ fn interp_ldc_based_addition() {
 
     // FIXME The test is executing the wrong method
     // let m: Vec<Vec<u8>> = k.clone().get_methods().clone().iter().map(f).collect();
-    // dbg!(m);
+    dbg!(k.clone());
     let ret2 = run_test_returning_int(class_name, name_and_sig, class_fname, k);
     assert_eq!(44451, ret2);
 }

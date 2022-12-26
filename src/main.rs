@@ -27,11 +27,13 @@ pub fn main() {
 
     // Handle the "send fname, get klass back"
     let (tx, rx): (Sender<OtKlassComms>, Receiver<OtKlassComms>) = mpsc::channel();
+    let k_tx = tx.clone();
+    let j_tx = tx.clone();
 
-    let k_keep = thread::spawn(move || SharedKlassRepo::start(options, tx_fname, rx));
+    let k_keep = thread::spawn(move || SharedKlassRepo::start(options, tx_fname, k_tx, rx));
     let f_name = rx_fname.recv().unwrap();
 
-    let j_main = thread::spawn(move || start_new_jthread(f_name, tx));
+    let j_main = thread::spawn(move || start_new_jthread(f_name, j_tx));
 
     let ret = j_main.join().unwrap();
     // k_keep.clean_shutdown();

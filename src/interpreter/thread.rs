@@ -27,6 +27,7 @@ pub fn start_new_jthread(f_name: String, tx: Sender<OtKlassComms>) -> Option<Jvm
         reply_via: tx_main,
     });
     let main_klass = rx_main.recv().unwrap();
+    dbg!(main_klass.clone());
 
     let main = main_klass
         .get_method_by_name_and_desc(&main_str)
@@ -35,6 +36,7 @@ pub fn start_new_jthread(f_name: String, tx: Sender<OtKlassComms>) -> Option<Jvm
     // FIXME Parameter passing
     let mut vars = InterpLocalVars::of(5);
 
+    dbg!(main.clone());
     let return_val = exec_method(tx, main, &mut vars);
     // let ret = match return_val {
     //     Some(JvmValue::Int(i)) => i,
@@ -748,6 +750,7 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
                 let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
+                dbg!("Back from OtKlass::lookup_klass");
 
                 let alloc_klass_name = match current_klass.lookup_cp(cp_lookup) {
                     // FIXME Find class name from constant pool of the current class

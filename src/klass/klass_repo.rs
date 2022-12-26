@@ -32,6 +32,7 @@ pub enum KlassLoadingStatus {
 pub struct SharedKlassRepo {
     klass_lookup: HashMap<String, RefCell<KlassLoadingStatus>>,
     rx: Receiver<OtKlassComms>,
+    klass_rx: Option<Receiver<OtKlass>>,
 }
 
 impl SharedKlassRepo {
@@ -62,16 +63,32 @@ impl SharedKlassRepo {
 
     //////////////////////////////////////////////
 
-    // We keep a mutable reference to the shared klass repo b/c we're the only thread allowed to modify it.
-    pub fn start(options: Options, tx_fname: Sender<String>, rx: Receiver<OtKlassComms>) {
+    pub fn start(
+        options: Options,
+        tx_fname: Sender<String>,
+        tx: Sender<OtKlassComms>,
+        rx: Receiver<OtKlassComms>,
+    ) {
+        SharedKlassRepo::start_with_klass_receiver(options, tx_fname, tx, rx, None)
+    }
+
+    pub fn start_with_klass_receiver(
+        options: Options,
+        tx_fname: Sender<String>,
+        tx: Sender<OtKlassComms>,
+        rx: Receiver<OtKlassComms>,
+        o_k_rx: Option<Receiver<OtKlass>>,
+    ) {
         let thread_tx_fname = tx_fname.clone();
 
-        let mut repo = SharedKlassRepo::of(rx);
+        // We keep a mutable reference to the shared klass repo b/c we're the only thread allowed to modify it.
+        let mut repo = SharedKlassRepo::of(rx, o_k_rx);
         repo.bootstrap();
 
         // All native methods are installed for the bootstrap classes
         // Now, we need to run the static initializers in the right order
-        // On a separate thread
+        // On a separate interpreter thread
+
         let (tx_kname, rx_kname): (Sender<String>, Receiver<String>) = mpsc::channel();
         let (tx_klass, rx_klass): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
 
@@ -81,6 +98,7 @@ impl SharedKlassRepo {
         let k_clinit = thread::spawn(move || {
             let mut guard = n2.lock().unwrap();
 
+            dbg!("About to clint java/io/FileDescriptor");
             (*guard).run_clinit_method(&"java/io/FileDescriptor".to_string(), tx_kname, rx_klass);
             // This requires the file descriptor handling to already exist
             // *guard.run_clinit_method(&"java/lang/System".to_string(), tx_kname, rx_klass);
@@ -114,10 +132,11 @@ impl SharedKlassRepo {
         n.lock().unwrap().receive_loop();
     }
 
-    pub fn of(rx: Receiver<OtKlassComms>) -> SharedKlassRepo {
+    pub fn of(rx: Receiver<OtKlassComms>, o_k_rx: Option<Receiver<OtKlass>>) -> SharedKlassRepo {
         SharedKlassRepo {
             rx: rx,
             klass_lookup: HashMap::new(),
+            klass_rx: o_k_rx,
         }
     }
 
