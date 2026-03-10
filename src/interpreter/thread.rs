@@ -21,7 +21,7 @@ pub fn start_new_jthread(f_name: String, tx: Sender<OtKlassComms>) -> Option<Jvm
 
     let (tx_main, rx_main): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
     // Send the main klass name and receive back the klass
-    thread_tx.send(OtKlassComms {
+    let _ = thread_tx.send(OtKlassComms {
         kname: f_name.clone(),
         reply_via: tx_main,
     });
@@ -36,7 +36,7 @@ pub fn start_new_jthread(f_name: String, tx: Sender<OtKlassComms>) -> Option<Jvm
     let mut vars = InterpLocalVars::of(5);
 
     dbg!(main.clone());
-    let return_val = exec_method(tx, main, &mut vars);
+    // let return_val = exec_method(tx, main, &mut vars);
     // let ret = match return_val {
     //     Some(JvmValue::Int(i)) => i,
     //     _ => panic!(
@@ -47,7 +47,7 @@ pub fn start_new_jthread(f_name: String, tx: Sender<OtKlassComms>) -> Option<Jvm
     //
     // println!("Ret: {}", ret);
     //
-    return_val
+    exec_method(tx, main, &mut vars)
 }
 
 // Transmits a class name, receives a klass
@@ -1045,10 +1045,8 @@ fn dispatch_invoke(
     if additional_args > 0 {
         vars.store(0, eval.pop());
     }
-    // Explicit use of match expression to be clear about the semantics
-    match exec_method(tx, &callee, &mut vars) {
-        Some(val) => eval.push(val),
-        None => (),
+    if let Some(val) = exec_method(tx, &callee, &mut vars) {
+        eval.push(val)
     }
 }
 

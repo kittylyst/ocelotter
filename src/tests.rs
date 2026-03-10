@@ -28,8 +28,8 @@ fn init_fake_repo() -> (Sender<OtKlassComms>, SharedKlassRepo) {
 }
 
 pub fn run_test_returning_int(
-    class_name: String,
-    name_and_sig: String,
+    _class_name: String,
+    _name_and_sig: String,
     class_fname: String,
     k: OtKlass,
 ) -> i32 {
@@ -50,11 +50,11 @@ pub fn run_test_returning_int(
     let j_tx = tx.clone();
 
     dbg!("About to start_with_klass_receiver");
-    let k_keep = thread::spawn(move || {
+    let _k_keep = thread::spawn(move || {
         SharedKlassRepo::start_with_klass_receiver(options, tx_fname, kl_tx, rx, Some(k_rx))
     });
     let f_name = rx_fname.recv().unwrap();
-    k_tx.clone().send(k);
+    let _ = k_tx.clone().send(k);
 
     dbg!("About to spawn start_new_jthread");
     let j_main = thread::spawn(move || {

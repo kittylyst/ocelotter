@@ -82,8 +82,7 @@ impl OtObj {
 
     pub fn int_arr_of(size: i32, obj_id: usize) -> OtObj {
         let sz = size as usize;
-        let mut elts = Vec::with_capacity(sz);
-        elts.resize(sz, 0);
+        let elts = vec![0; sz];
         OtObj::VmArrInt {
             id: obj_id,
             mark: 0u64,
@@ -124,8 +123,7 @@ impl OtObj {
 
     pub fn long_arr_of(size: i32, obj_id: usize) -> OtObj {
         let sz = size as usize;
-        let mut elts = Vec::with_capacity(sz);
-        elts.resize(sz, 0);
+        let elts = vec![0; sz];
         OtObj::VmArrLong {
             id: obj_id,
             mark: 0u64,
@@ -137,8 +135,7 @@ impl OtObj {
 
     pub fn float_arr_of(size: i32, obj_id: usize) -> OtObj {
         let sz = size as usize;
-        let mut elts = Vec::with_capacity(sz);
-        elts.resize(sz, 0.0);
+        let elts = vec![0.0; sz];
         OtObj::VmArrFloat {
             id: obj_id,
             mark: 0u64,
@@ -150,8 +147,7 @@ impl OtObj {
 
     pub fn double_arr_of(size: i32, obj_id: usize) -> OtObj {
         let sz = size as usize;
-        let mut elts = Vec::with_capacity(sz);
-        elts.resize(sz, 0.0);
+        let elts = vec![0.0; sz];
         OtObj::VmArrDouble {
             id: obj_id,
             mark: 0u64,
@@ -163,8 +159,7 @@ impl OtObj {
 
     pub fn byte_arr_of(size: i32, obj_id: usize) -> OtObj {
         let sz = size as usize;
-        let mut elts = Vec::with_capacity(sz);
-        elts.resize(sz, 0);
+        let elts = vec![0; sz];
         OtObj::VmArrByte {
             id: obj_id,
             mark: 0u64,
@@ -176,8 +171,7 @@ impl OtObj {
 
     pub fn short_arr_of(size: i32, obj_id: usize) -> OtObj {
         let sz = size as usize;
-        let mut elts = Vec::with_capacity(sz);
-        elts.resize(sz, 0);
+        let elts = vec![0; sz];
         OtObj::VmArrShort {
             id: obj_id,
             mark: 0u64,
@@ -189,8 +183,7 @@ impl OtObj {
 
     pub fn char_arr_of(size: i32, obj_id: usize) -> OtObj {
         let sz = size as usize;
-        let mut elts = Vec::with_capacity(sz);
-        elts.resize(sz, 0);
+        let elts = vec![0; sz];
         OtObj::VmArrChar {
             id: obj_id,
             mark: 0u64,
@@ -202,8 +195,7 @@ impl OtObj {
 
     pub fn ref_arr_of(size: i32, obj_id: usize) -> OtObj {
         let sz = size as usize;
-        let mut elts = Vec::with_capacity(sz);
-        elts.resize(sz, 0);
+        let elts = vec![0; sz];
         OtObj::VmArrRef {
             id: obj_id,
             mark: 0u64,

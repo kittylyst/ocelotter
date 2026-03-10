@@ -126,7 +126,7 @@ impl SharedKlassRepo {
                 let k = parser.klass();
                 (*guard).add_klass(&k);
             }
-            thread_tx_fname.send(f_name);
+            let _ = thread_tx_fname.send(f_name);
         });
         k_clinit.join().unwrap();
         n.lock().unwrap().receive_loop();
@@ -141,9 +141,10 @@ impl SharedKlassRepo {
     }
 
     pub fn receive_loop(&self) {
-        // FIXME Main dispatch loop goes here!!!!
-        while let comms = self.rx.recv().unwrap() {
-            comms.reply_via.send(self.lookup_klass(&comms.kname));
+        // Main dispatch loop
+        loop {
+            let comms = self.rx.recv().unwrap();
+            let _ = comms.reply_via.send(self.lookup_klass(&comms.kname));
         }
     }
 
@@ -206,8 +207,8 @@ impl SharedKlassRepo {
     fn run_clinit_method(
         &mut self,
         klass_name: &String,
-        tx_kname: Sender<String>,
-        rx_klass: Receiver<OtKlass>,
+        _tx_kname: Sender<String>,
+        _rx_klass: Receiver<OtKlass>,
     ) {
         let m_str = klass_name.to_owned() + ".<clinit>:()V";
         let k = self.lookup_klass(klass_name);
@@ -275,10 +276,7 @@ impl SharedKlassRepo {
     pub fn bootstrap(&mut self) {
         let file = "resources/lib/classes.jar";
         ZipFiles::new(file)
-            .filter(|f| match f {
-                Ok((name, _)) if name.ends_with(".class") => true,
-                _ => false,
-            })
+            .filter(|f| matches!(f, Ok((name, _)) if name.ends_with(".class")))
             .for_each(|z| {
                 if let Ok((name, bytes)) = z {
                     let mut parser = OtKlassParser::of(bytes, name);

@@ -5,6 +5,8 @@ use crate::interpreter::values::*;
 use crate::klass::constant_pool::CpAttr;
 use crate::klass::constant_pool::ACC_NATIVE;
 
+type NativeFn = fn(&InterpLocalVars) -> Option<JvmValue>;
+
 #[derive(Clone)]
 pub struct OtMethod {
     klass_name: String,
@@ -17,7 +19,7 @@ pub struct OtMethod {
     #[allow(dead_code)]
     desc_idx: u16,
     code: Vec<u8>,
-    native_code: Cell<Option<fn(&InterpLocalVars) -> Option<JvmValue>>>,
+    native_code: Cell<Option<NativeFn>>,
     #[allow(dead_code)]
     attrs: Vec<CpAttr>,
 }
@@ -76,14 +78,14 @@ impl OtMethod {
         self.flags & ACC_NATIVE == ACC_NATIVE
     }
 
-    pub fn set_native_code(&self, n_code: fn(&InterpLocalVars) -> Option<JvmValue>) {
+    pub fn set_native_code(&self, n_code: NativeFn) {
         if !self.is_native() {
             panic!("Should be unreachable - trying to store native code in a regular method")
         }
         self.native_code.set(Some(n_code));
     }
 
-    pub fn get_native_code(&self) -> Option<fn(&InterpLocalVars) -> Option<JvmValue>> {
+    pub fn get_native_code(&self) -> Option<NativeFn> {
         self.native_code.get()
     }
 

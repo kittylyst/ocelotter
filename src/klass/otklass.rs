@@ -100,7 +100,7 @@ impl OtKlass {
             kname: klass_name.to_string(),
             reply_via: tx_main.clone(),
         };
-        sender.send(comms);
+        let _ = sender.send(comms);
         let current_klass = rx_main.recv().unwrap();
 
         // Lookup the Fully-Qualified field name from the CP index
@@ -111,7 +111,7 @@ impl OtKlass {
             kname: target_klass_name.to_string(),
             reply_via: tx_main.clone(),
         };
-        sender.send(comms);
+        let _ = sender.send(comms);
         let target_klass = rx_main.recv().unwrap();
 
         let opt_f = target_klass.get_instance_field_by_name_and_desc(&fq_name_desc);
@@ -137,7 +137,7 @@ impl OtKlass {
             kname: klass_name.to_string(),
             reply_via: tx_main.clone(),
         };
-        sender.send(comms);
+        let _ = sender.send(comms);
         let current_klass = rx_main.recv().unwrap();
 
         // Lookup the Fully-Qualified field name from the CP index
@@ -148,7 +148,7 @@ impl OtKlass {
             kname: target_klass_name.to_string(),
             reply_via: tx_main.clone(),
         };
-        sender.send(comms);
+        let _ = sender.send(comms);
         let target_klass = rx_main.recv().unwrap();
 
         let opt_f = target_klass.get_static_field_by_name_and_desc(&fq_name_desc);
@@ -170,7 +170,7 @@ impl OtKlass {
             kname: klass_name.to_string(),
             reply_via: tx_main,
         };
-        sender.send(comms);
+        let _ = sender.send(comms);
         rx_main.recv().unwrap()
     }
 
@@ -185,7 +185,7 @@ impl OtKlass {
             kname: klass_name.to_string(),
             reply_via: tx_main.clone(),
         };
-        sender.send(comms);
+        let _ = sender.send(comms);
         let current_klass = rx_main.recv().unwrap();
         current_klass
             .get_method_by_name_and_desc(&fq_name_desc)
@@ -205,7 +205,7 @@ impl OtKlass {
             kname: klass_name.to_string(),
             reply_via: tx_main.clone(),
         };
-        sender.send(comms);
+        let _ = sender.send(comms);
         let current_klass = rx_main.recv().unwrap();
         current_klass.get_method_by_offset_virtual(m_idx)
     }
