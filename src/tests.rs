@@ -2,8 +2,8 @@ use std::path::Path;
 
 use super::*;
 
-use crate::interpreter::opcode;
 use crate::interpreter::interp_stack::InterpEvalStack;
+use crate::interpreter::opcode;
 use crate::interpreter::thread::exec_bytecode_method;
 use crate::interpreter::thread::exec_method;
 use crate::interpreter::values::*;

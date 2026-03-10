@@ -240,7 +240,9 @@ impl InterpEvalStack {
             .pop()
             .as_int()
             .expect("Unexpected, non-integer value encountered");
-        self.push(JvmValue::Int((value as u32 >> (shift & 0x1f) as u32) as i32));
+        self.push(JvmValue::Int(
+            (value as u32 >> (shift & 0x1f) as u32) as i32,
+        ));
     }
 
     //
