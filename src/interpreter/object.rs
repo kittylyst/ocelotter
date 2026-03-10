@@ -26,6 +26,48 @@ pub enum OtObj {
         length: i32,
         elements: Vec<i64>,
     },
+    VmArrFloat {
+        id: usize,
+        mark: u64,
+        klassid: usize,
+        length: i32,
+        elements: Vec<f32>,
+    },
+    VmArrDouble {
+        id: usize,
+        mark: u64,
+        klassid: usize,
+        length: i32,
+        elements: Vec<f64>,
+    },
+    VmArrByte {
+        id: usize,
+        mark: u64,
+        klassid: usize,
+        length: i32,
+        elements: Vec<i8>,
+    },
+    VmArrShort {
+        id: usize,
+        mark: u64,
+        klassid: usize,
+        length: i32,
+        elements: Vec<i16>,
+    },
+    VmArrChar {
+        id: usize,
+        mark: u64,
+        klassid: usize,
+        length: i32,
+        elements: Vec<u16>,
+    },
+    VmArrRef {
+        id: usize,
+        mark: u64,
+        klassid: usize,
+        length: i32,
+        elements: Vec<usize>,
+    },
 }
 
 impl OtObj {
@@ -76,6 +118,97 @@ impl OtObj {
             }
             _ => panic!("Not an object"),
         };
+    }
+
+    pub fn long_arr_of(size: i32, obj_id: usize) -> OtObj {
+        let sz = size as usize;
+        let mut elts = Vec::with_capacity(sz);
+        elts.resize(sz, 0);
+        OtObj::VmArrLong {
+            id: obj_id,
+            mark: 0u64,
+            klassid: 2,
+            length: size,
+            elements: elts,
+        }
+    }
+
+    pub fn float_arr_of(size: i32, obj_id: usize) -> OtObj {
+        let sz = size as usize;
+        let mut elts = Vec::with_capacity(sz);
+        elts.resize(sz, 0.0);
+        OtObj::VmArrFloat {
+            id: obj_id,
+            mark: 0u64,
+            klassid: 2,
+            length: size,
+            elements: elts,
+        }
+    }
+
+    pub fn double_arr_of(size: i32, obj_id: usize) -> OtObj {
+        let sz = size as usize;
+        let mut elts = Vec::with_capacity(sz);
+        elts.resize(sz, 0.0);
+        OtObj::VmArrDouble {
+            id: obj_id,
+            mark: 0u64,
+            klassid: 2,
+            length: size,
+            elements: elts,
+        }
+    }
+
+    pub fn byte_arr_of(size: i32, obj_id: usize) -> OtObj {
+        let sz = size as usize;
+        let mut elts = Vec::with_capacity(sz);
+        elts.resize(sz, 0);
+        OtObj::VmArrByte {
+            id: obj_id,
+            mark: 0u64,
+            klassid: 2,
+            length: size,
+            elements: elts,
+        }
+    }
+
+    pub fn short_arr_of(size: i32, obj_id: usize) -> OtObj {
+        let sz = size as usize;
+        let mut elts = Vec::with_capacity(sz);
+        elts.resize(sz, 0);
+        OtObj::VmArrShort {
+            id: obj_id,
+            mark: 0u64,
+            klassid: 2,
+            length: size,
+            elements: elts,
+        }
+    }
+
+    pub fn char_arr_of(size: i32, obj_id: usize) -> OtObj {
+        let sz = size as usize;
+        let mut elts = Vec::with_capacity(sz);
+        elts.resize(sz, 0);
+        OtObj::VmArrChar {
+            id: obj_id,
+            mark: 0u64,
+            klassid: 2,
+            length: size,
+            elements: elts,
+        }
+    }
+
+    pub fn ref_arr_of(size: i32, obj_id: usize) -> OtObj {
+        let sz = size as usize;
+        let mut elts = Vec::with_capacity(sz);
+        elts.resize(sz, 0);
+        OtObj::VmArrRef {
+            id: obj_id,
+            mark: 0u64,
+            klassid: 2,
+            length: size,
+            elements: elts,
+        }
     }
 
     pub fn get_field_value(&self, offset: usize) -> JvmValue {
@@ -138,6 +271,48 @@ impl OtObj {
                 length: _,
                 elements: _,
             } => i,
+            OtObj::VmArrFloat {
+                id: i,
+                mark: _,
+                klassid: _,
+                length: _,
+                elements: _,
+            } => i,
+            OtObj::VmArrDouble {
+                id: i,
+                mark: _,
+                klassid: _,
+                length: _,
+                elements: _,
+            } => i,
+            OtObj::VmArrByte {
+                id: i,
+                mark: _,
+                klassid: _,
+                length: _,
+                elements: _,
+            } => i,
+            OtObj::VmArrShort {
+                id: i,
+                mark: _,
+                klassid: _,
+                length: _,
+                elements: _,
+            } => i,
+            OtObj::VmArrChar {
+                id: i,
+                mark: _,
+                klassid: _,
+                length: _,
+                elements: _,
+            } => i,
+            OtObj::VmArrRef {
+                id: i,
+                mark: _,
+                klassid: _,
+                length: _,
+                elements: _,
+            } => i,
         }
     }
 
@@ -157,6 +332,48 @@ impl OtObj {
                 elements: _,
             } => m,
             OtObj::VmArrLong {
+                id: _,
+                mark: m,
+                klassid: _,
+                length: _,
+                elements: _,
+            } => m,
+            OtObj::VmArrFloat {
+                id: _,
+                mark: m,
+                klassid: _,
+                length: _,
+                elements: _,
+            } => m,
+            OtObj::VmArrDouble {
+                id: _,
+                mark: m,
+                klassid: _,
+                length: _,
+                elements: _,
+            } => m,
+            OtObj::VmArrByte {
+                id: _,
+                mark: m,
+                klassid: _,
+                length: _,
+                elements: _,
+            } => m,
+            OtObj::VmArrShort {
+                id: _,
+                mark: m,
+                klassid: _,
+                length: _,
+                elements: _,
+            } => m,
+            OtObj::VmArrChar {
+                id: _,
+                mark: m,
+                klassid: _,
+                length: _,
+                elements: _,
+            } => m,
+            OtObj::VmArrRef {
                 id: _,
                 mark: m,
                 klassid: _,
@@ -188,6 +405,48 @@ impl OtObj {
                 length: _,
                 elements: _,
             } => k,
+            OtObj::VmArrFloat {
+                id: _,
+                mark: _,
+                klassid: k,
+                length: _,
+                elements: _,
+            } => k,
+            OtObj::VmArrDouble {
+                id: _,
+                mark: _,
+                klassid: k,
+                length: _,
+                elements: _,
+            } => k,
+            OtObj::VmArrByte {
+                id: _,
+                mark: _,
+                klassid: k,
+                length: _,
+                elements: _,
+            } => k,
+            OtObj::VmArrShort {
+                id: _,
+                mark: _,
+                klassid: k,
+                length: _,
+                elements: _,
+            } => k,
+            OtObj::VmArrChar {
+                id: _,
+                mark: _,
+                klassid: k,
+                length: _,
+                elements: _,
+            } => k,
+            OtObj::VmArrRef {
+                id: _,
+                mark: _,
+                klassid: k,
+                length: _,
+                elements: _,
+            } => k,
         }
     }
 
@@ -207,6 +466,48 @@ impl OtObj {
                 elements: _,
             } => l,
             OtObj::VmArrLong {
+                id: _,
+                mark: _,
+                klassid: _,
+                length: l,
+                elements: _,
+            } => l,
+            OtObj::VmArrFloat {
+                id: _,
+                mark: _,
+                klassid: _,
+                length: l,
+                elements: _,
+            } => l,
+            OtObj::VmArrDouble {
+                id: _,
+                mark: _,
+                klassid: _,
+                length: l,
+                elements: _,
+            } => l,
+            OtObj::VmArrByte {
+                id: _,
+                mark: _,
+                klassid: _,
+                length: l,
+                elements: _,
+            } => l,
+            OtObj::VmArrShort {
+                id: _,
+                mark: _,
+                klassid: _,
+                length: l,
+                elements: _,
+            } => l,
+            OtObj::VmArrChar {
+                id: _,
+                mark: _,
+                klassid: _,
+                length: l,
+                elements: _,
+            } => l,
+            OtObj::VmArrRef {
                 id: _,
                 mark: _,
                 klassid: _,

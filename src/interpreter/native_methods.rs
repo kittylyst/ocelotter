@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use std::time::SystemTime;
 
 use crate::interpreter::values::*;

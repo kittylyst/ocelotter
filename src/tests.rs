@@ -66,7 +66,7 @@ pub fn run_test_returning_int(
 
     match return_val {
         Some(JvmValue::Int(i)) => i,
-        _ => panic!("Error executing {} - non-int value returned",),
+        _ => panic!("Error executing test method - non-int value returned"),
     }
 }
 
@@ -256,6 +256,190 @@ fn stack_dup2_for_two_category1_values() {
     assert_eq!(1, eval.pop().as_int().unwrap());
     assert_eq!(2, eval.pop().as_int().unwrap());
     assert_eq!(1, eval.pop().as_int().unwrap());
+}
+
+#[test]
+fn bc_arraylength_int_array() {
+    let buf = vec![
+        opcode::ICONST_3,
+        opcode::NEWARRAY,
+        10,
+        opcode::ARRAYLENGTH,
+        opcode::IRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Int(i) => i,
+        _ => 0,
+    };
+    assert_eq!(3, ret);
+}
+
+#[test]
+fn bc_laload_and_lastore() {
+    let buf = vec![
+        opcode::ICONST_1,
+        opcode::NEWARRAY,
+        11,
+        opcode::ASTORE_0,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::BIPUSH,
+        42,
+        opcode::I2L,
+        opcode::LASTORE,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::LALOAD,
+        opcode::LRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Long(i) => i,
+        _ => 0,
+    };
+    assert_eq!(42, ret);
+}
+
+#[test]
+fn bc_array_primitive_load_store_family() {
+    let b_buf = vec![
+        opcode::ICONST_1,
+        opcode::NEWARRAY,
+        8,
+        opcode::ASTORE_0,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::ICONST_M1,
+        opcode::BASTORE,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::BALOAD,
+        opcode::IRETURN,
+    ];
+    let b_ret = match execute_simple_bytecode(&b_buf) {
+        JvmValue::Int(i) => i,
+        _ => 0,
+    };
+    assert_eq!(-1, b_ret);
+
+    let s_buf = vec![
+        opcode::ICONST_1,
+        opcode::NEWARRAY,
+        9,
+        opcode::ASTORE_0,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::SIPUSH,
+        1,
+        44,
+        opcode::SASTORE,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::SALOAD,
+        opcode::IRETURN,
+    ];
+    let s_ret = match execute_simple_bytecode(&s_buf) {
+        JvmValue::Int(i) => i,
+        _ => 0,
+    };
+    assert_eq!(300, s_ret);
+
+    let c_buf = vec![
+        opcode::ICONST_1,
+        opcode::NEWARRAY,
+        5,
+        opcode::ASTORE_0,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::BIPUSH,
+        65,
+        opcode::CASTORE,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::CALOAD,
+        opcode::IRETURN,
+    ];
+    let c_ret = match execute_simple_bytecode(&c_buf) {
+        JvmValue::Int(i) => i,
+        _ => 0,
+    };
+    assert_eq!(65, c_ret);
+
+    let f_buf = vec![
+        opcode::ICONST_1,
+        opcode::NEWARRAY,
+        6,
+        opcode::ASTORE_0,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::FCONST_2,
+        opcode::FASTORE,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::FALOAD,
+        opcode::FRETURN,
+    ];
+    let f_ret = match execute_simple_bytecode(&f_buf) {
+        JvmValue::Float(v) => v,
+        _ => 0.0,
+    };
+    assert_f32_near!(2.0, f_ret);
+
+    let d_buf = vec![
+        opcode::ICONST_1,
+        opcode::NEWARRAY,
+        7,
+        opcode::ASTORE_0,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::DCONST_1,
+        opcode::DASTORE,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::DALOAD,
+        opcode::DRETURN,
+    ];
+    let d_ret = match execute_simple_bytecode(&d_buf) {
+        JvmValue::Double(v) => v,
+        _ => 0.0,
+    };
+    assert_f64_near!(1.0, d_ret);
+}
+
+#[test]
+fn stack_dup_family_new_ops() {
+    let mut eval = InterpEvalStack::of();
+    eval.iconst(1);
+    eval.iconst(2);
+    eval.iconst(3);
+    eval.dup_x2();
+    assert_eq!(3, eval.pop().as_int().unwrap());
+    assert_eq!(2, eval.pop().as_int().unwrap());
+    assert_eq!(1, eval.pop().as_int().unwrap());
+    assert_eq!(3, eval.pop().as_int().unwrap());
+
+    let mut eval2 = InterpEvalStack::of();
+    eval2.iconst(1);
+    eval2.iconst(2);
+    eval2.iconst(3);
+    eval2.dup2_x1();
+    assert_eq!(3, eval2.pop().as_int().unwrap());
+    assert_eq!(2, eval2.pop().as_int().unwrap());
+    assert_eq!(1, eval2.pop().as_int().unwrap());
+    assert_eq!(3, eval2.pop().as_int().unwrap());
+    assert_eq!(2, eval2.pop().as_int().unwrap());
+
+    let mut eval3 = InterpEvalStack::of();
+    eval3.iconst(1);
+    eval3.iconst(2);
+    eval3.iconst(3);
+    eval3.iconst(4);
+    eval3.dup2_x2();
+    assert_eq!(4, eval3.pop().as_int().unwrap());
+    assert_eq!(3, eval3.pop().as_int().unwrap());
+    assert_eq!(2, eval3.pop().as_int().unwrap());
+    assert_eq!(1, eval3.pop().as_int().unwrap());
+    assert_eq!(4, eval3.pop().as_int().unwrap());
+    assert_eq!(3, eval3.pop().as_int().unwrap());
 }
 
 #[test]

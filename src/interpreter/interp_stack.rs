@@ -705,6 +705,25 @@ impl InterpEvalStack {
         self.push(i1c);
     }
 
+    pub fn dup_x2(&mut self) {
+        let v1 = self.pop();
+        let v2 = self.pop();
+        if is_category2(&v2) {
+            self.push(v1);
+            self.push(v2);
+            self.push(v1);
+            return;
+        }
+        let v3 = self.pop();
+        if is_category2(&v3) {
+            panic!("Illegal value layout for dup_x2");
+        }
+        self.push(v1);
+        self.push(v3);
+        self.push(v2);
+        self.push(v1);
+    }
+
     pub fn dup2(&mut self) {
         let v1 = self.pop();
         if is_category2(&v1) {
@@ -719,6 +738,70 @@ impl InterpEvalStack {
         }
         self.push(v2);
         self.push(v1);
+        self.push(v2);
+        self.push(v1);
+    }
+
+    pub fn dup2_x1(&mut self) {
+        let v1 = self.pop();
+        if is_category2(&v1) {
+            let v2 = self.pop();
+            self.push(v1);
+            self.push(v2);
+            self.push(v1);
+            return;
+        }
+        let v2 = self.pop();
+        if is_category2(&v2) {
+            panic!("Illegal value layout for dup2_x1");
+        }
+        let v3 = self.pop();
+        self.push(v2);
+        self.push(v1);
+        self.push(v3);
+        self.push(v2);
+        self.push(v1);
+    }
+
+    pub fn dup2_x2(&mut self) {
+        let v1 = self.pop();
+        if is_category2(&v1) {
+            let v2 = self.pop();
+            if is_category2(&v2) {
+                self.push(v1);
+                self.push(v2);
+                self.push(v1);
+                return;
+            }
+            let v3 = self.pop();
+            self.push(v1);
+            self.push(v3);
+            self.push(v2);
+            self.push(v1);
+            return;
+        }
+
+        let v2 = self.pop();
+        if is_category2(&v2) {
+            panic!("Illegal value layout for dup2_x2");
+        }
+        let v3 = self.pop();
+        if is_category2(&v3) {
+            self.push(v2);
+            self.push(v1);
+            self.push(v3);
+            self.push(v2);
+            self.push(v1);
+            return;
+        }
+        let v4 = self.pop();
+        if is_category2(&v4) {
+            panic!("Illegal value layout for dup2_x2");
+        }
+        self.push(v2);
+        self.push(v1);
+        self.push(v4);
+        self.push(v3);
         self.push(v2);
         self.push(v1);
     }

@@ -6,7 +6,6 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 
 use crate::interpreter::interp_stack::InterpEvalStack;
-use crate::interpreter::object::OtObj;
 use crate::interpreter::opcode;
 use crate::interpreter::values::*;
 use crate::klass::constant_pool::*;
@@ -154,6 +153,22 @@ pub fn exec_bytecode_method(
 
             opcode::DADD => eval.dadd(),
 
+            opcode::DALOAD => {
+                let pos_to_load = pop_int(&mut eval, "DALOAD");
+                let arrayid = pop_objref(&mut eval, "DALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().daload(arrayid, pos_to_load);
+                eval.push(JvmValue::Double(unwrapped_val));
+            }
+
+            opcode::DASTORE => {
+                let val_to_store = pop_double(&mut eval, "DASTORE");
+                let pos_to_store = pop_int(&mut eval, "DASTORE");
+                let obj_id = pop_objref(&mut eval, "DASTORE");
+                HEAP.lock()
+                    .unwrap()
+                    .dastore(obj_id, pos_to_store, val_to_store);
+            }
+
             opcode::DCMPG => eval.dcmpg(),
 
             opcode::DCMPL => eval.dcmpl(),
@@ -204,7 +219,13 @@ pub fn exec_bytecode_method(
 
             opcode::DUP_X1 => eval.dup_x1(),
 
-            //            opcode::DUP2 => eval.dup2(),
+            opcode::DUP_X2 => eval.dup_x2(),
+
+            opcode::DUP2 => eval.dup2(),
+
+            opcode::DUP2_X1 => eval.dup2_x1(),
+
+            opcode::DUP2_X2 => eval.dup2_x2(),
             opcode::F2D => eval.f2d(),
 
             opcode::F2I => eval.f2i(),
@@ -212,6 +233,22 @@ pub fn exec_bytecode_method(
             opcode::F2L => eval.f2l(),
 
             opcode::FADD => eval.fadd(),
+
+            opcode::FALOAD => {
+                let pos_to_load = pop_int(&mut eval, "FALOAD");
+                let arrayid = pop_objref(&mut eval, "FALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().faload(arrayid, pos_to_load);
+                eval.push(JvmValue::Float(unwrapped_val));
+            }
+
+            opcode::FASTORE => {
+                let val_to_store = pop_float(&mut eval, "FASTORE");
+                let pos_to_store = pop_int(&mut eval, "FASTORE");
+                let obj_id = pop_objref(&mut eval, "FASTORE");
+                HEAP.lock()
+                    .unwrap()
+                    .fastore(obj_id, pos_to_store, val_to_store);
+            }
 
             opcode::FCMPG => eval.fcmpg(),
 
@@ -313,46 +350,73 @@ pub fn exec_bytecode_method(
 
             opcode::IADD => eval.iadd(),
 
-            opcode::IALOAD => {
-                let pos_to_load = match eval.pop() {
-                    JvmValue::Int(v) => v,
-                    _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
-                };
-                let arrayid = match eval.pop() {
-                    JvmValue::ObjRef(v) => v,
-                    _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
-                };
-                dbg!(arrayid);
+            opcode::AALOAD => {
+                let pos_to_load = pop_int(&mut eval, "AALOAD");
+                let arrayid = pop_objref(&mut eval, "AALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().aaload(arrayid, pos_to_load);
+                eval.push(JvmValue::ObjRef(unwrapped_val));
+            }
 
-                let unwrapped_val = match HEAP.lock().unwrap().get_obj(arrayid) {
-                    OtObj::VmArrInt {
-                        id: _,
-                        mark: _,
-                        klassid: _,
-                        length: _,
-                        elements: elts,
-                    } => elts[pos_to_load as usize],
-                    _ => panic!("Non-int[] seen on stack during IASTORE at {}", current - 1),
-                };
+            opcode::AASTORE => {
+                let val_to_store = pop_objref(&mut eval, "AASTORE");
+                let pos_to_store = pop_int(&mut eval, "AASTORE");
+                let obj_id = pop_objref(&mut eval, "AASTORE");
+                HEAP.lock()
+                    .unwrap()
+                    .aastore(obj_id, pos_to_store, val_to_store);
+            }
+
+            opcode::ARRAYLENGTH => {
+                let obj_id = pop_objref(&mut eval, "ARRAYLENGTH");
+                let len = HEAP.lock().unwrap().arraylength(obj_id);
+                eval.push(JvmValue::Int(len));
+            }
+
+            opcode::BALOAD => {
+                let pos_to_load = pop_int(&mut eval, "BALOAD");
+                let arrayid = pop_objref(&mut eval, "BALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().baload(arrayid, pos_to_load);
+                eval.push(JvmValue::Int(unwrapped_val as i32));
+            }
+
+            opcode::BASTORE => {
+                let val_to_store = pop_int(&mut eval, "BASTORE") as i8;
+                let pos_to_store = pop_int(&mut eval, "BASTORE");
+                let obj_id = pop_objref(&mut eval, "BASTORE");
+                HEAP.lock()
+                    .unwrap()
+                    .bastore(obj_id, pos_to_store, val_to_store);
+            }
+
+            opcode::CALOAD => {
+                let pos_to_load = pop_int(&mut eval, "CALOAD");
+                let arrayid = pop_objref(&mut eval, "CALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().caload(arrayid, pos_to_load);
+                eval.push(JvmValue::Int(unwrapped_val as i32));
+            }
+
+            opcode::CASTORE => {
+                let val_to_store = pop_int(&mut eval, "CASTORE") as u16;
+                let pos_to_store = pop_int(&mut eval, "CASTORE");
+                let obj_id = pop_objref(&mut eval, "CASTORE");
+                HEAP.lock()
+                    .unwrap()
+                    .castore(obj_id, pos_to_store, val_to_store);
+            }
+
+            opcode::IALOAD => {
+                let pos_to_load = pop_int(&mut eval, "IALOAD");
+                let arrayid = pop_objref(&mut eval, "IALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().iaload(arrayid, pos_to_load);
                 eval.push(JvmValue::Int(unwrapped_val));
             }
 
             opcode::IAND => eval.iand(),
 
             opcode::IASTORE => {
-                let val_to_store = match eval.pop() {
-                    JvmValue::Int(v) => v,
-                    _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
-                };
-                let pos_to_store = match eval.pop() {
-                    JvmValue::Int(v) => v,
-                    _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
-                };
-                let obj_id = match eval.pop() {
-                    JvmValue::ObjRef(v) => v,
-                    _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
-                };
-
+                let val_to_store = pop_int(&mut eval, "IASTORE");
+                let pos_to_store = pop_int(&mut eval, "IASTORE");
+                let obj_id = pop_objref(&mut eval, "IASTORE");
                 HEAP.lock()
                     .unwrap()
                     .iastore(obj_id, pos_to_store, val_to_store);
@@ -636,6 +700,13 @@ pub fn exec_bytecode_method(
 
             opcode::LADD => eval.ladd(),
 
+            opcode::LALOAD => {
+                let pos_to_load = pop_int(&mut eval, "LALOAD");
+                let arrayid = pop_objref(&mut eval, "LALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().laload(arrayid, pos_to_load);
+                eval.push(JvmValue::Long(unwrapped_val));
+            }
+
             opcode::LAND => eval.land(),
 
             opcode::LCMP => eval.lcmp(),
@@ -730,6 +801,15 @@ pub fn exec_bytecode_method(
 
             opcode::LSTORE_3 => lvt.store(3, eval.pop()),
 
+            opcode::LASTORE => {
+                let val_to_store = pop_long(&mut eval, "LASTORE");
+                let pos_to_store = pop_int(&mut eval, "LASTORE");
+                let obj_id = pop_objref(&mut eval, "LASTORE");
+                HEAP.lock()
+                    .unwrap()
+                    .lastore(obj_id, pos_to_store, val_to_store);
+            }
+
             opcode::LSUB => eval.lsub(),
 
             opcode::LUSHR => eval.lushr(),
@@ -771,20 +851,19 @@ pub fn exec_bytecode_method(
                 let arr_type = instr[current];
                 current += 1;
 
-                // FIXME Other primitive array types needed
+                let arr_size = match eval.pop() {
+                    JvmValue::Int(v) => v,
+                    _ => panic!("Not an int on the stack at {}", (current - 1)),
+                };
                 let arr_id = match arr_type {
-                    // boolean: 4
-                    // char: 5
-                    // float: 6
-                    // double: 7
-                    // byte: 8
-                    // short: 9
-                    // int: 10
-                    // long: 11
-                    10 => match eval.pop() {
-                        JvmValue::Int(arr_size) => HEAP.lock().unwrap().allocate_int_arr(arr_size),
-                        _ => panic!("Not an int on the stack at {}", (current - 1)),
-                    },
+                    4 => HEAP.lock().unwrap().allocate_byte_arr(arr_size), // boolean[]
+                    5 => HEAP.lock().unwrap().allocate_char_arr(arr_size), // char[]
+                    6 => HEAP.lock().unwrap().allocate_float_arr(arr_size), // float[]
+                    7 => HEAP.lock().unwrap().allocate_double_arr(arr_size), // double[]
+                    8 => HEAP.lock().unwrap().allocate_byte_arr(arr_size), // byte[]
+                    9 => HEAP.lock().unwrap().allocate_short_arr(arr_size), // short[]
+                    10 => HEAP.lock().unwrap().allocate_int_arr(arr_size), // int[]
+                    11 => HEAP.lock().unwrap().allocate_long_arr(arr_size), // long[]
                     _ => panic!("Unsupported primitive array type at {}", (current - 1)),
                 };
 
@@ -830,6 +909,20 @@ pub fn exec_bytecode_method(
                 klass.put_static(&puts, eval.pop());
             }
             opcode::RETURN => break None,
+            opcode::SALOAD => {
+                let pos_to_load = pop_int(&mut eval, "SALOAD");
+                let arrayid = pop_objref(&mut eval, "SALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().saload(arrayid, pos_to_load);
+                eval.push(JvmValue::Int(unwrapped_val as i32));
+            }
+            opcode::SASTORE => {
+                let val_to_store = pop_int(&mut eval, "SASTORE") as i16;
+                let pos_to_store = pop_int(&mut eval, "SASTORE");
+                let obj_id = pop_objref(&mut eval, "SASTORE");
+                HEAP.lock()
+                    .unwrap()
+                    .sastore(obj_id, pos_to_store, val_to_store);
+            }
             opcode::SIPUSH => {
                 let vtmp = ((instr[current] as i32) << 8) + instr[current + 1] as i32;
                 eval.iconst(vtmp);
@@ -862,6 +955,41 @@ pub fn exec_bytecode_method(
 
 fn read_i16_branch_offset(instr: &[u8], current: usize) -> i16 {
     i16::from_be_bytes([instr[current], instr[current + 1]])
+}
+
+fn pop_int(eval: &mut InterpEvalStack, op: &str) -> i32 {
+    match eval.pop() {
+        JvmValue::Int(v) => v,
+        _ => panic!("Non-int seen on stack during {}", op),
+    }
+}
+
+fn pop_long(eval: &mut InterpEvalStack, op: &str) -> i64 {
+    match eval.pop() {
+        JvmValue::Long(v) => v,
+        _ => panic!("Non-long seen on stack during {}", op),
+    }
+}
+
+fn pop_float(eval: &mut InterpEvalStack, op: &str) -> f32 {
+    match eval.pop() {
+        JvmValue::Float(v) => v,
+        _ => panic!("Non-float seen on stack during {}", op),
+    }
+}
+
+fn pop_double(eval: &mut InterpEvalStack, op: &str) -> f64 {
+    match eval.pop() {
+        JvmValue::Double(v) => v,
+        _ => panic!("Non-double seen on stack during {}", op),
+    }
+}
+
+fn pop_objref(eval: &mut InterpEvalStack, op: &str) -> usize {
+    match eval.pop() {
+        JvmValue::ObjRef(v) => v,
+        _ => panic!("Non-objref seen on stack during {}", op),
+    }
 }
 
 fn read_i32_branch_offset(instr: &[u8], current: usize) -> i32 {
