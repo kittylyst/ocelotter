@@ -19,7 +19,7 @@ impl Options {
 
     pub fn f_name(&self) -> String {
         self.classname
-            .get(0)
+            .first()
             .expect("Classname should be specified")
             .into()
     }

@@ -1,21 +1,26 @@
 use std::cell::Cell;
 use std::fmt;
 
-use crate::constant_pool::CpAttr;
-use crate::constant_pool::ACC_NATIVE;
-use crate::InterpLocalVars;
-use crate::JvmValue;
+use crate::interpreter::values::*;
+use crate::klass::constant_pool::CpAttr;
+use crate::klass::constant_pool::ACC_NATIVE;
+
+type NativeFn = fn(&InterpLocalVars) -> Option<JvmValue>;
 
 #[derive(Clone)]
 pub struct OtMethod {
     klass_name: String,
     flags: u16,
+    #[allow(dead_code)]
     name: String,
     name_desc: String,
+    #[allow(dead_code)]
     name_idx: u16,
+    #[allow(dead_code)]
     desc_idx: u16,
     code: Vec<u8>,
-    native_code: Cell<Option<fn(&InterpLocalVars) -> Option<JvmValue>>>,
+    native_code: Cell<Option<NativeFn>>,
+    #[allow(dead_code)]
     attrs: Vec<CpAttr>,
 }
 
@@ -25,7 +30,7 @@ impl OtMethod {
         name: String,
         desc: String,
         flags: u16,
-        name_idx: u16,
+        _name_idx: u16,
         desc_idx: u16,
     ) -> OtMethod {
         let name_and_desc = name.clone() + ":" + &desc.clone();
@@ -43,9 +48,9 @@ impl OtMethod {
         }
     }
 
-    pub fn set_attr(&self, _index: u16, _attr: CpAttr) -> () {}
+    pub fn set_attr(&self, _index: u16, _attr: CpAttr) {}
 
-    pub fn set_code(&mut self, code: Vec<u8>) -> () {
+    pub fn set_code(&mut self, code: Vec<u8>) {
         self.code = code;
     }
 
@@ -73,14 +78,14 @@ impl OtMethod {
         self.flags & ACC_NATIVE == ACC_NATIVE
     }
 
-    pub fn set_native_code(&self, n_code: fn(&InterpLocalVars) -> Option<JvmValue>) {
+    pub fn set_native_code(&self, n_code: NativeFn) {
         if !self.is_native() {
             panic!("Should be unreachable - trying to store native code in a regular method")
         }
         self.native_code.set(Some(n_code));
     }
 
-    pub fn get_native_code(&self) -> Option<fn(&InterpLocalVars) -> Option<JvmValue>> {
+    pub fn get_native_code(&self) -> Option<NativeFn> {
         self.native_code.get()
     }
 

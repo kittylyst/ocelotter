@@ -2,20 +2,62 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use ocelotter_runtime::constant_pool::*;
-use ocelotter_runtime::interp_stack::InterpEvalStack;
-use ocelotter_runtime::klass_repo::SharedKlassRepo;
-use ocelotter_runtime::otklass::OtKlass;
-use ocelotter_runtime::otmethod::OtMethod;
-use ocelotter_runtime::*;
+use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, Sender};
 
-mod opcode;
+use crate::interpreter::interp_stack::InterpEvalStack;
+use crate::interpreter::opcode;
+use crate::interpreter::values::*;
+use crate::klass::constant_pool::*;
+use crate::klass::otklass::OtKlass;
+use crate::klass::otmethod::OtMethod;
+use crate::OtKlassComms;
 
+pub fn start_new_jthread(f_name: String, tx: Sender<OtKlassComms>) -> Option<JvmValue> {
+    let thread_tx = tx.clone();
+
+    // FIXME Real main() signature required, dummying for ease of testing
+    let main_str: String = f_name.clone() + ".main2:([Ljava/lang/String;)I";
+
+    let (tx_main, rx_main): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
+    // Send the main klass name and receive back the klass
+    let _ = thread_tx.send(OtKlassComms {
+        kname: f_name.clone(),
+        reply_via: tx_main,
+    });
+    let main_klass = rx_main.recv().unwrap();
+    dbg!(main_klass.clone());
+
+    let main = main_klass
+        .get_method_by_name_and_desc(&main_str)
+        .unwrap_or_else(|| panic!("Error: Main method not found {}", main_str.clone()));
+
+    // FIXME Parameter passing
+    let mut vars = InterpLocalVars::of(5);
+
+    dbg!(main.clone());
+    // let return_val = exec_method(tx, main, &mut vars);
+    // let ret = match return_val {
+    //     Some(JvmValue::Int(i)) => i,
+    //     _ => panic!(
+    //         "Error executing {} - non-int value returned",
+    //         f_name.clone()
+    //     ),
+    // };
+    //
+    // println!("Ret: {}", ret);
+    //
+    exec_method(tx, main, &mut vars)
+}
+
+// Transmits a class name, receives a klass
 pub fn exec_method(
-    repo: &mut SharedKlassRepo,
+    tx: Sender<OtKlassComms>,
     meth: &OtMethod,
     lvt: &mut InterpLocalVars,
 ) -> Option<JvmValue> {
+    let thread_tx = tx.clone();
+
     if meth.is_native() {
         // Explicit type hint here to document the type of n_f
         let n_f: fn(&InterpLocalVars) -> Option<JvmValue> = meth
@@ -25,19 +67,25 @@ pub fn exec_method(
         // FIXME Parameter passing
         n_f(lvt)
     } else {
-        exec_bytecode_method(repo, meth.get_klass_name(), &meth.get_code(), lvt)
+        exec_bytecode_method(thread_tx, meth.get_klass_name(), &meth.get_code(), lvt)
     }
 }
 
 pub fn exec_bytecode_method(
-    repo: &mut SharedKlassRepo,
+    tx: Sender<OtKlassComms>,
     klass_name: String,
     instr: &[u8],
     lvt: &mut InterpLocalVars,
 ) -> Option<JvmValue> {
+    let thread_tx = tx.clone();
+
     let mut current = 0;
     let mut eval = InterpEvalStack::of();
 
+    dbg!("Getting to interpreter loop");
+    for p_x in instr.iter() {
+        println!("{}", *p_x);
+    }
     loop {
         // let my_klass_name = klass_name.clone();
         let ins: u8 = *instr
@@ -46,7 +94,8 @@ pub fn exec_bytecode_method(
 
         current += 1;
 
-        // dbg!(ins);
+        dbg!(ins);
+        dbg!(current);
         match ins {
             opcode::ACONST_NULL => eval.aconst_null(),
 
@@ -76,6 +125,7 @@ pub fn exec_bytecode_method(
             opcode::ASTORE_3 => lvt.store(3, eval.pop()),
 
             opcode::BIPUSH => {
+                println!("Getting to bipush");
                 eval.iconst(instr[current] as i32);
                 current += 1;
             }
@@ -102,6 +152,22 @@ pub fn exec_bytecode_method(
             }
 
             opcode::DADD => eval.dadd(),
+
+            opcode::DALOAD => {
+                let pos_to_load = pop_int(&mut eval, "DALOAD");
+                let arrayid = pop_objref(&mut eval, "DALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().daload(arrayid, pos_to_load);
+                eval.push(JvmValue::Double(unwrapped_val));
+            }
+
+            opcode::DASTORE => {
+                let val_to_store = pop_double(&mut eval, "DASTORE");
+                let pos_to_store = pop_int(&mut eval, "DASTORE");
+                let obj_id = pop_objref(&mut eval, "DASTORE");
+                HEAP.lock()
+                    .unwrap()
+                    .dastore(obj_id, pos_to_store, val_to_store);
+            }
 
             opcode::DCMPG => eval.dcmpg(),
 
@@ -153,7 +219,13 @@ pub fn exec_bytecode_method(
 
             opcode::DUP_X1 => eval.dup_x1(),
 
-            //            opcode::DUP2 => eval.dup2(),
+            opcode::DUP_X2 => eval.dup_x2(),
+
+            opcode::DUP2 => eval.dup2(),
+
+            opcode::DUP2_X1 => eval.dup2_x1(),
+
+            opcode::DUP2_X2 => eval.dup2_x2(),
             opcode::F2D => eval.f2d(),
 
             opcode::F2I => eval.f2i(),
@@ -161,6 +233,22 @@ pub fn exec_bytecode_method(
             opcode::F2L => eval.f2l(),
 
             opcode::FADD => eval.fadd(),
+
+            opcode::FALOAD => {
+                let pos_to_load = pop_int(&mut eval, "FALOAD");
+                let arrayid = pop_objref(&mut eval, "FALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().faload(arrayid, pos_to_load);
+                eval.push(JvmValue::Float(unwrapped_val));
+            }
+
+            opcode::FASTORE => {
+                let val_to_store = pop_float(&mut eval, "FASTORE");
+                let pos_to_store = pop_int(&mut eval, "FASTORE");
+                let obj_id = pop_objref(&mut eval, "FASTORE");
+                HEAP.lock()
+                    .unwrap()
+                    .fastore(obj_id, pos_to_store, val_to_store);
+            }
 
             opcode::FCMPG => eval.fcmpg(),
 
@@ -221,7 +309,8 @@ pub fn exec_bytecode_method(
                 };
                 let heap = HEAP.lock().unwrap();
                 let obj = heap.get_obj(obj_id);
-                let getf = repo.lookup_instance_field(&klass_name, cp_lookup);
+                let getf =
+                    OtKlass::lookup_instance_field(thread_tx.clone(), &klass_name, cp_lookup);
 
                 let ret = obj.get_field_value(getf.get_offset() as usize);
                 eval.push(ret);
@@ -230,20 +319,21 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let getf = repo.lookup_static_field(&klass_name, cp_lookup).clone();
-                let klass = repo.lookup_klass(&getf.get_klass_name()).clone();
+                let getf =
+                    OtKlass::lookup_static_field(thread_tx.clone(), &klass_name, cp_lookup).clone();
+                let klass =
+                    OtKlass::lookup_klass(thread_tx.clone(), &getf.get_klass_name()).clone();
 
                 let ret = klass.get_static(&getf);
                 eval.push(ret);
             }
             opcode::GOTO => {
-                current += ((instr[current] as usize) << 8) + instr[current + 1] as usize
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
+                branch_to(&mut current, jump_to);
             }
             opcode::GOTO_W => {
-                current += ((instr[current] as usize) << 24)
-                    + ((instr[current + 1] as usize) << 16)
-                    + ((instr[current + 2] as usize) << 8)
-                    + instr[current + 3] as usize
+                let jump_to = read_i32_branch_offset(instr, current);
+                branch_to(&mut current, jump_to);
             }
 
             opcode::I2B => eval.i2b(),
@@ -260,46 +350,73 @@ pub fn exec_bytecode_method(
 
             opcode::IADD => eval.iadd(),
 
-            opcode::IALOAD => {
-                let pos_to_load = match eval.pop() {
-                    JvmValue::Int(v) => v,
-                    _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
-                };
-                let arrayid = match eval.pop() {
-                    JvmValue::ObjRef(v) => v,
-                    _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
-                };
-                dbg!(arrayid);
+            opcode::AALOAD => {
+                let pos_to_load = pop_int(&mut eval, "AALOAD");
+                let arrayid = pop_objref(&mut eval, "AALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().aaload(arrayid, pos_to_load);
+                eval.push(JvmValue::ObjRef(unwrapped_val));
+            }
 
-                let unwrapped_val = match HEAP.lock().unwrap().get_obj(arrayid) {
-                    ocelotter_runtime::object::OtObj::VmArrInt {
-                        id: _,
-                        mark: _,
-                        klassid: _,
-                        length: _,
-                        elements: elts,
-                    } => elts[pos_to_load as usize],
-                    _ => panic!("Non-int[] seen on stack during IASTORE at {}", current - 1),
-                };
+            opcode::AASTORE => {
+                let val_to_store = pop_objref(&mut eval, "AASTORE");
+                let pos_to_store = pop_int(&mut eval, "AASTORE");
+                let obj_id = pop_objref(&mut eval, "AASTORE");
+                HEAP.lock()
+                    .unwrap()
+                    .aastore(obj_id, pos_to_store, val_to_store);
+            }
+
+            opcode::ARRAYLENGTH => {
+                let obj_id = pop_objref(&mut eval, "ARRAYLENGTH");
+                let len = HEAP.lock().unwrap().arraylength(obj_id);
+                eval.push(JvmValue::Int(len));
+            }
+
+            opcode::BALOAD => {
+                let pos_to_load = pop_int(&mut eval, "BALOAD");
+                let arrayid = pop_objref(&mut eval, "BALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().baload(arrayid, pos_to_load);
+                eval.push(JvmValue::Int(unwrapped_val as i32));
+            }
+
+            opcode::BASTORE => {
+                let val_to_store = pop_int(&mut eval, "BASTORE") as i8;
+                let pos_to_store = pop_int(&mut eval, "BASTORE");
+                let obj_id = pop_objref(&mut eval, "BASTORE");
+                HEAP.lock()
+                    .unwrap()
+                    .bastore(obj_id, pos_to_store, val_to_store);
+            }
+
+            opcode::CALOAD => {
+                let pos_to_load = pop_int(&mut eval, "CALOAD");
+                let arrayid = pop_objref(&mut eval, "CALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().caload(arrayid, pos_to_load);
+                eval.push(JvmValue::Int(unwrapped_val as i32));
+            }
+
+            opcode::CASTORE => {
+                let val_to_store = pop_int(&mut eval, "CASTORE") as u16;
+                let pos_to_store = pop_int(&mut eval, "CASTORE");
+                let obj_id = pop_objref(&mut eval, "CASTORE");
+                HEAP.lock()
+                    .unwrap()
+                    .castore(obj_id, pos_to_store, val_to_store);
+            }
+
+            opcode::IALOAD => {
+                let pos_to_load = pop_int(&mut eval, "IALOAD");
+                let arrayid = pop_objref(&mut eval, "IALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().iaload(arrayid, pos_to_load);
                 eval.push(JvmValue::Int(unwrapped_val));
             }
 
             opcode::IAND => eval.iand(),
 
             opcode::IASTORE => {
-                let val_to_store = match eval.pop() {
-                    JvmValue::Int(v) => v,
-                    _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
-                };
-                let pos_to_store = match eval.pop() {
-                    JvmValue::Int(v) => v,
-                    _ => panic!("Non-int seen on stack during IASTORE at {}", current - 1),
-                };
-                let obj_id = match eval.pop() {
-                    JvmValue::ObjRef(v) => v,
-                    _ => panic!("Non-objref seen on stack during IASTORE at {}", current - 1),
-                };
-
+                let val_to_store = pop_int(&mut eval, "IASTORE");
+                let pos_to_store = pop_int(&mut eval, "IASTORE");
+                let obj_id = pop_objref(&mut eval, "IASTORE");
                 HEAP.lock()
                     .unwrap()
                     .iastore(obj_id, pos_to_store, val_to_store);
@@ -322,84 +439,84 @@ pub fn exec_bytecode_method(
             opcode::IDIV => eval.idiv(),
 
             opcode::IF_ICMPEQ => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i == j
                 }) {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
 
             opcode::IF_ICMPGE => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i >= j
                 }) {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
 
             opcode::IF_ICMPGT => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i > j
                 }) {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
 
             opcode::IF_ICMPLE => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i <= j
                 }) {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
 
             opcode::IF_ICMPLT => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i < j
                 }) {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
 
             opcode::IF_ICMPNE => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
-                    i == j
+                    i != j
                 }) {
-                    current += 2;
+                    branch_to(&mut current, jump_to);
                 } else {
-                    current += jump_to - 1;
+                    current += 2;
                 }
             }
             opcode::IFEQ => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 let i = match eval.pop() {
                     JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IFEQ at {}", current - 1),
                 };
                 if i == 0 {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
             opcode::IFGE => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 let v = match eval.pop() {
                     JvmValue::Int(i) => i,
                     _ => panic!("Non-int seen on stack during IFGE at {}", current - 1),
@@ -407,25 +524,25 @@ pub fn exec_bytecode_method(
                 //                dbg!(v);
                 //                dbg!(current, jump_to);
                 if v >= 0 {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
             opcode::IFGT => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 let v = match eval.pop() {
                     JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IFGT at {}", current - 1),
                 };
                 if v > 0 {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
             opcode::IFLE => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 let v = match eval.pop() {
                     JvmValue::Int(i) => i,
                     _ => panic!("Non-int seen on stack during IFLE at {}", current - 1),
@@ -434,42 +551,42 @@ pub fn exec_bytecode_method(
                 //                dbg!(current, jump_to);
                 //                dbg!(instr[current], instr[current + 1]);
                 if v <= 0 {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
             opcode::IFLT => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 let v = match eval.pop() {
                     JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IFGT at {}", current - 1),
                 };
                 if v < 0 {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
             opcode::IFNE => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 let i = match eval.pop() {
                     JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IFEQ at {}", current - 1),
                 };
-                if i == 0 {
-                    current += jump_to - 1;
+                if i != 0 {
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
             opcode::IFNONNULL => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
 
                 match eval.pop() {
                     JvmValue::ObjRef(v) => {
                         if v > 0 {
-                            current += jump_to - 1;
+                            branch_to(&mut current, jump_to);
                         } else {
                             current += 2;
                         }
@@ -481,12 +598,12 @@ pub fn exec_bytecode_method(
                 };
             }
             opcode::IFNULL => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
 
                 match eval.pop() {
                     JvmValue::ObjRef(v) => {
                         if v == 0 {
-                            current += jump_to - 1;
+                            branch_to(&mut current, jump_to);
                         } else {
                             current += 2;
                         }
@@ -498,7 +615,7 @@ pub fn exec_bytecode_method(
                 };
             }
             opcode::IINC => {
-                lvt.iinc(instr[current], instr[current + 1]);
+                lvt.iinc(instr[current], instr[current + 1] as i8);
                 current += 2;
             }
 
@@ -522,24 +639,30 @@ pub fn exec_bytecode_method(
             opcode::INVOKESPECIAL => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = repo.lookup_klass(&klass_name).clone();
-                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 1);
+                let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
+                dispatch_invoke(thread_tx.clone(), current_klass, cp_lookup, &mut eval, 1);
             }
             opcode::INVOKESTATIC => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = repo.lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
                 //                dbg!(cp_lookup);
                 let arg_count = current_klass.get_method_arg_count(cp_lookup);
-                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, arg_count);
+                dispatch_invoke(
+                    thread_tx.clone(),
+                    current_klass,
+                    cp_lookup,
+                    &mut eval,
+                    arg_count,
+                );
             }
             opcode::INVOKEVIRTUAL => {
                 // FIXME DOES NOT ACTUALLY DO VIRTUAL LOOKUP YET
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = repo.lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
                 dbg!(current_klass.clone());
-                dispatch_invoke(repo, current_klass, cp_lookup, &mut eval, 1);
+                dispatch_invoke(thread_tx.clone(), current_klass, cp_lookup, &mut eval, 1);
             }
             opcode::IOR => eval.ior(),
 
@@ -577,6 +700,13 @@ pub fn exec_bytecode_method(
 
             opcode::LADD => eval.ladd(),
 
+            opcode::LALOAD => {
+                let pos_to_load = pop_int(&mut eval, "LALOAD");
+                let arrayid = pop_objref(&mut eval, "LALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().laload(arrayid, pos_to_load);
+                eval.push(JvmValue::Long(unwrapped_val));
+            }
+
             opcode::LAND => eval.land(),
 
             opcode::LCMP => eval.lcmp(),
@@ -588,7 +718,9 @@ pub fn exec_bytecode_method(
             opcode::LDC => {
                 let cp_lookup = instr[current] as u16;
                 current += 1;
-                let current_klass = repo.lookup_klass(&klass_name).clone();
+                println!("Getting to lookup_klass");
+                let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
+                println!("Back from lookup_klass");
 
                 match current_klass.lookup_cp(cp_lookup) {
                     // FIXME Actually look up the class object properly
@@ -607,7 +739,7 @@ pub fn exec_bytecode_method(
             opcode::LDC2_W => {
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = repo.lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
 
                 let entry: CpEntry = current_klass.lookup_cp(cp_lookup);
                 //                dbg!("Index: {} of type {}", cp_lookup, entry.name());
@@ -669,6 +801,15 @@ pub fn exec_bytecode_method(
 
             opcode::LSTORE_3 => lvt.store(3, eval.pop()),
 
+            opcode::LASTORE => {
+                let val_to_store = pop_long(&mut eval, "LASTORE");
+                let pos_to_store = pop_int(&mut eval, "LASTORE");
+                let obj_id = pop_objref(&mut eval, "LASTORE");
+                HEAP.lock()
+                    .unwrap()
+                    .lastore(obj_id, pos_to_store, val_to_store);
+            }
+
             opcode::LSUB => eval.lsub(),
 
             opcode::LUSHR => eval.lushr(),
@@ -684,9 +825,11 @@ pub fn exec_bytecode_method(
                 eval.pop();
             }
             opcode::NEW => {
+                dbg!("Getting to NEW");
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
-                let current_klass = repo.lookup_klass(&klass_name).clone();
+                let current_klass = OtKlass::lookup_klass(thread_tx.clone(), &klass_name).clone();
+                dbg!("Back from OtKlass::lookup_klass");
 
                 let alloc_klass_name = match current_klass.lookup_cp(cp_lookup) {
                     // FIXME Find class name from constant pool of the current class
@@ -698,7 +841,8 @@ pub fn exec_bytecode_method(
                     ),
                 };
                 //                dbg!(alloc_klass_name.clone());
-                let object_klass = repo.lookup_klass(&alloc_klass_name).clone();
+                let object_klass =
+                    OtKlass::lookup_klass(thread_tx.clone(), &alloc_klass_name).clone();
 
                 let obj_id = HEAP.lock().unwrap().allocate_obj(&object_klass);
                 eval.push(JvmValue::ObjRef(obj_id));
@@ -707,20 +851,19 @@ pub fn exec_bytecode_method(
                 let arr_type = instr[current];
                 current += 1;
 
-                // FIXME Other primitive array types needed
+                let arr_size = match eval.pop() {
+                    JvmValue::Int(v) => v,
+                    _ => panic!("Not an int on the stack at {}", (current - 1)),
+                };
                 let arr_id = match arr_type {
-                    // boolean: 4
-                    // char: 5
-                    // float: 6
-                    // double: 7
-                    // byte: 8
-                    // short: 9
-                    // int: 10
-                    // long: 11
-                    10 => match eval.pop() {
-                        JvmValue::Int(arr_size) => HEAP.lock().unwrap().allocate_int_arr(arr_size),
-                        _ => panic!("Not an int on the stack at {}", (current - 1)),
-                    },
+                    4 => HEAP.lock().unwrap().allocate_byte_arr(arr_size), // boolean[]
+                    5 => HEAP.lock().unwrap().allocate_char_arr(arr_size), // char[]
+                    6 => HEAP.lock().unwrap().allocate_float_arr(arr_size), // float[]
+                    7 => HEAP.lock().unwrap().allocate_double_arr(arr_size), // double[]
+                    8 => HEAP.lock().unwrap().allocate_byte_arr(arr_size), // byte[]
+                    9 => HEAP.lock().unwrap().allocate_short_arr(arr_size), // short[]
+                    10 => HEAP.lock().unwrap().allocate_int_arr(arr_size), // int[]
+                    11 => HEAP.lock().unwrap().allocate_long_arr(arr_size), // long[]
                     _ => panic!("Unsupported primitive array type at {}", (current - 1)),
                 };
 
@@ -750,7 +893,8 @@ pub fn exec_bytecode_method(
                     _ => panic!("Not an object ref at {}", (current - 1)),
                 };
 
-                let putf = repo.lookup_instance_field(&klass_name, cp_lookup);
+                let putf =
+                    OtKlass::lookup_instance_field(thread_tx.clone(), &klass_name, cp_lookup);
 
                 HEAP.lock().unwrap().put_field(obj_id, putf, val);
             }
@@ -758,12 +902,27 @@ pub fn exec_bytecode_method(
                 let cp_lookup = ((instr[current] as u16) << 8) + instr[current + 1] as u16;
                 current += 2;
 
-                let puts = repo.lookup_static_field(&klass_name, cp_lookup);
-                let klass = repo.lookup_klass(&puts.get_klass_name()).clone();
+                let puts = OtKlass::lookup_static_field(thread_tx.clone(), &klass_name, cp_lookup);
+                let klass =
+                    OtKlass::lookup_klass(thread_tx.clone(), &puts.get_klass_name()).clone();
 
                 klass.put_static(&puts, eval.pop());
             }
             opcode::RETURN => break None,
+            opcode::SALOAD => {
+                let pos_to_load = pop_int(&mut eval, "SALOAD");
+                let arrayid = pop_objref(&mut eval, "SALOAD");
+                let unwrapped_val = HEAP.lock().unwrap().saload(arrayid, pos_to_load);
+                eval.push(JvmValue::Int(unwrapped_val as i32));
+            }
+            opcode::SASTORE => {
+                let val_to_store = pop_int(&mut eval, "SASTORE") as i16;
+                let pos_to_store = pop_int(&mut eval, "SASTORE");
+                let obj_id = pop_objref(&mut eval, "SASTORE");
+                HEAP.lock()
+                    .unwrap()
+                    .sastore(obj_id, pos_to_store, val_to_store);
+            }
             opcode::SIPUSH => {
                 let vtmp = ((instr[current] as i32) << 8) + instr[current + 1] as i32;
                 eval.iconst(vtmp);
@@ -783,13 +942,72 @@ pub fn exec_bytecode_method(
             opcode::JSR_W => break Some(JvmValue::Boolean(false)),
             opcode::RET => break Some(JvmValue::Boolean(false)),
 
-            _ => panic!(
-                "Illegal opcode byte: {} encountered at position {}. Stopping.",
-                ins,
-                (current - 1)
-            ),
+            _ => {
+                panic!(
+                    "Illegal opcode byte: {} encountered at position {}. Stopping.",
+                    ins,
+                    (current - 1)
+                )
+            }
         }
     }
+}
+
+fn read_i16_branch_offset(instr: &[u8], current: usize) -> i16 {
+    i16::from_be_bytes([instr[current], instr[current + 1]])
+}
+
+fn pop_int(eval: &mut InterpEvalStack, op: &str) -> i32 {
+    match eval.pop() {
+        JvmValue::Int(v) => v,
+        _ => panic!("Non-int seen on stack during {}", op),
+    }
+}
+
+fn pop_long(eval: &mut InterpEvalStack, op: &str) -> i64 {
+    match eval.pop() {
+        JvmValue::Long(v) => v,
+        _ => panic!("Non-long seen on stack during {}", op),
+    }
+}
+
+fn pop_float(eval: &mut InterpEvalStack, op: &str) -> f32 {
+    match eval.pop() {
+        JvmValue::Float(v) => v,
+        _ => panic!("Non-float seen on stack during {}", op),
+    }
+}
+
+fn pop_double(eval: &mut InterpEvalStack, op: &str) -> f64 {
+    match eval.pop() {
+        JvmValue::Double(v) => v,
+        _ => panic!("Non-double seen on stack during {}", op),
+    }
+}
+
+fn pop_objref(eval: &mut InterpEvalStack, op: &str) -> usize {
+    match eval.pop() {
+        JvmValue::ObjRef(v) => v,
+        _ => panic!("Non-objref seen on stack during {}", op),
+    }
+}
+
+fn read_i32_branch_offset(instr: &[u8], current: usize) -> i32 {
+    i32::from_be_bytes([
+        instr[current],
+        instr[current + 1],
+        instr[current + 2],
+        instr[current + 3],
+    ])
+}
+
+fn branch_to(current: &mut usize, jump_to: i32) {
+    let opcode_pc = *current as i32 - 1;
+    let target = opcode_pc + jump_to;
+    if target < 0 {
+        panic!("Illegal negative branch target {}", target);
+    }
+    *current = target as usize;
 }
 
 fn massage_to_int_and_compare(v1: JvmValue, v2: JvmValue, f: fn(i: i32, j: i32) -> bool) -> bool {
@@ -803,7 +1021,7 @@ fn massage_to_int_and_compare(v1: JvmValue, v2: JvmValue, f: fn(i: i32, j: i32) 
 }
 
 fn dispatch_invoke(
-    repo: &mut SharedKlassRepo,
+    tx: Sender<OtKlassComms>,
     current_klass: OtKlass,
     cp_lookup: u16,
     eval: &mut InterpEvalStack,
@@ -820,19 +1038,17 @@ fn dispatch_invoke(
     };
     let dispatch_klass_name = current_klass.cp_as_string(klz_idx);
 
-    let callee = repo.lookup_method_exact(&dispatch_klass_name, fq_name_desc);
+    let callee = OtKlass::lookup_method_exact(tx.clone(), &dispatch_klass_name, fq_name_desc);
 
     // FIXME - General setup requires call args from the stack
     let mut vars = InterpLocalVars::of(255);
     if additional_args > 0 {
         vars.store(0, eval.pop());
     }
-    // Explicit use of match expression to be clear about the semantics
-    match exec_method(repo, &callee, &mut vars) {
-        Some(val) => eval.push(val),
-        None => (),
+    if let Some(val) = exec_method(tx, &callee, &mut vars) {
+        eval.push(val)
     }
 }
 
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;

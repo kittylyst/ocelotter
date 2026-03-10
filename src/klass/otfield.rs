@@ -1,8 +1,8 @@
 use std::fmt;
 
-use crate::constant_pool::CpAttr;
-use crate::constant_pool::ACC_STATIC;
-use crate::JvmValue;
+use crate::interpreter::values::JvmValue;
+use crate::klass::constant_pool::CpAttr;
+use crate::klass::constant_pool::ACC_STATIC;
 
 #[derive(Debug, Clone)]
 pub struct OtField {
@@ -12,10 +12,12 @@ pub struct OtField {
     offset: u16,
     klass_name: String,
     flags: u16,
+    #[allow(dead_code)]
     name_idx: u16,
     desc_idx: u16,
     name: String,
     desc: String,
+    #[allow(dead_code)]
     attrs: Vec<CpAttr>,
 }
 
@@ -46,7 +48,7 @@ impl OtField {
         self.offset
     }
 
-    pub fn set_attr(&self, _index: u16, _attr: CpAttr) -> () {}
+    pub fn set_attr(&self, _index: u16, _attr: CpAttr) {}
 
     pub fn get_name(&self) -> String {
         self.name.clone()

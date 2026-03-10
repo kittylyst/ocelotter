@@ -1,5 +1,5 @@
-// AALOAD 0x32
-// AASTORE 0x53
+pub const AALOAD: u8 = 0x32;
+pub const AASTORE: u8 = 0x53;
 pub const ACONST_NULL: u8 = 0x01;
 pub const ALOAD: u8 = 0x19;
 pub const ALOAD_0: u8 = 0x2a;
@@ -8,26 +8,26 @@ pub const ALOAD_2: u8 = 0x2c;
 pub const ALOAD_3: u8 = 0x2d;
 // ANEWARRAY 0xbd
 pub const ARETURN: u8 = 0xb0;
-// ARRAYLENGTH 0xbe
-pub const ASTORE: u8 = 0x53;
+pub const ARRAYLENGTH: u8 = 0xbe;
+pub const ASTORE: u8 = 0x3a;
 pub const ASTORE_0: u8 = 0x4b;
 pub const ASTORE_1: u8 = 0x4c;
 pub const ASTORE_2: u8 = 0x4d;
 pub const ASTORE_3: u8 = 0x4e;
 // ATHROW 0xbf
-// BALOAD 0x33
-// BASTORE 0x54
+pub const BALOAD: u8 = 0x33;
+pub const BASTORE: u8 = 0x54;
 pub const BIPUSH: u8 = 0x10;
 pub const BREAKPOINT: u8 = 0xca;
-// CALOAD 0x34
-// CASTORE 0x55
+pub const CALOAD: u8 = 0x34;
+pub const CASTORE: u8 = 0x55;
 // CHECKCAST 0xc0
 pub const D2F: u8 = 0x90;
 pub const D2I: u8 = 0x8e;
 pub const D2L: u8 = 0x8f;
 pub const DADD: u8 = 0x63;
-// DALOAD 0x31
-// DASTORE 0x52
+pub const DALOAD: u8 = 0x31;
+pub const DASTORE: u8 = 0x52;
 pub const DCMPG: u8 = 0x98;
 pub const DCMPL: u8 = 0x97;
 pub const DCONST_0: u8 = 0x0e;
@@ -50,16 +50,16 @@ pub const DSTORE_3: u8 = 0x4a;
 pub const DSUB: u8 = 0x67;
 pub const DUP: u8 = 0x59;
 pub const DUP_X1: u8 = 0x5a;
-// DUP_X2 0x5b
-// DUP2 0x5c
-// DUP2_X1 0x5d
-// DUP2_X2 0x5e
+pub const DUP_X2: u8 = 0x5b;
+pub const DUP2: u8 = 0x5c;
+pub const DUP2_X1: u8 = 0x5d;
+pub const DUP2_X2: u8 = 0x5e;
 pub const F2D: u8 = 0x8d;
 pub const F2I: u8 = 0x8b;
 pub const F2L: u8 = 0x8c;
 pub const FADD: u8 = 0x62;
-// FALOAD 0x30
-// FASTORE 0x51
+pub const FALOAD: u8 = 0x30;
+pub const FASTORE: u8 = 0x51;
 pub const FCMPG: u8 = 0x96;
 pub const FCMPL: u8 = 0x95;
 pub const FCONST_0: u8 = 0x0b;
@@ -154,9 +154,9 @@ pub const L2D: u8 = 0x8a;
 pub const L2F: u8 = 0x89;
 pub const L2I: u8 = 0x88;
 pub const LADD: u8 = 0x61;
-// LALOAD 0x2f
+pub const LALOAD: u8 = 0x2f;
 pub const LAND: u8 = 0x7f;
-// LASTORE 0x50
+pub const LASTORE: u8 = 0x50;
 pub const LCMP: u8 = 0x94;
 pub const LCONST_0: u8 = 0x09;
 pub const LCONST_1: u8 = 0x0a;
@@ -196,8 +196,8 @@ pub const PUTFIELD: u8 = 0xb5;
 pub const PUTSTATIC: u8 = 0xb3;
 pub const RET: u8 = 0xa9;
 pub const RETURN: u8 = 0xb1;
-// SALOAD 0x35
-// SASTORE 0x56
+pub const SALOAD: u8 = 0x35;
+pub const SASTORE: u8 = 0x56;
 pub const SIPUSH: u8 = 0x11;
 pub const SWAP: u8 = 0x5f;
 // TABLESWITCH 0xaa
@@ -205,6 +205,7 @@ pub const SWAP: u8 = 0x5f;
 
 // [UNUSED] 0cb - 0xfd
 
+#[allow(dead_code)]
 fn num_params(c: u8) -> u8 {
     match c {
         ALOAD => 1,
@@ -217,6 +218,7 @@ fn num_params(c: u8) -> u8 {
         GETFIELD => 2,
         GETSTATIC => 2,
         GOTO => 2,
+        GOTO_W => 4,
         IF_ICMPEQ => 2,
         IFEQ => 2,
         IFGE => 2,
@@ -237,7 +239,7 @@ fn num_params(c: u8) -> u8 {
         NEW => 2,
         NEWARRAY => 1,
         JSR => 2,
-        JSR_W => 2,
+        JSR_W => 4,
         LDC => 1,
         PUTFIELD => 2,
         PUTSTATIC => 2,

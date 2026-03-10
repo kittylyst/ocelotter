@@ -4,11 +4,11 @@ use byteorder::{BigEndian, ByteOrder};
 use std::io::Read;
 use std::str;
 
-use crate::constant_pool::*;
+use crate::klass::constant_pool::*;
 
-use crate::OtField;
-use crate::OtKlass;
-use crate::OtMethod;
+use crate::klass::otfield::OtField;
+use crate::klass::otklass::OtKlass;
+use crate::klass::otmethod::OtMethod;
 
 pub struct OtKlassParser {
     clz_read: Vec<u8>,
@@ -107,7 +107,7 @@ impl OtKlassParser {
         }
     }
 
-    pub fn parse(&mut self) -> () {
+    pub fn parse(&mut self) {
         self.parse_header();
         self.parse_constant_pool();
         self.parse_basic_type_info();
@@ -122,7 +122,7 @@ impl OtKlassParser {
     }
 
     // Impl methods
-    fn parse_header(&mut self) -> () {
+    fn parse_header(&mut self) {
         if self.clz_read[0] != 0xca
             || self.clz_read[1] != 0xfe
             || self.clz_read[2] != 0xba
@@ -139,14 +139,12 @@ impl OtKlassParser {
         self.pool_item_count = ((self.clz_read[8] as u16) << 8) + self.clz_read[9] as u16;
     }
 
-    fn parse_constant_pool(&mut self) -> () {
+    fn parse_constant_pool(&mut self) {
         self.current = 10;
         // dbg!("Pool size:");
         // dbg!(self.get_pool_size());
-        self.cp_entries.resize(
-            (self.pool_item_count as usize) + 1,
-            CpEntry::Integer(0),
-        );
+        self.cp_entries
+            .resize((self.pool_item_count as usize) + 1, CpEntry::Integer(0));
         let mut current_cp = 0;
         let mut double_width = false;
         while current_cp < self.pool_item_count - 1 {
@@ -164,7 +162,7 @@ impl OtKlassParser {
                     let mut buf = vec![];
                     let mut chunk = self.clz_read[self.current..].take(len as u64);
                     match chunk.read_to_end(&mut buf) {
-                        Ok(v) => {
+                        Ok(_v) => {
                             self.current += len as usize;
 
                             let str_c = match str::from_utf8(&buf) {
@@ -252,7 +250,7 @@ impl OtKlassParser {
                     self.current += 4;
                     CpEntry::FieldRef(FieldRef::new(
                         ((b1 as u16) << 8) + b2 as u16,
-                        ((b3 as u16) << 8) + b4 as u16
+                        ((b3 as u16) << 8) + b4 as u16,
                     ))
                 }
                 CP_METHODREF => {
@@ -265,9 +263,9 @@ impl OtKlassParser {
 
                     CpEntry::MethodRef(MethodRef::new(
                         ((b1 as u16) << 8) + b2 as u16,
-                        ((b3 as u16) << 8) + b4 as u16
+                        ((b3 as u16) << 8) + b4 as u16,
                     ))
-                } 
+                }
                 CP_INTERFACE_METHODREF => {
                     // println!("Parsing an interface_methodref");
                     let b1 = self.clz_read[self.current];
@@ -277,7 +275,7 @@ impl OtKlassParser {
                     self.current += 4;
                     CpEntry::InterfaceMethodRef(InterfaceMethodRef::new(
                         ((b1 as u16) << 8) + b2 as u16,
-                        ((b3 as u16) << 8) + b4 as u16
+                        ((b3 as u16) << 8) + b4 as u16,
                     ))
                 }
                 CP_NAMEANDTYPE => {
@@ -289,21 +287,23 @@ impl OtKlassParser {
                     self.current += 4;
                     CpEntry::NameAndType(NameAndType::new(
                         ((b1 as u16) << 8) + b2 as u16,
-                        ((b3 as u16) << 8) + b4 as u16
+                        ((b3 as u16) << 8) + b4 as u16,
                     ))
                 }
-                _ => panic!("Unsupported Constant Pool type {} at {} of {}", tag, self.current, self.filename),
+                _ => panic!(
+                    "Unsupported Constant Pool type {} at {} of {}",
+                    tag, self.current, self.filename
+                ),
             };
             self.cp_entries[current_cp as usize] = item;
             if double_width {
-                current_cp = current_cp + 1;
+                current_cp += 1;
                 double_width = false;
             }
-
         }
     }
 
-    fn parse_basic_type_info(&mut self) -> () {
+    fn parse_basic_type_info(&mut self) {
         self.flags =
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         self.cp_index_this = ((self.clz_read[self.current + 2] as u16) << 8)
@@ -323,7 +323,7 @@ impl OtKlassParser {
         }
     }
 
-    fn parse_fields(&mut self) -> () {
+    fn parse_fields(&mut self) {
         let f_count =
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         self.current += 2;
@@ -411,7 +411,7 @@ impl OtKlassParser {
         CpAttr::of(name_idx)
     }
 
-    fn parse_methods(&mut self) -> () {
+    fn parse_methods(&mut self) {
         let mcount =
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         self.current += 2;
@@ -497,7 +497,7 @@ impl OtKlassParser {
                 let mut chunk = self.clz_read[self.current..].take(code_len as u64);
 
                 match chunk.read_to_end(&mut bytecode) {
-                    Ok(v) => {
+                    Ok(_v) => {
                         self.current += code_len as usize;
                         method.set_code(bytecode);
                     }
@@ -506,7 +506,6 @@ impl OtKlassParser {
             }
             "Signature" => {
                 dbg!("Encountered signature in bytecode - skipping");
-                ()
             }
             //    u2 exception_table_length;
             //    {   u2 start_pc;
@@ -517,20 +516,16 @@ impl OtKlassParser {
             //    u2 attributes_count;
             //    attribute_info attributes[attributes_count];
             "Exceptions" => {
-                // dbg!("Encountered exception handlers in bytecode - skipping");
-                ()
+                dbg!("Encountered exception handlers in bytecode - skipping");
             }
             "Synthetic" => {
-                // dbg!("Encountered Synthetic attribute in bytecode - skipping");
-                ()
+                dbg!("Encountered Synthetic attribute in bytecode - skipping");
             }
             "Deprecated" => {
                 dbg!("Encountered Deprecated attribute in bytecode - skipping");
-                ()
             }
             "RuntimeVisibleAnnotations" => {
                 dbg!("Encountered RuntimeVisibleAnnotations attribute in bytecode - skipping");
-                ()
             }
             _ => panic!("Unsupported attribute {} seen on {}", s, method),
         };

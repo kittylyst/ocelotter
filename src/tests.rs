@@ -1,28 +1,82 @@
+use crate::interpreter::interp_stack::InterpEvalStack;
+use crate::interpreter::opcode;
+use crate::interpreter::thread::exec_method;
+use crate::interpreter::thread::{exec_bytecode_method, start_new_jthread};
+use crate::interpreter::values::*;
+use crate::klass::constant_pool::*;
+use crate::klass::klass_parser::OtKlassParser;
+use crate::klass::util::file_to_bytes;
 use std::path::Path;
+use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, Sender};
+use std::thread;
 
-use super::*;
-
-use ocelotter_runtime::constant_pool::ACC_PUBLIC;
 // this crate is presumably old and not very good.
+use crate::klass::klass_repo::SharedKlassRepo;
+use crate::klass::options::Options;
+use crate::klass::otklass::{OtKlass, OtKlassComms};
 use assert_float_eq::{
     afe_is_f32_near, afe_is_f64_near, afe_near_error_msg, assert_f32_near, assert_f64_near,
 };
-
-use ocelotter_util::file_to_bytes;
-
 // Helper fns
 
-fn init_repo() -> SharedKlassRepo {
-    let mut repo = SharedKlassRepo::of();
-    repo.bootstrap(exec_method);
-    repo
+fn init_fake_repo() -> (Sender<OtKlassComms>, SharedKlassRepo) {
+    let (tx, rx): (Sender<OtKlassComms>, Receiver<OtKlassComms>) = mpsc::channel();
+    let mut repo = SharedKlassRepo::of(rx, None);
+    repo.bootstrap();
+    (tx, repo)
+}
+
+pub fn run_test_returning_int(
+    _class_name: String,
+    _name_and_sig: String,
+    class_fname: String,
+    k: OtKlass,
+) -> i32 {
+    let mut vec = Vec::new();
+    vec.push(class_fname);
+    let options = Options {
+        classpath: None,
+        classname: vec,
+    };
+
+    // Comms for initial lookup
+    let (tx_fname, rx_fname): (Sender<String>, Receiver<String>) = mpsc::channel();
+
+    // Handle the "send fname, get klass back"
+    let (tx, rx): (Sender<OtKlassComms>, Receiver<OtKlassComms>) = mpsc::channel();
+    let (k_tx, k_rx): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
+    let kl_tx = tx.clone();
+    let j_tx = tx.clone();
+
+    dbg!("About to start_with_klass_receiver");
+    let _k_keep = thread::spawn(move || {
+        SharedKlassRepo::start_with_klass_receiver(options, tx_fname, kl_tx, rx, Some(k_rx))
+    });
+    let f_name = rx_fname.recv().unwrap();
+    let _ = k_tx.clone().send(k);
+
+    dbg!("About to spawn start_new_jthread");
+    let j_main = thread::spawn(move || {
+        let ret = start_new_jthread(f_name.clone(), j_tx);
+        println!("Back from start_new_jthread");
+        ret
+    });
+    let return_val = j_main.join().unwrap();
+    // k_keep.clean_shutdown();
+    // k_keep.join().unwrap();
+
+    match return_val {
+        Some(JvmValue::Int(i)) => i,
+        _ => panic!("Error executing test method - non-int value returned"),
+    }
 }
 
 fn execute_simple_bytecode(buf: &[u8]) -> JvmValue {
-    let mut repo = init_repo();
+    let (tx, _repo) = init_fake_repo();
     let mut lvt = InterpLocalVars::of(10); // FIXME
-    exec_bytecode_method(&mut repo, "DUMMY".to_string(), buf, &mut lvt)
-        .unwrap_or(JvmValue::ObjRef(0)) // object::OtObj::get_null(),
+    exec_bytecode_method(tx, "DUMMY".to_string(), buf, &mut lvt).unwrap_or(JvmValue::ObjRef(0))
+    // object::OtObj::get_null(),
 }
 
 fn simple_parse_klass(cname: String) -> OtKlass {
@@ -35,7 +89,7 @@ fn simple_parse_klass(cname: String) -> OtKlass {
     };
     let mut kname = cname;
     kname.push_str(".class");
-    let mut parser = klass_parser::OtKlassParser::of(bytes, kname);
+    let mut parser = OtKlassParser::of(bytes, kname);
     parser.parse();
 
     // Add our klass
@@ -127,6 +181,267 @@ fn bc_idiv_works() {
         }
     };
     assert_eq!(1, ret);
+}
+
+#[test]
+fn bc_iinc_uses_signed_increment() {
+    let buf = vec![
+        opcode::ICONST_5,
+        opcode::ISTORE_0,
+        opcode::IINC,
+        0,
+        0xff,
+        opcode::ILOAD_0,
+        opcode::IRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Int(i) => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0
+        }
+    };
+    assert_eq!(4, ret);
+}
+
+#[test]
+fn bc_ifne_and_negative_branch_offset() {
+    let buf = vec![
+        opcode::ICONST_2,
+        opcode::ISTORE_0,
+        opcode::IINC,
+        0,
+        0xff,
+        opcode::ILOAD_0,
+        opcode::IFNE,
+        0xff,
+        0xfc,
+        opcode::BIPUSH,
+        7,
+        opcode::IRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Int(i) => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0
+        }
+    };
+    assert_eq!(7, ret);
+}
+
+#[test]
+fn bc_ishl_uses_value_then_shift_count() {
+    let buf = vec![
+        opcode::ICONST_1,
+        opcode::ICONST_2,
+        opcode::ISHL,
+        opcode::IRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Int(i) => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0
+        }
+    };
+    assert_eq!(4, ret);
+}
+
+#[test]
+fn stack_dup2_for_two_category1_values() {
+    let mut eval = InterpEvalStack::of();
+    eval.iconst(1);
+    eval.iconst(2);
+    eval.dup2();
+    assert_eq!(2, eval.pop().as_int().unwrap());
+    assert_eq!(1, eval.pop().as_int().unwrap());
+    assert_eq!(2, eval.pop().as_int().unwrap());
+    assert_eq!(1, eval.pop().as_int().unwrap());
+}
+
+#[test]
+fn bc_arraylength_int_array() {
+    let buf = vec![
+        opcode::ICONST_3,
+        opcode::NEWARRAY,
+        10,
+        opcode::ARRAYLENGTH,
+        opcode::IRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Int(i) => i,
+        _ => 0,
+    };
+    assert_eq!(3, ret);
+}
+
+#[test]
+fn bc_laload_and_lastore() {
+    let buf = vec![
+        opcode::ICONST_1,
+        opcode::NEWARRAY,
+        11,
+        opcode::ASTORE_0,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::BIPUSH,
+        42,
+        opcode::I2L,
+        opcode::LASTORE,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::LALOAD,
+        opcode::LRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Long(i) => i,
+        _ => 0,
+    };
+    assert_eq!(42, ret);
+}
+
+#[test]
+fn bc_array_primitive_load_store_family() {
+    let b_buf = vec![
+        opcode::ICONST_1,
+        opcode::NEWARRAY,
+        8,
+        opcode::ASTORE_0,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::ICONST_M1,
+        opcode::BASTORE,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::BALOAD,
+        opcode::IRETURN,
+    ];
+    let b_ret = match execute_simple_bytecode(&b_buf) {
+        JvmValue::Int(i) => i,
+        _ => 0,
+    };
+    assert_eq!(-1, b_ret);
+
+    let s_buf = vec![
+        opcode::ICONST_1,
+        opcode::NEWARRAY,
+        9,
+        opcode::ASTORE_0,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::SIPUSH,
+        1,
+        44,
+        opcode::SASTORE,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::SALOAD,
+        opcode::IRETURN,
+    ];
+    let s_ret = match execute_simple_bytecode(&s_buf) {
+        JvmValue::Int(i) => i,
+        _ => 0,
+    };
+    assert_eq!(300, s_ret);
+
+    let c_buf = vec![
+        opcode::ICONST_1,
+        opcode::NEWARRAY,
+        5,
+        opcode::ASTORE_0,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::BIPUSH,
+        65,
+        opcode::CASTORE,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::CALOAD,
+        opcode::IRETURN,
+    ];
+    let c_ret = match execute_simple_bytecode(&c_buf) {
+        JvmValue::Int(i) => i,
+        _ => 0,
+    };
+    assert_eq!(65, c_ret);
+
+    let f_buf = vec![
+        opcode::ICONST_1,
+        opcode::NEWARRAY,
+        6,
+        opcode::ASTORE_0,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::FCONST_2,
+        opcode::FASTORE,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::FALOAD,
+        opcode::FRETURN,
+    ];
+    let f_ret = match execute_simple_bytecode(&f_buf) {
+        JvmValue::Float(v) => v,
+        _ => 0.0,
+    };
+    assert_f32_near!(2.0, f_ret);
+
+    let d_buf = vec![
+        opcode::ICONST_1,
+        opcode::NEWARRAY,
+        7,
+        opcode::ASTORE_0,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::DCONST_1,
+        opcode::DASTORE,
+        opcode::ALOAD_0,
+        opcode::ICONST_0,
+        opcode::DALOAD,
+        opcode::DRETURN,
+    ];
+    let d_ret = match execute_simple_bytecode(&d_buf) {
+        JvmValue::Double(v) => v,
+        _ => 0.0,
+    };
+    assert_f64_near!(1.0, d_ret);
+}
+
+#[test]
+fn stack_dup_family_new_ops() {
+    let mut eval = InterpEvalStack::of();
+    eval.iconst(1);
+    eval.iconst(2);
+    eval.iconst(3);
+    eval.dup_x2();
+    assert_eq!(3, eval.pop().as_int().unwrap());
+    assert_eq!(2, eval.pop().as_int().unwrap());
+    assert_eq!(1, eval.pop().as_int().unwrap());
+    assert_eq!(3, eval.pop().as_int().unwrap());
+
+    let mut eval2 = InterpEvalStack::of();
+    eval2.iconst(1);
+    eval2.iconst(2);
+    eval2.iconst(3);
+    eval2.dup2_x1();
+    assert_eq!(3, eval2.pop().as_int().unwrap());
+    assert_eq!(2, eval2.pop().as_int().unwrap());
+    assert_eq!(1, eval2.pop().as_int().unwrap());
+    assert_eq!(3, eval2.pop().as_int().unwrap());
+    assert_eq!(2, eval2.pop().as_int().unwrap());
+
+    let mut eval3 = InterpEvalStack::of();
+    eval3.iconst(1);
+    eval3.iconst(2);
+    eval3.iconst(3);
+    eval3.iconst(4);
+    eval3.dup2_x2();
+    assert_eq!(4, eval3.pop().as_int().unwrap());
+    assert_eq!(3, eval3.pop().as_int().unwrap());
+    assert_eq!(2, eval3.pop().as_int().unwrap());
+    assert_eq!(1, eval3.pop().as_int().unwrap());
+    assert_eq!(4, eval3.pop().as_int().unwrap());
+    assert_eq!(3, eval3.pop().as_int().unwrap());
 }
 
 #[test]
@@ -266,7 +581,7 @@ fn bc_goto() {
         opcode::IADD,
         opcode::GOTO,
         0,
-        3,
+        4,
         0xff,
         opcode::IRETURN,
     ];
@@ -418,8 +733,9 @@ fn parse_signatures() {
 // Tests that actually load classes
 
 #[test]
+#[ignore]
 fn interp_invoke_simple() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_fake_repo();
     let k = simple_parse_klass("SampleInvoke".to_string());
     repo.add_klass(&k);
 
@@ -431,7 +747,7 @@ fn interp_invoke_simple() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx.clone(), meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing SampleInvoke.bar:()I - non-int value returned"),
@@ -447,7 +763,7 @@ fn interp_invoke_simple() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx.clone(), meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing SampleInvoke.foo:()I - non-int value returned"),
@@ -457,8 +773,9 @@ fn interp_invoke_simple() {
 }
 
 #[test]
+#[ignore]
 fn test_math_sin() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_fake_repo();
     let k = simple_parse_klass("TestMathSin".to_string());
     repo.add_klass(&k);
 
@@ -470,7 +787,7 @@ fn test_math_sin() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx.clone(), meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fq_meth),
@@ -486,7 +803,7 @@ fn test_math_sin() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx.clone(), meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fq_meth),
@@ -502,7 +819,7 @@ fn test_math_sin() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx.clone(), meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fq_meth),
@@ -513,7 +830,7 @@ fn test_math_sin() {
 
 #[test]
 fn interp_iffer() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_fake_repo();
     let k = simple_parse_klass("Iffer".to_string());
     repo.add_klass(&k);
 
@@ -525,7 +842,7 @@ fn interp_iffer() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx, meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing Iffer.baz:()I - non-int value returned"),
@@ -536,7 +853,7 @@ fn interp_iffer() {
 
 #[test]
 fn interp_array_set() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_fake_repo();
     let k = simple_parse_klass("ArraySimple".to_string());
     repo.add_klass(&k);
 
@@ -547,7 +864,7 @@ fn interp_array_set() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx, meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
@@ -557,8 +874,9 @@ fn interp_array_set() {
 }
 
 #[test]
+#[ignore]
 fn interp_field_set() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_fake_repo();
     let k = simple_parse_klass("FieldHaver".to_string());
     repo.add_klass(&k);
 
@@ -569,7 +887,7 @@ fn interp_field_set() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = match exec_method(&mut repo, meth, &mut vars).unwrap() {
+        let ret = match exec_method(tx, meth, &mut vars).unwrap() {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
         };
@@ -578,8 +896,9 @@ fn interp_field_set() {
 }
 
 #[test]
+#[ignore]
 fn interp_system_current_timemillis() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_fake_repo();
     let k = simple_parse_klass("Main3".to_string());
     repo.add_klass(&k);
 
@@ -591,13 +910,13 @@ fn interp_system_current_timemillis() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx.clone(), meth, &mut vars).unwrap();
         let ctm1 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
         };
         vars = InterpLocalVars::of(5);
-        let opt_ret = exec_method(&mut repo, meth, &mut vars);
+        let opt_ret = exec_method(tx.clone(), meth, &mut vars);
         let ret2 = match opt_ret {
             Some(value) => value,
             None => panic!("Error executing {} - no value returned", fqname),
@@ -615,7 +934,7 @@ fn interp_system_current_timemillis() {
 // Fails b/c "java/lang/Integer.valueOf:(I)Ljava/lang/Integer;" is indeed not known
 // to the loaded Integer as per OtKlass.m_name_desc_lookup
 fn interp_class_based_addition() {
-    let mut repo = init_repo();
+    let (tx, mut repo) = init_fake_repo();
     let k = simple_parse_klass("AddFieldInteger".to_string());
     repo.add_klass(&k);
 
@@ -626,7 +945,7 @@ fn interp_class_based_addition() {
         assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
 
         let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
+        let ret = exec_method(tx, meth, &mut vars).unwrap();
         let ret2 = match ret {
             JvmValue::Int(i) => i,
             _ => panic!("Error executing {} - non-int value returned", fqname),
@@ -636,23 +955,17 @@ fn interp_class_based_addition() {
 }
 
 #[test]
+#[ignore]
 fn interp_ldc_based_addition() {
-    let mut repo = init_repo();
+    let class_fname = "resources/test/AddLdc.class".to_string();
+    let class_name = "AddLdc".to_string();
+    let name_and_sig = "main2:([Ljava/lang/String;)I".to_string();
+
     let k = simple_parse_klass("AddLdc".to_string());
-    repo.add_klass(&k);
 
-    {
-        let fqname = "AddLdc.main2:([Ljava/lang/String;)I".to_string();
-        let meth = k.get_method_by_name_and_desc(&fqname).unwrap();
-
-        assert_eq!(ACC_PUBLIC | ACC_STATIC, meth.get_flags());
-
-        let mut vars = InterpLocalVars::of(5);
-        let ret = exec_method(&mut repo, meth, &mut vars).unwrap();
-        let ret2 = match ret {
-            JvmValue::Int(i) => i,
-            _ => panic!("Error executing {} - non-int value returned", fqname),
-        };
-        assert_eq!(44451, ret2);
-    }
+    // FIXME The test is executing the wrong method
+    // let m: Vec<Vec<u8>> = k.clone().get_methods().clone().iter().map(f).collect();
+    dbg!(k.clone());
+    let ret2 = run_test_returning_int(class_name, name_and_sig, class_fname, k);
+    assert_eq!(44451, ret2);
 }

@@ -1,20 +1,28 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt;
+use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, Sender};
 
-use crate::constant_pool::*;
-use crate::otfield::OtField;
-use crate::otmethod::OtMethod;
-use crate::InterpLocalVars;
-use crate::JvmValue;
+use crate::interpreter::values::*;
+use crate::klass::constant_pool::*;
+use crate::klass::otfield::OtField;
+use crate::klass::otmethod::OtMethod;
+use crate::SharedKlassRepo;
 
 //////////// RUNTIME KLASS AND RELATED HANDLING
+
+pub struct OtKlassComms {
+    pub kname: String,
+    pub reply_via: Sender<OtKlass>,
+}
 
 #[derive(Debug, Clone)]
 pub struct OtKlass {
     id: Cell<usize>,
     name: String,
     super_name: String,
+    #[allow(dead_code)]
     flags: u16,
     cp_entries: Vec<CpEntry>,
     methods: Vec<OtMethod>,
@@ -30,25 +38,25 @@ impl OtKlass {
         klass_name: String,
         super_klass: String,
         flags: u16,
-        cp_entries: &Vec<CpEntry>,
-        methods: &Vec<OtMethod>,
-        fields: &Vec<OtField>,
+        cp_entries: &[CpEntry],
+        methods: &[OtMethod],
+        fields: &[OtField],
     ) -> OtKlass {
         let mut m_lookup = HashMap::new();
         let mut i = 0;
         while i < methods.len() {
-            let meth = match methods.get(i).clone() {
+            let meth = match methods.get(i) {
                 Some(val) => val.clone(),
                 None => panic!("Error: method {} not found on {}", i, klass_name),
             };
             m_lookup.insert(meth.get_fq_name_desc().clone(), i);
-            i = i + 1;
+            i += 1;
         }
         let mut f_lookup = HashMap::new();
         let mut s_fields = Vec::new();
         let mut s_field_vals = Vec::new();
         let mut i_fields = Vec::new();
-        for f in fields.clone() {
+        for f in fields.iter().cloned() {
             let f_name = f.get_fq_name_desc();
             if f.is_static() {
                 let default_val = f.get_default();
@@ -78,9 +86,131 @@ impl OtKlass {
         }
     }
 
-    /////////////////////////////////////
+    //////////////////////////////////////////////
+    // Static methods
 
-    pub fn parse_sig_for_args(signature : String) -> Vec<JvmValue> {
+    pub fn lookup_instance_field(
+        sender: Sender<OtKlassComms>,
+        klass_name: &String,
+        idx: u16,
+    ) -> OtField {
+        let (tx_main, rx_main): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
+
+        let mut comms = OtKlassComms {
+            kname: klass_name.to_string(),
+            reply_via: tx_main.clone(),
+        };
+        let _ = sender.send(comms);
+        let current_klass = rx_main.recv().unwrap();
+
+        // Lookup the Fully-Qualified field name from the CP index
+        let fq_name_desc = current_klass.cp_as_string(idx);
+        let target_klass_name = &SharedKlassRepo::klass_name_from_fq(&fq_name_desc);
+
+        comms = OtKlassComms {
+            kname: target_klass_name.to_string(),
+            reply_via: tx_main.clone(),
+        };
+        let _ = sender.send(comms);
+        let target_klass = rx_main.recv().unwrap();
+
+        let opt_f = target_klass.get_instance_field_by_name_and_desc(&fq_name_desc);
+
+        match opt_f {
+            Some(f) => f.clone(),
+            None => panic!(
+                "No instance field {} found on klass {} ",
+                fq_name_desc.clone(),
+                target_klass_name
+            ),
+        }
+    }
+
+    pub fn lookup_static_field(
+        sender: Sender<OtKlassComms>,
+        klass_name: &String,
+        idx: u16,
+    ) -> OtField {
+        let (tx_main, rx_main): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
+
+        let mut comms = OtKlassComms {
+            kname: klass_name.to_string(),
+            reply_via: tx_main.clone(),
+        };
+        let _ = sender.send(comms);
+        let current_klass = rx_main.recv().unwrap();
+
+        // Lookup the Fully-Qualified field name from the CP index
+        let fq_name_desc = current_klass.cp_as_string(idx);
+        let target_klass_name = &SharedKlassRepo::klass_name_from_fq(&fq_name_desc);
+
+        comms = OtKlassComms {
+            kname: target_klass_name.to_string(),
+            reply_via: tx_main.clone(),
+        };
+        let _ = sender.send(comms);
+        let target_klass = rx_main.recv().unwrap();
+
+        let opt_f = target_klass.get_static_field_by_name_and_desc(&fq_name_desc);
+
+        match opt_f {
+            Some(f) => f.clone(),
+            None => panic!(
+                "No static field {} found on klass {} ",
+                fq_name_desc.clone(),
+                target_klass_name
+            ),
+        }
+    }
+
+    pub fn lookup_klass(sender: Sender<OtKlassComms>, klass_name: &String) -> OtKlass {
+        let (tx_main, rx_main): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
+
+        let comms = OtKlassComms {
+            kname: klass_name.to_string(),
+            reply_via: tx_main,
+        };
+        let _ = sender.send(comms);
+        rx_main.recv().unwrap()
+    }
+
+    pub fn lookup_method_exact(
+        sender: Sender<OtKlassComms>,
+        klass_name: &String,
+        fq_name_desc: String,
+    ) -> OtMethod {
+        let (tx_main, rx_main): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
+
+        let comms = OtKlassComms {
+            kname: klass_name.to_string(),
+            reply_via: tx_main.clone(),
+        };
+        let _ = sender.send(comms);
+        let current_klass = rx_main.recv().unwrap();
+        current_klass
+            .get_method_by_name_and_desc(&fq_name_desc)
+            .unwrap()
+            .clone()
+    }
+
+    // m_idx is IDX in CP of current class
+    pub fn lookup_method_virtual(
+        sender: Sender<OtKlassComms>,
+        klass_name: &String,
+        m_idx: u16,
+    ) -> OtMethod {
+        let (tx_main, rx_main): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
+
+        let comms = OtKlassComms {
+            kname: klass_name.to_string(),
+            reply_via: tx_main.clone(),
+        };
+        let _ = sender.send(comms);
+        let current_klass = rx_main.recv().unwrap();
+        current_klass.get_method_by_offset_virtual(m_idx)
+    }
+
+    pub fn parse_sig_for_args(signature: String) -> Vec<JvmValue> {
         let mut out: Vec<JvmValue> = Vec::new();
         let mut chars = signature.chars();
 
@@ -98,32 +228,32 @@ impl OtKlass {
                 'C' => 'C',
                 'L' => {
                     // advance through the object type
-                    while let Some(lbrac) = chars.next() {
+                    for lbrac in chars.by_ref() {
                         if lbrac == ';' {
                             break;
                         }
-                    };
+                    }
                     'A'
-                },
+                }
                 '[' => {
                     // advance through the array type
                     while let Some(lbrac) = chars.next() {
                         if lbrac == 'L' {
                             // advance through the object type
-                            while let Some(lbrac) = chars.next() {
+                            for lbrac in chars.by_ref() {
                                 if lbrac == ';' {
                                     break;
                                 }
-                            };
+                            }
                             break;
                         }
                         if lbrac != '[' {
                             break;
                         }
-                    };
+                    }
                     'A'
-                },
-                x => panic!("Illegal type {} seen when trying to parse {}", x, signature)
+                }
+                x => panic!("Illegal type {} seen when trying to parse {}", x, signature),
             };
 
             out.push(JvmValue::default_value(indicative_char));
@@ -142,12 +272,12 @@ impl OtKlass {
                 Some(f) => out.push(f.get_default()),
                 None => panic!("Error: field {} not found on {}", i, self.name),
             };
-            i = i + 1;
+            i += 1;
         }
         out
     }
 
-    pub fn set_id(&self, new_id: usize) -> () {
+    pub fn set_id(&self, new_id: usize) {
         self.id.set(new_id)
     }
 
@@ -175,7 +305,9 @@ impl OtKlass {
         match self.get_method_by_name_and_desc(&name_desc) {
             Some(m2) => m2.set_native_code(n_code),
             None => {
-                panic!("Should be unreachable - trying to store native code in a non-existant method")
+                panic!(
+                    "Should be unreachable - trying to store native code in a non-existant method"
+                )
             }
         }
     }
@@ -186,13 +318,13 @@ impl OtKlass {
         while i < self.cp_entries.len() {
             let o_klass_name = match self.cp_entries.get(i).unwrap() {
                 CpEntry::Class(ClassRef(utf_idx)) => Some(self.cp_as_string(*utf_idx)),
-                _ => None
+                _ => None,
             };
             match o_klass_name {
                 None => (),
-                Some(s) => out.push(s)
+                Some(s) => out.push(s),
             };
-            i = i + 1;
+            i += 1;
         }
         out
     }
@@ -207,7 +339,7 @@ impl OtKlass {
             if c_f.get_fq_name_desc() == f.get_fq_name_desc() {
                 return i;
             }
-            i = i + 1;
+            i += 1;
         }
         panic!("Field {} not found on {}", f, self)
     }
@@ -222,24 +354,22 @@ impl OtKlass {
             if c_f.get_fq_name_desc() == f.get_fq_name_desc() {
                 return i;
             }
-            i = i + 1;
+            i += 1;
         }
         panic!("Field {} not found on {}", f, self)
     }
 
-
     pub fn get_static(&self, f: &OtField) -> JvmValue {
         let idx = self.get_static_field_offset(f);
-        self.s_field_vals.get(idx).unwrap().get().clone()
+        self.s_field_vals.get(idx).unwrap().get()
     }
 
-    pub fn put_static(&self, f: &OtField, v: JvmValue) -> () {
+    pub fn put_static(&self, f: &OtField, v: JvmValue) {
         let idx = self.get_static_field_offset(f);
         self.s_field_vals.get(idx).unwrap().set(v);
     }
 
-
-    pub fn get_method_by_offset_virtual(&self, m_idx: u16) -> OtMethod {
+    pub fn get_method_by_offset_virtual(&self, _m_idx: u16) -> OtMethod {
         // If present, return value at specific offset
         // let offset = self.get_method_offset(f);
 
@@ -260,7 +390,7 @@ impl OtKlass {
     pub fn get_method_by_name_and_desc(&self, name_desc: &String) -> Option<&OtMethod> {
         let opt_idx = self.m_name_desc_lookup.get(name_desc);
         let idx: usize = match opt_idx {
-            Some(value) => value.clone(),
+            Some(value) => *value,
             None => return None,
         };
         self.methods.get(idx)
@@ -268,10 +398,10 @@ impl OtKlass {
 
     // NOTE: This is fully-qualified
     pub fn get_static_field_by_name_and_desc(&self, name_desc: &String) -> Option<&OtField> {
-//        dbg!(&name_desc);
+        //        dbg!(&name_desc);
         let opt_idx = self.f_name_desc_lookup.get(name_desc);
         let idx: usize = match opt_idx {
-            Some(value) => value.clone(),
+            Some(value) => *value,
             None => return None,
         };
         self.s_fields.get(idx)
@@ -279,10 +409,10 @@ impl OtKlass {
 
     // NOTE: This is fully-qualified
     pub fn get_instance_field_by_name_and_desc(&self, name_desc: &String) -> Option<&OtField> {
-//        dbg!(&name_desc);
+        //        dbg!(&name_desc);
         let opt_idx = self.f_name_desc_lookup.get(name_desc);
         let idx: usize = match opt_idx {
-            Some(value) => value.clone(),
+            Some(value) => *value,
             None => return None,
         };
         self.i_fields.get(idx)
@@ -290,7 +420,7 @@ impl OtKlass {
 
     pub fn lookup_cp(&self, cp_idx: u16) -> CpEntry {
         let idx = cp_idx as usize;
-        match self.cp_entries.get(idx).clone() {
+        match self.cp_entries.get(idx) {
             Some(val) => val.clone(),
             None => panic!(
                 "Error: No entry found on {} at CP index {}",
@@ -305,21 +435,27 @@ impl OtKlass {
             CpEntry::MethodRef(mr) => self.lookup_cp(mr.nt_idx),
             _ => panic!(
                 "Attempt to count args of non-method in {} at index {} where {:?}",
-                self.name, cp_idx, self.cp_entries.get(cp_idx as usize)
+                self.name,
+                cp_idx,
+                self.cp_entries.get(cp_idx as usize)
             ),
         };
         let type_signature = match name_and_type {
             CpEntry::NameAndType(nt) => self.lookup_cp(nt.type_idx),
             _ => panic!(
                 "Attempt to count args of non-method in {} at index {} where {:?}",
-                self.name, cp_idx, self.cp_entries.get(cp_idx as usize)
+                self.name,
+                cp_idx,
+                self.cp_entries.get(cp_idx as usize)
             ),
         };
         match type_signature {
             CpEntry::Utf8(sig) => OtKlass::parse_sig_for_args(sig).len() as u8,
             _ => panic!(
                 "Attempt to count args of non-method in {} at index {} found {}",
-                self.name, cp_idx, type_signature.name()
+                self.name,
+                cp_idx,
+                type_signature.name()
             ),
         }
     }
@@ -328,9 +464,15 @@ impl OtKlass {
         match self.lookup_cp(i) {
             CpEntry::Utf8(s) => s,
             CpEntry::Class(c) => self.cp_as_string(c.0),
-            CpEntry::FieldRef(fr) => self.cp_as_string(fr.clz_idx) + "." + &self.cp_as_string(fr.nt_idx),
-            CpEntry::MethodRef(mr) => self.cp_as_string(mr.clz_idx) + "." + &self.cp_as_string(mr.nt_idx),
-            CpEntry::NameAndType(nt) => self.cp_as_string(nt.name_idx) + ":" + &self.cp_as_string(nt.type_idx),
+            CpEntry::FieldRef(fr) => {
+                self.cp_as_string(fr.clz_idx) + "." + &self.cp_as_string(fr.nt_idx)
+            }
+            CpEntry::MethodRef(mr) => {
+                self.cp_as_string(mr.clz_idx) + "." + &self.cp_as_string(mr.nt_idx)
+            }
+            CpEntry::NameAndType(nt) => {
+                self.cp_as_string(nt.name_idx) + ":" + &self.cp_as_string(nt.type_idx)
+            }
             _ => panic!(
                 "Unimplemented stringify of CP entry found in {} at index {}",
                 self.name, i

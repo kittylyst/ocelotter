@@ -39,15 +39,15 @@ pub const CP_METHODHANDLE: u8 = 15;
 pub const CP_METHODTYPE: u8 = 16;
 pub const CP_INVOKEDYNAMIC: u8 = 18;
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct ClassRef(pub u16);
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct StringRef(pub u16);
 
 #[derive(Clone, Copy, Debug)]
 pub struct FieldRef {
     pub clz_idx: u16,
-    pub nt_idx:  u16,
+    pub nt_idx: u16,
 }
 
 impl FieldRef {
@@ -59,7 +59,7 @@ impl FieldRef {
 #[derive(Clone, Copy, Debug)]
 pub struct MethodRef {
     pub clz_idx: u16,
-    pub nt_idx:  u16,
+    pub nt_idx: u16,
 }
 
 impl MethodRef {
@@ -71,7 +71,7 @@ impl MethodRef {
 #[derive(Clone, Copy, Debug)]
 pub struct InterfaceMethodRef {
     pub clz_idx: u16,
-    pub nt_idx:  u16,
+    pub nt_idx: u16,
 }
 
 impl InterfaceMethodRef {
@@ -132,11 +132,11 @@ impl CpEntry {
             CpEntry::NameAndType(_) => "NameAndType".to_string(),
         }
     }
-
 }
 
 #[derive(Clone, Debug)]
 pub struct CpAttr {
+    #[allow(dead_code)]
     name_idx: u16,
 }
 
@@ -146,6 +146,6 @@ impl CpAttr {
     }
 }
 
-pub fn split_name_desc(name_desc: String) -> (String, String) {
+pub fn split_name_desc(_name_desc: String) -> (String, String) {
     ("a".to_string(), "b".to_string())
 }
