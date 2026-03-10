@@ -136,6 +136,7 @@ impl CpEntry {
 
 #[derive(Clone, Debug)]
 pub struct CpAttr {
+    #[allow(dead_code)]
     name_idx: u16,
 }
 

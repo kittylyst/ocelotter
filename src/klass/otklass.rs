@@ -22,6 +22,7 @@ pub struct OtKlass {
     id: Cell<usize>,
     name: String,
     super_name: String,
+    #[allow(dead_code)]
     flags: u16,
     cp_entries: Vec<CpEntry>,
     methods: Vec<OtMethod>,

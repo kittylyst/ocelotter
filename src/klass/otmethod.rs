@@ -9,12 +9,16 @@ use crate::klass::constant_pool::ACC_NATIVE;
 pub struct OtMethod {
     klass_name: String,
     flags: u16,
+    #[allow(dead_code)]
     name: String,
     name_desc: String,
+    #[allow(dead_code)]
     name_idx: u16,
+    #[allow(dead_code)]
     desc_idx: u16,
     code: Vec<u8>,
     native_code: Cell<Option<fn(&InterpLocalVars) -> Option<JvmValue>>>,
+    #[allow(dead_code)]
     attrs: Vec<CpAttr>,
 }
 

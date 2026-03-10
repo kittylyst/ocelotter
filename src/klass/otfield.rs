@@ -12,10 +12,12 @@ pub struct OtField {
     offset: u16,
     klass_name: String,
     flags: u16,
+    #[allow(dead_code)]
     name_idx: u16,
     desc_idx: u16,
     name: String,
     desc: String,
+    #[allow(dead_code)]
     attrs: Vec<CpAttr>,
 }
 

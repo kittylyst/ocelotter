@@ -32,6 +32,7 @@ pub enum KlassLoadingStatus {
 pub struct SharedKlassRepo {
     klass_lookup: HashMap<String, RefCell<KlassLoadingStatus>>,
     rx: Receiver<OtKlassComms>,
+    #[allow(dead_code)]
     klass_rx: Option<Receiver<OtKlass>>,
 }
 
