@@ -368,7 +368,7 @@ impl OtKlass {
         self.s_field_vals.get(idx).unwrap().set(v);
     }
 
-    pub fn get_method_by_offset_virtual(&self, m_idx: u16) -> OtMethod {
+    pub fn get_method_by_offset_virtual(&self, _m_idx: u16) -> OtMethod {
         // If present, return value at specific offset
         // let offset = self.get_method_offset(f);
 
@@ -419,7 +419,7 @@ impl OtKlass {
 
     pub fn lookup_cp(&self, cp_idx: u16) -> CpEntry {
         let idx = cp_idx as usize;
-        match self.cp_entries.get(idx).clone() {
+        match self.cp_entries.get(idx) {
             Some(val) => val.clone(),
             None => panic!(
                 "Error: No entry found on {} at CP index {}",

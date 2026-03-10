@@ -37,10 +37,11 @@ impl<R: Read + Seek> Iterator for ZipFiles<R> {
 
 impl ZipFiles<File> {
     pub fn new(file_name: &str) -> ZipFiles<File> {
-        let file = File::open(&file_name).expect(&format!("Couldn't open file {}", &file_name));
+        let file =
+            File::open(file_name).unwrap_or_else(|_| panic!("Couldn't open file {}", &file_name));
 
-        let archive =
-            ZipArchive::new(file).expect(&format!("Problem reading archive {}", &file_name));
+        let archive = ZipArchive::new(file)
+            .unwrap_or_else(|_| panic!("Problem reading archive {}", &file_name));
 
         ZipFiles { i: 0, archive }
     }

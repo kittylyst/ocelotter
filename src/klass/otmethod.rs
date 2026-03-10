@@ -24,7 +24,7 @@ impl OtMethod {
         name: String,
         desc: String,
         flags: u16,
-        name_idx: u16,
+        _name_idx: u16,
         desc_idx: u16,
     ) -> OtMethod {
         let name_and_desc = name.clone() + ":" + &desc.clone();

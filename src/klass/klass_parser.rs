@@ -162,7 +162,7 @@ impl OtKlassParser {
                     let mut buf = vec![];
                     let mut chunk = self.clz_read[self.current..].take(len as u64);
                     match chunk.read_to_end(&mut buf) {
-                        Ok(v) => {
+                        Ok(_v) => {
                             self.current += len as usize;
 
                             let str_c = match str::from_utf8(&buf) {
@@ -497,7 +497,7 @@ impl OtKlassParser {
                 let mut chunk = self.clz_read[self.current..].take(code_len as u64);
 
                 match chunk.read_to_end(&mut bytecode) {
-                    Ok(v) => {
+                    Ok(_v) => {
                         self.current += code_len as usize;
                         method.set_code(bytecode);
                     }

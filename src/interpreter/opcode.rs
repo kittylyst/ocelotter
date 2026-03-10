@@ -205,6 +205,7 @@ pub const SWAP: u8 = 0x5f;
 
 // [UNUSED] 0cb - 0xfd
 
+#[allow(dead_code)]
 fn num_params(c: u8) -> u8 {
     match c {
         ALOAD => 1,

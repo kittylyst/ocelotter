@@ -76,7 +76,7 @@ impl OtObj {
             id: obj_id,
             mark: 0u64,
             klassid: klass_id,
-            fields: initial.into_iter().map(|s| Cell::new(s)).collect(),
+            fields: initial.into_iter().map(Cell::new).collect(),
         }
     }
 
@@ -94,7 +94,7 @@ impl OtObj {
     }
 
     pub fn put_field(&self, offset: usize, val: JvmValue) {
-        let (kid, fields) = match self {
+        let (_kid, _fields) = match self {
             OtObj::VmObj {
                 id: _,
                 mark: _,
@@ -107,6 +107,8 @@ impl OtObj {
         dbg!("Made it to object get_field_offset");
         // Lookup offset in klass
         // let offset = REPO.lock().get_field_offset(*kid, f);
+
+        // FIXME Is fs correct here?
         match self {
             OtObj::VmObj {
                 id: _,
@@ -212,7 +214,7 @@ impl OtObj {
     }
 
     pub fn get_field_value(&self, offset: usize) -> JvmValue {
-        let (kid, fields) = match self {
+        let (_kid, fields) = match self {
             OtObj::VmObj {
                 id: _,
                 mark: _,

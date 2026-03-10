@@ -75,7 +75,7 @@ impl SharedKlassRepo {
     pub fn start_with_klass_receiver(
         options: Options,
         tx_fname: Sender<String>,
-        tx: Sender<OtKlassComms>,
+        _tx: Sender<OtKlassComms>,
         rx: Receiver<OtKlassComms>,
         o_k_rx: Option<Receiver<OtKlass>>,
     ) {
@@ -89,8 +89,8 @@ impl SharedKlassRepo {
         // Now, we need to run the static initializers in the right order
         // On a separate interpreter thread
 
-        let (tx_kname, rx_kname): (Sender<String>, Receiver<String>) = mpsc::channel();
-        let (tx_klass, rx_klass): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
+        let (tx_kname, _rx_kname): (Sender<String>, Receiver<String>) = mpsc::channel();
+        let (_tx_klass, rx_klass): (Sender<OtKlass>, Receiver<OtKlass>) = mpsc::channel();
 
         let n = Arc::new(Mutex::new(repo));
         let n2 = Arc::clone(&n);
@@ -193,7 +193,7 @@ impl SharedKlassRepo {
                         RefCell::new(KlassLoadingStatus::Mentioned {}),
                     );
                 }
-                Some(value) => (),
+                Some(_value) => (),
             }
             i += 1;
         }
@@ -219,7 +219,7 @@ impl SharedKlassRepo {
         let mut vars = InterpLocalVars::of(5);
 
         // FIXME Need to set up tx correctly - how's this?
-        let (tx, rx): (Sender<OtKlassComms>, Receiver<OtKlassComms>) = mpsc::channel();
+        let (tx, _rx): (Sender<OtKlassComms>, Receiver<OtKlassComms>) = mpsc::channel();
         exec_method(tx, &clinit, &mut vars);
     }
 
@@ -484,7 +484,7 @@ impl SharedKlassRepo {
     }
 
     // FIXME Lookup offset properly
-    pub fn get_field_offset(&self, kid: usize, f: OtField) -> usize {
+    pub fn get_field_offset(&self, _kid: usize, _f: OtField) -> usize {
         0
     }
 }

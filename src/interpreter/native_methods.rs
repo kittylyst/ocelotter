@@ -35,7 +35,7 @@ pub fn java_lang_Object__wait(_args: &InterpLocalVars) -> Option<JvmValue> {
 // java.lang.Class
 
 pub fn java_lang_Class__getName(args: &InterpLocalVars) -> Option<JvmValue> {
-    let obj = match args.load(0) {
+    let _obj = match args.load(0) {
         JvmValue::ObjRef(v) => v,
         x => panic!(
             "Non-object value {} of type {} encountered in Class.getName()",
@@ -324,7 +324,7 @@ pub fn java_lang_Shutdown__exit(_args: &InterpLocalVars) -> Option<JvmValue> {
 
 pub fn java_io_FileDescriptor__initSystemFD(args: &InterpLocalVars) -> Option<JvmValue> {
     let obj = args.load(0);
-    let fd = args.load(1);
+    let _fd = args.load(1);
 
     // Fix up actual system FD with fd and return obj
 

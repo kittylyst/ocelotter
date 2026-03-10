@@ -34,7 +34,7 @@ pub fn main() {
 
     let j_main = thread::spawn(move || start_new_jthread(f_name, j_tx));
 
-    let ret = j_main.join().unwrap();
+    let _ret = j_main.join().unwrap();
     // k_keep.clean_shutdown();
     k_keep.join().unwrap();
 }

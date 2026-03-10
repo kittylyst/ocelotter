@@ -145,6 +145,6 @@ impl CpAttr {
     }
 }
 
-pub fn split_name_desc(name_desc: String) -> (String, String) {
+pub fn split_name_desc(_name_desc: String) -> (String, String) {
     ("a".to_string(), "b".to_string())
 }
