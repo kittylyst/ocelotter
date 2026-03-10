@@ -1,8 +1,7 @@
-use super::*;
-
 use std::path::Path;
 
 use crate::klass::klass_parser::OtKlassParser;
+use crate::klass::klass_repo::SharedKlassRepo;
 use crate::klass::util::file_to_bytes;
 
 #[test]

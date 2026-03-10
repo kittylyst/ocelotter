@@ -9,24 +9,24 @@ use crate::interpreter::values::*;
 
 // getClass()
 
-pub fn java_lang_Object__hashcode(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Object__hashcode(_args: &InterpLocalVars) -> Option<JvmValue> {
     // FIXME Proper hashCode algorithm
     Some(JvmValue::Int(255))
 }
 
 // clone()
 
-pub fn java_lang_Object__notify(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Object__notify(_args: &InterpLocalVars) -> Option<JvmValue> {
     // NO-OP for now
     None
 }
 
-pub fn java_lang_Object__notifyAll(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Object__notifyAll(_args: &InterpLocalVars) -> Option<JvmValue> {
     // NO-OP for now
     None
 }
 
-pub fn java_lang_Object__wait(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Object__wait(_args: &InterpLocalVars) -> Option<JvmValue> {
     // NO-OP for now
     None
 }
@@ -52,20 +52,20 @@ pub fn java_lang_Class__getName(args: &InterpLocalVars) -> Option<JvmValue> {
 ////////////////////////////////////////////
 // java.lang.Compiler
 
-pub fn java_lang_Compiler__compileClass(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Compiler__compileClass(_args: &InterpLocalVars) -> Option<JvmValue> {
     Some(JvmValue::Boolean(true))
 }
 
-pub fn java_lang_Compiler__compileClasses(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Compiler__compileClasses(_args: &InterpLocalVars) -> Option<JvmValue> {
     Some(JvmValue::Boolean(true))
 }
 
-pub fn java_lang_Compiler__enable(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Compiler__enable(_args: &InterpLocalVars) -> Option<JvmValue> {
     // DUMMY
     None
 }
 
-pub fn java_lang_Compiler__disable(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Compiler__disable(_args: &InterpLocalVars) -> Option<JvmValue> {
     // DUMMY
     None
 }
@@ -73,32 +73,32 @@ pub fn java_lang_Compiler__disable(args: &InterpLocalVars) -> Option<JvmValue> {
 ////////////////////////////////////////////
 // java.lang.Runtime
 
-pub fn java_lang_Runtime__freeMemory(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Runtime__freeMemory(_args: &InterpLocalVars) -> Option<JvmValue> {
     // DUMMY
     Some(JvmValue::Long(64 * 1024 * 1024))
 }
 
-pub fn java_lang_Runtime__totalMemory(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Runtime__totalMemory(_args: &InterpLocalVars) -> Option<JvmValue> {
     // DUMMY
     Some(JvmValue::Long(64 * 1024 * 1024))
 }
 
-pub fn java_lang_Runtime__gc(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Runtime__gc(_args: &InterpLocalVars) -> Option<JvmValue> {
     // DUMMY
     None
 }
 
-pub fn java_lang_Runtime__runFinalization(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Runtime__runFinalization(_args: &InterpLocalVars) -> Option<JvmValue> {
     // DUMMY
     None
 }
 
-pub fn java_lang_Runtime__traceInstructions(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Runtime__traceInstructions(_args: &InterpLocalVars) -> Option<JvmValue> {
     // DUMMY
     None
 }
 
-pub fn java_lang_Runtime__traceMethodCalls(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Runtime__traceMethodCalls(_args: &InterpLocalVars) -> Option<JvmValue> {
     // DUMMY
     None
 }
@@ -106,7 +106,7 @@ pub fn java_lang_Runtime__traceMethodCalls(args: &InterpLocalVars) -> Option<Jvm
 ////////////////////////////////////////////
 // java.lang.System
 
-pub fn java_lang_System__currentTimeMillis(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_System__currentTimeMillis(_args: &InterpLocalVars) -> Option<JvmValue> {
     let millis = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .expect("SystemTime before UNIX EPOCH!")
@@ -114,7 +114,7 @@ pub fn java_lang_System__currentTimeMillis(args: &InterpLocalVars) -> Option<Jvm
     Some(JvmValue::Long(millis as i64))
 }
 
-pub fn java_lang_System__arraycopy(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_System__arraycopy(_args: &InterpLocalVars) -> Option<JvmValue> {
     // NO-OP for now
     None
 }
@@ -318,7 +318,7 @@ pub fn java_lang_Math__pow(args: &InterpLocalVars) -> Option<JvmValue> {
 ////////////////////////////////////////////
 
 // FIXME System -> Runtime -> Shutdown
-pub fn java_lang_Shutdown__exit(args: &InterpLocalVars) -> Option<JvmValue> {
+pub fn java_lang_Shutdown__exit(_args: &InterpLocalVars) -> Option<JvmValue> {
     Some(JvmValue::Int(255))
 }
 

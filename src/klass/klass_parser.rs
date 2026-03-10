@@ -506,7 +506,6 @@ impl OtKlassParser {
             }
             "Signature" => {
                 dbg!("Encountered signature in bytecode - skipping");
-                ()
             }
             //    u2 exception_table_length;
             //    {   u2 start_pc;
@@ -517,20 +516,16 @@ impl OtKlassParser {
             //    u2 attributes_count;
             //    attribute_info attributes[attributes_count];
             "Exceptions" => {
-                // dbg!("Encountered exception handlers in bytecode - skipping");
-                ()
+                dbg!("Encountered exception handlers in bytecode - skipping");
             }
             "Synthetic" => {
-                // dbg!("Encountered Synthetic attribute in bytecode - skipping");
-                ()
+                dbg!("Encountered Synthetic attribute in bytecode - skipping");
             }
             "Deprecated" => {
                 dbg!("Encountered Deprecated attribute in bytecode - skipping");
-                ()
             }
             "RuntimeVisibleAnnotations" => {
                 dbg!("Encountered RuntimeVisibleAnnotations attribute in bytecode - skipping");
-                ()
             }
             _ => panic!("Unsupported attribute {} seen on {}", s, method),
         };

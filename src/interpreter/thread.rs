@@ -83,7 +83,7 @@ pub fn exec_bytecode_method(
     let mut eval = InterpEvalStack::of();
 
     dbg!("Getting to interpreter loop");
-    for p_x in instr.into_iter() {
+    for p_x in instr.iter() {
         println!("{}", *p_x);
     }
     loop {

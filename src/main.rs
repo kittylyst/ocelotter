@@ -7,7 +7,6 @@ use std::thread;
 
 use structopt::StructOpt;
 
-use crate::klass::otklass::OtKlass;
 use interpreter::thread::start_new_jthread;
 use klass::klass_repo::SharedKlassRepo;
 use klass::options::Options;
@@ -40,6 +39,7 @@ pub fn main() {
     k_keep.join().unwrap();
 }
 
+#[cfg(test)]
 mod runtime_tests;
 #[cfg(test)]
 mod tests;

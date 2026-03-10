@@ -126,7 +126,7 @@ impl InterpLocalVars {
     }
 
     pub fn load(&self, idx: u8) -> JvmValue {
-        self.lvt[idx as usize].clone()
+        self.lvt[idx as usize]
     }
 
     pub fn store(&mut self, idx: u8, val: JvmValue) {

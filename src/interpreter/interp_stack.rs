@@ -692,13 +692,13 @@ impl InterpEvalStack {
 
     pub fn dup(&mut self) {
         let i1 = self.pop();
-        self.push(i1.clone());
-        self.push(i1.clone());
+        self.push(i1);
+        self.push(i1);
     }
 
     pub fn dup_x1(&mut self) {
         let i1 = self.pop();
-        let i1c = i1.clone();
+        let i1c = i1;
         let i2 = self.pop();
         self.push(i1);
         self.push(i2);

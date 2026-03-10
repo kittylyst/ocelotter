@@ -1,21 +1,23 @@
-use std::path::Path;
-
-use super::*;
-
 use crate::interpreter::interp_stack::InterpEvalStack;
 use crate::interpreter::opcode;
-use crate::interpreter::thread::exec_bytecode_method;
 use crate::interpreter::thread::exec_method;
+use crate::interpreter::thread::{exec_bytecode_method, start_new_jthread};
 use crate::interpreter::values::*;
 use crate::klass::constant_pool::*;
 use crate::klass::klass_parser::OtKlassParser;
 use crate::klass::util::file_to_bytes;
+use std::path::Path;
+use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, Sender};
+use std::thread;
 
 // this crate is presumably old and not very good.
+use crate::klass::klass_repo::SharedKlassRepo;
+use crate::klass::options::Options;
+use crate::klass::otklass::{OtKlass, OtKlassComms};
 use assert_float_eq::{
     afe_is_f32_near, afe_is_f64_near, afe_near_error_msg, assert_f32_near, assert_f64_near,
 };
-
 // Helper fns
 
 fn init_fake_repo() -> (Sender<OtKlassComms>, SharedKlassRepo) {

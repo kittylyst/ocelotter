@@ -242,11 +242,7 @@ impl OtObj {
     }
 
     pub fn is_null(&self) -> bool {
-        if self.get_mark() == 0u64 && self.get_klassid() == 0 {
-            true
-        } else {
-            false
-        }
+        self.get_mark() == 0u64 && self.get_klassid() == 0
     }
 
     pub fn get_id(&self) -> usize {

@@ -39,7 +39,7 @@ impl SharedKlassRepo {
     //////////////////////////////////////////////
     // Static methods
 
-    pub fn klass_name_from_fq(klass_name: &String) -> String {
+    pub fn klass_name_from_fq(klass_name: &str) -> String {
         lazy_static! {
             static ref KLASS_NAME: Regex =
                 Regex::new("((?:([a-zA-Z_$][a-zA-Z\\d_$]*(?:/[a-zA-Z_$][a-zA-Z\\d_$]*)*)/)?([a-zA-Z_$][a-zA-Z\\d_$]*))\\.").unwrap();
@@ -50,7 +50,7 @@ impl SharedKlassRepo {
             .map_or("".to_string(), |m| m.as_str().to_string())
     }
 
-    pub fn klass_name_from_dotted_fq(klass_name: &String) -> String {
+    pub fn klass_name_from_dotted_fq(klass_name: &str) -> String {
         lazy_static! {
             static ref KLASS_NAME_DOTTED: Regex =
                 Regex::new("(?:([a-zA-Z_$][a-zA-Z\\d_$]*(?:\\.[a-zA-Z_$][a-zA-Z\\d_$]*)*)\\.)?([a-zA-Z_$][a-zA-Z\\d_$]*)").unwrap();
@@ -108,7 +108,6 @@ impl SharedKlassRepo {
 
             if let Some(file) = &options.classpath {
                 ZipFiles::new(file)
-                    .into_iter()
                     .filter(|f| matches!(f, Ok((name, _)) if name.ends_with(".class")))
                     .for_each(|z| {
                         if let Ok((name, bytes)) = z {
@@ -132,11 +131,11 @@ impl SharedKlassRepo {
         n.lock().unwrap().receive_loop();
     }
 
-    pub fn of(rx: Receiver<OtKlassComms>, o_k_rx: Option<Receiver<OtKlass>>) -> SharedKlassRepo {
+    pub fn of(rx: Receiver<OtKlassComms>, klass_rx: Option<Receiver<OtKlass>>) -> SharedKlassRepo {
         SharedKlassRepo {
-            rx: rx,
+            rx,
             klass_lookup: HashMap::new(),
-            klass_rx: o_k_rx,
+            klass_rx,
         }
     }
 
@@ -227,11 +226,11 @@ impl SharedKlassRepo {
     fn install_native_method(
         &mut self,
         klass_name: &String,
-        name_desc: &String,
+        name_desc: &str,
         n_code: fn(&InterpLocalVars) -> Option<JvmValue>,
     ) {
         let k = self.lookup_klass(klass_name);
-        let fq_name = klass_name.to_owned() + "." + &name_desc;
+        let fq_name = klass_name.to_owned() + "." + name_desc;
 
         k.set_native_method(fq_name, n_code);
         self.klass_lookup
@@ -275,7 +274,6 @@ impl SharedKlassRepo {
     pub fn bootstrap(&mut self) {
         let file = "resources/lib/classes.jar";
         ZipFiles::new(file)
-            .into_iter()
             .filter(|f| match f {
                 Ok((name, _)) if name.ends_with(".class") => true,
                 _ => false,
@@ -291,23 +289,23 @@ impl SharedKlassRepo {
         //        self.install_native_method(&"java/lang/Object".to_string(), &"getClass:()Ljava/lang/Class;".to_string(), java_lang_Object__getClass);
         self.install_native_method(
             &"java/lang/Object".to_string(),
-            &"hashCode:()I".to_string(),
+            "hashCode:()I",
             java_lang_Object__hashcode,
         );
         //        self.install_native_method(&"java/lang/Object".to_string(), &"clone:()Ljava/lang/Object;".to_string(), java_lang_Object__clone);
         self.install_native_method(
             &"java/lang/Object".to_string(),
-            &"notify:()V".to_string(),
+            "notify:()V",
             java_lang_Object__notify,
         );
         self.install_native_method(
             &"java/lang/Object".to_string(),
-            &"notifyAll:()V".to_string(),
+            "notifyAll:()V",
             java_lang_Object__notifyAll,
         );
         self.install_native_method(
             &"java/lang/Object".to_string(),
-            &"wait:(J)V".to_string(),
+            "wait:(J)V",
             java_lang_Object__wait,
         );
 
@@ -316,7 +314,7 @@ impl SharedKlassRepo {
 
         self.install_native_method(
             &"java/lang/Class".to_string(),
-            &"getName:()Ljava/lang/String;".to_string(),
+            "getName:()Ljava/lang/String;",
             java_lang_Class__getName,
         );
         //        public final native java.lang.String getName();
@@ -327,65 +325,65 @@ impl SharedKlassRepo {
 
         self.install_native_method(
             &"java/lang/Compiler".to_string(),
-            &"compileClass:(Ljava/lang/Class;)Z".to_string(),
+            "compileClass:(Ljava/lang/Class;)Z",
             java_lang_Compiler__compileClass,
         );
         self.install_native_method(
             &"java/lang/Compiler".to_string(),
-            &"compileClasses:(Ljava/lang/String;)Z".to_string(),
+            "compileClasses:(Ljava/lang/String;)Z",
             java_lang_Compiler__compileClasses,
         );
         //        public static final native java.lang.Object command(java.lang.Object);
         self.install_native_method(
             &"java/lang/Compiler".to_string(),
-            &"enable:()V".to_string(),
+            "enable:()V",
             java_lang_Compiler__enable,
         );
         self.install_native_method(
             &"java/lang/Compiler".to_string(),
-            &"disable:()V".to_string(),
+            "disable:()V",
             java_lang_Compiler__disable,
         );
 
         self.install_native_method(
             &"java/lang/Runtime".to_string(),
-            &"freeMemory:()J".to_string(),
+            "freeMemory:()J",
             java_lang_Runtime__freeMemory,
         );
         self.install_native_method(
             &"java/lang/Runtime".to_string(),
-            &"totalMemory:()J".to_string(),
+            "totalMemory:()J",
             java_lang_Runtime__totalMemory,
         );
         self.install_native_method(
             &"java/lang/Runtime".to_string(),
-            &"gc:()V".to_string(),
+            "gc:()V",
             java_lang_Runtime__gc,
         );
         self.install_native_method(
             &"java/lang/Runtime".to_string(),
-            &"runFinalization:()V".to_string(),
+            "runFinalization:()V",
             java_lang_Runtime__runFinalization,
         );
         self.install_native_method(
             &"java/lang/Runtime".to_string(),
-            &"traceInstructions:(Z)V".to_string(),
+            "traceInstructions:(Z)V",
             java_lang_Runtime__traceInstructions,
         );
         self.install_native_method(
             &"java/lang/Runtime".to_string(),
-            &"traceMethodCalls:(Z)V".to_string(),
+            "traceMethodCalls:(Z)V",
             java_lang_Runtime__traceMethodCalls,
         );
 
         self.install_native_method(
             &"java/lang/System".to_string(),
-            &"currentTimeMillis:()J".to_string(),
+            "currentTimeMillis:()J",
             java_lang_System__currentTimeMillis,
         );
         self.install_native_method(
             &"java/lang/System".to_string(),
-            &"arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V".to_string(),
+            "arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V",
             java_lang_System__arraycopy,
         );
 
@@ -394,69 +392,69 @@ impl SharedKlassRepo {
         //        self.install_native_method(&"java/lang/Math".to_string(), &"sin:(D)D".to_string(), sin_f);
         self.install_native_method(
             &"java/lang/Math".to_string(),
-            &"sin:(D)D".to_string(),
+            "sin:(D)D",
             java_lang_Math__sin,
         );
         self.install_native_method(
             &"java/lang/Math".to_string(),
-            &"cos:(D)D".to_string(),
+            "cos:(D)D",
             java_lang_Math__cos,
         );
         self.install_native_method(
             &"java/lang/Math".to_string(),
-            &"tan:(D)D".to_string(),
+            "tan:(D)D",
             java_lang_Math__tan,
         );
         self.install_native_method(
             &"java/lang/Math".to_string(),
-            &"asin:(D)D".to_string(),
+            "asin:(D)D",
             java_lang_Math__asin,
         );
         self.install_native_method(
             &"java/lang/Math".to_string(),
-            &"acos:(D)D".to_string(),
+            "acos:(D)D",
             java_lang_Math__acos,
         );
         self.install_native_method(
             &"java/lang/Math".to_string(),
-            &"atan:(D)D".to_string(),
+            "atan:(D)D",
             java_lang_Math__atan,
         );
         self.install_native_method(
             &"java/lang/Math".to_string(),
-            &"exp:(D)D".to_string(),
+            "exp:(D)D",
             java_lang_Math__exp,
         );
         self.install_native_method(
             &"java/lang/Math".to_string(),
-            &"log:(D)D".to_string(),
+            "log:(D)D",
             java_lang_Math__log,
         );
         self.install_native_method(
             &"java/lang/Math".to_string(),
-            &"sqrt:(D)D".to_string(),
+            "sqrt:(D)D",
             java_lang_Math__sqrt,
         );
         //public static final native double IEEEremainder(double, double);
         self.install_native_method(
             &"java/lang/Math".to_string(),
-            &"ceil:(D)D".to_string(),
+            "ceil:(D)D",
             java_lang_Math__ceil,
         );
         self.install_native_method(
             &"java/lang/Math".to_string(),
-            &"floor:(D)D".to_string(),
+            "floor:(D)D",
             java_lang_Math__floor,
         );
         //public static final native double rint(double);
         self.install_native_method(
             &"java/lang/Math".to_string(),
-            &"atan2:(DD)D".to_string(),
+            "atan2:(DD)D",
             java_lang_Math__atan2,
         );
         self.install_native_method(
             &"java/lang/Math".to_string(),
-            &"pow:(DD)D".to_string(),
+            "pow:(DD)D",
             java_lang_Math__pow,
         );
 
@@ -477,7 +475,7 @@ impl SharedKlassRepo {
         // // private static native FileDescriptor initSystemFD(FileDescriptor fdObj, int desc);
         self.install_native_method(
             &"java/io/FileDescriptor".to_string(),
-            &"initSystemFD:(Ljava/io/FileDescriptor;I)Ljava/io/FileDescriptor;".to_string(),
+            "initSystemFD:(Ljava/io/FileDescriptor;I)Ljava/io/FileDescriptor;",
             java_io_FileDescriptor__initSystemFD,
         );
 

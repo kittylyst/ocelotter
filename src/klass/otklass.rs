@@ -55,7 +55,7 @@ impl OtKlass {
         let mut s_fields = Vec::new();
         let mut s_field_vals = Vec::new();
         let mut i_fields = Vec::new();
-        for f in fields.to_owned() {
+        for f in fields.iter().cloned() {
             let f_name = f.get_fq_name_desc();
             if f.is_static() {
                 let default_val = f.get_default();
