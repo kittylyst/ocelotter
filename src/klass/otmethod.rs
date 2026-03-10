@@ -42,9 +42,9 @@ impl OtMethod {
         }
     }
 
-    pub fn set_attr(&self, _index: u16, _attr: CpAttr) -> () {}
+    pub fn set_attr(&self, _index: u16, _attr: CpAttr) {}
 
-    pub fn set_code(&mut self, code: Vec<u8>) -> () {
+    pub fn set_code(&mut self, code: Vec<u8>) {
         self.code = code;
     }
 

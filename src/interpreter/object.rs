@@ -93,7 +93,7 @@ impl OtObj {
         }
     }
 
-    pub fn put_field(&self, offset: usize, val: JvmValue) -> () {
+    pub fn put_field(&self, offset: usize, val: JvmValue) {
         let (kid, fields) = match self {
             OtObj::VmObj {
                 id: _,

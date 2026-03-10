@@ -107,7 +107,7 @@ impl OtKlassParser {
         }
     }
 
-    pub fn parse(&mut self) -> () {
+    pub fn parse(&mut self) {
         self.parse_header();
         self.parse_constant_pool();
         self.parse_basic_type_info();
@@ -122,7 +122,7 @@ impl OtKlassParser {
     }
 
     // Impl methods
-    fn parse_header(&mut self) -> () {
+    fn parse_header(&mut self) {
         if self.clz_read[0] != 0xca
             || self.clz_read[1] != 0xfe
             || self.clz_read[2] != 0xba
@@ -139,7 +139,7 @@ impl OtKlassParser {
         self.pool_item_count = ((self.clz_read[8] as u16) << 8) + self.clz_read[9] as u16;
     }
 
-    fn parse_constant_pool(&mut self) -> () {
+    fn parse_constant_pool(&mut self) {
         self.current = 10;
         // dbg!("Pool size:");
         // dbg!(self.get_pool_size());
@@ -297,13 +297,13 @@ impl OtKlassParser {
             };
             self.cp_entries[current_cp as usize] = item;
             if double_width {
-                current_cp = current_cp + 1;
+                current_cp += 1;
                 double_width = false;
             }
         }
     }
 
-    fn parse_basic_type_info(&mut self) -> () {
+    fn parse_basic_type_info(&mut self) {
         self.flags =
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         self.cp_index_this = ((self.clz_read[self.current + 2] as u16) << 8)
@@ -323,7 +323,7 @@ impl OtKlassParser {
         }
     }
 
-    fn parse_fields(&mut self) -> () {
+    fn parse_fields(&mut self) {
         let f_count =
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         self.current += 2;
@@ -411,7 +411,7 @@ impl OtKlassParser {
         CpAttr::of(name_idx)
     }
 
-    fn parse_methods(&mut self) -> () {
+    fn parse_methods(&mut self) {
         let mcount =
             ((self.clz_read[self.current] as u16) << 8) + self.clz_read[self.current + 1] as u16;
         self.current += 2;

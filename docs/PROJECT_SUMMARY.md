@@ -58,7 +58,7 @@ Some tests are intentionally `#[ignore]`, documenting behavior that is incomplet
 
 Notes:
 
-- The class name is positional.
+- The class name is po[..](..)sitional.
 - The runtime appends `.class` internally when not using `--classpath`.
 - The currently expected entry method is `main2:([Ljava/lang/String;)I`.
 

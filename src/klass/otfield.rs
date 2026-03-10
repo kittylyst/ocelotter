@@ -46,7 +46,7 @@ impl OtField {
         self.offset
     }
 
-    pub fn set_attr(&self, _index: u16, _attr: CpAttr) -> () {}
+    pub fn set_attr(&self, _index: u16, _attr: CpAttr) {}
 
     pub fn get_name(&self) -> String {
         self.name.clone()

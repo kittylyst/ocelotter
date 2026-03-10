@@ -97,7 +97,7 @@ impl SharedSimpleHeap {
     }
 
     // FIXME Handle storage properly
-    pub fn put_field(&self, id: usize, f: OtField, v: JvmValue) -> () {
+    pub fn put_field(&self, id: usize, f: OtField, v: JvmValue) {
         // Get object from heap
         match self.alloc.get(id) {
             Some(val) => val.put_field(f.get_offset() as usize, v),
@@ -114,7 +114,7 @@ impl SharedSimpleHeap {
         obj.get_field_value(offset as usize)
     }
 
-    pub fn iastore(&mut self, id: usize, pos: i32, v: i32) -> () {
+    pub fn iastore(&mut self, id: usize, pos: i32, v: i32) {
         let idx = pos as usize;
         let obj = match self.alloc.get_mut(id) {
             Some(val) => val,
@@ -135,7 +135,7 @@ impl SharedSimpleHeap {
         }
     }
 
-    pub fn lastore(&mut self, id: usize, pos: i32, v: i64) -> () {
+    pub fn lastore(&mut self, id: usize, pos: i32, v: i64) {
         let idx = pos as usize;
         match self.alloc.get_mut(id) {
             Some(OtObj::VmArrLong { elements, .. }) => elements[idx] = v,
@@ -153,7 +153,7 @@ impl SharedSimpleHeap {
         }
     }
 
-    pub fn fastore(&mut self, id: usize, pos: i32, v: f32) -> () {
+    pub fn fastore(&mut self, id: usize, pos: i32, v: f32) {
         let idx = pos as usize;
         match self.alloc.get_mut(id) {
             Some(OtObj::VmArrFloat { elements, .. }) => elements[idx] = v,
@@ -171,7 +171,7 @@ impl SharedSimpleHeap {
         }
     }
 
-    pub fn dastore(&mut self, id: usize, pos: i32, v: f64) -> () {
+    pub fn dastore(&mut self, id: usize, pos: i32, v: f64) {
         let idx = pos as usize;
         match self.alloc.get_mut(id) {
             Some(OtObj::VmArrDouble { elements, .. }) => elements[idx] = v,
@@ -189,7 +189,7 @@ impl SharedSimpleHeap {
         }
     }
 
-    pub fn bastore(&mut self, id: usize, pos: i32, v: i8) -> () {
+    pub fn bastore(&mut self, id: usize, pos: i32, v: i8) {
         let idx = pos as usize;
         match self.alloc.get_mut(id) {
             Some(OtObj::VmArrByte { elements, .. }) => elements[idx] = v,
@@ -207,7 +207,7 @@ impl SharedSimpleHeap {
         }
     }
 
-    pub fn sastore(&mut self, id: usize, pos: i32, v: i16) -> () {
+    pub fn sastore(&mut self, id: usize, pos: i32, v: i16) {
         let idx = pos as usize;
         match self.alloc.get_mut(id) {
             Some(OtObj::VmArrShort { elements, .. }) => elements[idx] = v,
@@ -225,7 +225,7 @@ impl SharedSimpleHeap {
         }
     }
 
-    pub fn castore(&mut self, id: usize, pos: i32, v: u16) -> () {
+    pub fn castore(&mut self, id: usize, pos: i32, v: u16) {
         let idx = pos as usize;
         match self.alloc.get_mut(id) {
             Some(OtObj::VmArrChar { elements, .. }) => elements[idx] = v,
@@ -243,7 +243,7 @@ impl SharedSimpleHeap {
         }
     }
 
-    pub fn aastore(&mut self, id: usize, pos: i32, v: usize) -> () {
+    pub fn aastore(&mut self, id: usize, pos: i32, v: usize) {
         let idx = pos as usize;
         match self.alloc.get_mut(id) {
             Some(OtObj::VmArrRef { elements, .. }) => elements[idx] = v,

@@ -23,7 +23,7 @@ impl<R: Read + Seek> Iterator for ZipFiles<R> {
     fn next(&mut self) -> Option<Self::Item> {
         let i = self.i;
         if i < self.archive.len() {
-            self.i = i + 1;
+            self.i += 1;
             Some(self.archive.by_index(i).and_then(|mut file| {
                 let mut content = vec![];
                 file.read_to_end(&mut content)?;

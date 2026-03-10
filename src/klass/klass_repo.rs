@@ -147,7 +147,7 @@ impl SharedKlassRepo {
         }
     }
 
-    pub fn add_klass(&mut self, k: &OtKlass) -> () {
+    pub fn add_klass(&mut self, k: &OtKlass) {
         // First check to see if we already have this class and which state it's in
         let klass_name = k.get_name();
         let upgrade = match self.klass_lookup.get(&klass_name) {
@@ -180,7 +180,7 @@ impl SharedKlassRepo {
         }
     }
 
-    fn mention(&mut self, mentions: Vec<String>) -> () {
+    fn mention(&mut self, mentions: Vec<String>) {
         // Loop over mentions
         let mut i = 0;
         while i < mentions.len() {
@@ -196,7 +196,7 @@ impl SharedKlassRepo {
                 }
                 Some(value) => (),
             }
-            i = i + 1;
+            i += 1;
         }
     }
 
@@ -229,7 +229,7 @@ impl SharedKlassRepo {
         klass_name: &String,
         name_desc: &String,
         n_code: fn(&InterpLocalVars) -> Option<JvmValue>,
-    ) -> () {
+    ) {
         let k = self.lookup_klass(klass_name);
         let fq_name = klass_name.to_owned() + "." + &name_desc;
 
@@ -272,7 +272,7 @@ impl SharedKlassRepo {
     // the bits of native code that we have working
     //
     // An interpreter callback, i_callback is needed to run the static initializers
-    pub fn bootstrap(&mut self) -> () {
+    pub fn bootstrap(&mut self) {
         let file = "resources/lib/classes.jar";
         ZipFiles::new(file)
             .into_iter()

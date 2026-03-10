@@ -129,11 +129,11 @@ impl InterpLocalVars {
         self.lvt[idx as usize].clone()
     }
 
-    pub fn store(&mut self, idx: u8, val: JvmValue) -> () {
+    pub fn store(&mut self, idx: u8, val: JvmValue) {
         self.lvt[idx as usize] = val
     }
 
-    pub fn iinc(&mut self, idx: u8, incr: i8) -> () {
+    pub fn iinc(&mut self, idx: u8, incr: i8) {
         let val = self.lvt[idx as usize].as_int().unwrap_or_else(|| {
             panic!("Non-integer value encountered in IINC of local var {}", idx)
         });
