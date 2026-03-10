@@ -291,13 +291,12 @@ pub fn exec_bytecode_method(
                 eval.push(ret);
             }
             opcode::GOTO => {
-                current += ((instr[current] as usize) << 8) + instr[current + 1] as usize
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
+                branch_to(&mut current, jump_to);
             }
             opcode::GOTO_W => {
-                current += ((instr[current] as usize) << 24)
-                    + ((instr[current + 1] as usize) << 16)
-                    + ((instr[current + 2] as usize) << 8)
-                    + instr[current + 3] as usize
+                let jump_to = read_i32_branch_offset(instr, current);
+                branch_to(&mut current, jump_to);
             }
 
             opcode::I2B => eval.i2b(),
@@ -376,84 +375,84 @@ pub fn exec_bytecode_method(
             opcode::IDIV => eval.idiv(),
 
             opcode::IF_ICMPEQ => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i == j
                 }) {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
 
             opcode::IF_ICMPGE => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i >= j
                 }) {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
 
             opcode::IF_ICMPGT => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i > j
                 }) {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
 
             opcode::IF_ICMPLE => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i <= j
                 }) {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
 
             opcode::IF_ICMPLT => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
                     i < j
                 }) {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
 
             opcode::IF_ICMPNE => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 if massage_to_int_and_compare(eval.pop(), eval.pop(), |i: i32, j: i32| -> bool {
-                    i == j
+                    i != j
                 }) {
-                    current += 2;
+                    branch_to(&mut current, jump_to);
                 } else {
-                    current += jump_to - 1;
+                    current += 2;
                 }
             }
             opcode::IFEQ => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 let i = match eval.pop() {
                     JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IFEQ at {}", current - 1),
                 };
                 if i == 0 {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
             opcode::IFGE => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 let v = match eval.pop() {
                     JvmValue::Int(i) => i,
                     _ => panic!("Non-int seen on stack during IFGE at {}", current - 1),
@@ -461,25 +460,25 @@ pub fn exec_bytecode_method(
                 //                dbg!(v);
                 //                dbg!(current, jump_to);
                 if v >= 0 {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
             opcode::IFGT => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 let v = match eval.pop() {
                     JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IFGT at {}", current - 1),
                 };
                 if v > 0 {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
             opcode::IFLE => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 let v = match eval.pop() {
                     JvmValue::Int(i) => i,
                     _ => panic!("Non-int seen on stack during IFLE at {}", current - 1),
@@ -488,42 +487,42 @@ pub fn exec_bytecode_method(
                 //                dbg!(current, jump_to);
                 //                dbg!(instr[current], instr[current + 1]);
                 if v <= 0 {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
             opcode::IFLT => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 let v = match eval.pop() {
                     JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IFGT at {}", current - 1),
                 };
                 if v < 0 {
-                    current += jump_to - 1;
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
             opcode::IFNE => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
                 let i = match eval.pop() {
                     JvmValue::Int(v) => v,
                     _ => panic!("Non-int seen on stack during IFEQ at {}", current - 1),
                 };
-                if i == 0 {
-                    current += jump_to - 1;
+                if i != 0 {
+                    branch_to(&mut current, jump_to);
                 } else {
                     current += 2;
                 }
             }
             opcode::IFNONNULL => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
 
                 match eval.pop() {
                     JvmValue::ObjRef(v) => {
                         if v > 0 {
-                            current += jump_to - 1;
+                            branch_to(&mut current, jump_to);
                         } else {
                             current += 2;
                         }
@@ -535,12 +534,12 @@ pub fn exec_bytecode_method(
                 };
             }
             opcode::IFNULL => {
-                let jump_to = ((instr[current] as usize) << 8) + instr[current + 1] as usize;
+                let jump_to = read_i16_branch_offset(instr, current) as i32;
 
                 match eval.pop() {
                     JvmValue::ObjRef(v) => {
                         if v == 0 {
-                            current += jump_to - 1;
+                            branch_to(&mut current, jump_to);
                         } else {
                             current += 2;
                         }
@@ -552,7 +551,7 @@ pub fn exec_bytecode_method(
                 };
             }
             opcode::IINC => {
-                lvt.iinc(instr[current], instr[current + 1]);
+                lvt.iinc(instr[current], instr[current + 1] as i8);
                 current += 2;
             }
 
@@ -859,6 +858,28 @@ pub fn exec_bytecode_method(
             }
         }
     }
+}
+
+fn read_i16_branch_offset(instr: &[u8], current: usize) -> i16 {
+    i16::from_be_bytes([instr[current], instr[current + 1]])
+}
+
+fn read_i32_branch_offset(instr: &[u8], current: usize) -> i32 {
+    i32::from_be_bytes([
+        instr[current],
+        instr[current + 1],
+        instr[current + 2],
+        instr[current + 3],
+    ])
+}
+
+fn branch_to(current: &mut usize, jump_to: i32) {
+    let opcode_pc = *current as i32 - 1;
+    let target = opcode_pc + jump_to;
+    if target < 0 {
+        panic!("Illegal negative branch target {}", target);
+    }
+    *current = target as usize;
 }
 
 fn massage_to_int_and_compare(v1: JvmValue, v2: JvmValue, f: fn(i: i32, j: i32) -> bool) -> bool {

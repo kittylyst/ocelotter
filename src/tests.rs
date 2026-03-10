@@ -3,6 +3,7 @@ use std::path::Path;
 use super::*;
 
 use crate::interpreter::opcode;
+use crate::interpreter::interp_stack::InterpEvalStack;
 use crate::interpreter::thread::exec_bytecode_method;
 use crate::interpreter::thread::exec_method;
 use crate::interpreter::values::*;
@@ -181,6 +182,83 @@ fn bc_idiv_works() {
 }
 
 #[test]
+fn bc_iinc_uses_signed_increment() {
+    let buf = vec![
+        opcode::ICONST_5,
+        opcode::ISTORE_0,
+        opcode::IINC,
+        0,
+        0xff,
+        opcode::ILOAD_0,
+        opcode::IRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Int(i) => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0
+        }
+    };
+    assert_eq!(4, ret);
+}
+
+#[test]
+fn bc_ifne_and_negative_branch_offset() {
+    let buf = vec![
+        opcode::ICONST_2,
+        opcode::ISTORE_0,
+        opcode::IINC,
+        0,
+        0xff,
+        opcode::ILOAD_0,
+        opcode::IFNE,
+        0xff,
+        0xfc,
+        opcode::BIPUSH,
+        7,
+        opcode::IRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Int(i) => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0
+        }
+    };
+    assert_eq!(7, ret);
+}
+
+#[test]
+fn bc_ishl_uses_value_then_shift_count() {
+    let buf = vec![
+        opcode::ICONST_1,
+        opcode::ICONST_2,
+        opcode::ISHL,
+        opcode::IRETURN,
+    ];
+    let ret = match execute_simple_bytecode(&buf) {
+        JvmValue::Int(i) => i,
+        _ => {
+            println!("Unexpected, non-integer value encountered");
+            0
+        }
+    };
+    assert_eq!(4, ret);
+}
+
+#[test]
+fn stack_dup2_for_two_category1_values() {
+    let mut eval = InterpEvalStack::of();
+    eval.iconst(1);
+    eval.iconst(2);
+    eval.dup2();
+    assert_eq!(2, eval.pop().as_int().unwrap());
+    assert_eq!(1, eval.pop().as_int().unwrap());
+    assert_eq!(2, eval.pop().as_int().unwrap());
+    assert_eq!(1, eval.pop().as_int().unwrap());
+}
+
+#[test]
 fn bc_iconst_dup_nop_pop() {
     let buf = vec![
         opcode::ICONST_1,
@@ -317,7 +395,7 @@ fn bc_goto() {
         opcode::IADD,
         opcode::GOTO,
         0,
-        3,
+        4,
         0xff,
         opcode::IRETURN,
     ];

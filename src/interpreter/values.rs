@@ -133,11 +133,11 @@ impl InterpLocalVars {
         self.lvt[idx as usize] = val
     }
 
-    pub fn iinc(&mut self, idx: u8, incr: u8) -> () {
+    pub fn iinc(&mut self, idx: u8, incr: i8) -> () {
         let val = self.lvt[idx as usize].as_int().unwrap_or_else(|| {
             panic!("Non-integer value encountered in IINC of local var {}", idx)
         });
-        self.lvt[idx as usize] = JvmValue::Int(val + 1);
+        self.lvt[idx as usize] = JvmValue::Int(val + incr as i32);
     }
 }
 

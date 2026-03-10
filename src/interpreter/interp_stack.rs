@@ -15,6 +15,10 @@ fn ordering(o: Ordering) -> JvmValue {
     })
 }
 
+fn is_category2(v: &JvmValue) -> bool {
+    matches!(v, JvmValue::Long(_) | JvmValue::Double(_))
+}
+
 impl InterpEvalStack {
     pub fn of() -> InterpEvalStack {
         InterpEvalStack { stack: Vec::new() }
@@ -204,39 +208,39 @@ impl InterpEvalStack {
     }
 
     pub fn ishl(&mut self) {
-        let i1 = self
+        let shift = self
             .pop()
             .as_int()
             .expect("Unexpected, non-integer value encountered");
-        let i2 = self
+        let value = self
             .pop()
             .as_int()
             .expect("Unexpected, non-integer value encountered");
-        self.push(JvmValue::Int(i1 << i2));
+        self.push(JvmValue::Int(value << (shift & 0x1f)));
     }
 
     pub fn ishr(&mut self) {
-        let i1 = self
+        let shift = self
             .pop()
             .as_int()
             .expect("Unexpected, non-integer value encountered");
-        let i2 = self
+        let value = self
             .pop()
             .as_int()
             .expect("Unexpected, non-integer value encountered");
-        self.push(JvmValue::Int(i1 >> i2));
+        self.push(JvmValue::Int(value >> (shift & 0x1f)));
     }
 
     pub fn iushr(&mut self) {
-        let i1 = self
+        let shift = self
             .pop()
             .as_int()
             .expect("Unexpected, non-integer value encountered");
-        let i2 = self
+        let value = self
             .pop()
             .as_int()
             .expect("Unexpected, non-integer value encountered");
-        self.push(JvmValue::Int((i1 as u32 >> i2 as u32) as i32));
+        self.push(JvmValue::Int((value as u32 >> (shift & 0x1f) as u32) as i32));
     }
 
     //
@@ -381,39 +385,41 @@ impl InterpEvalStack {
     }
 
     pub fn lshl(&mut self) {
-        let i1 = self
+        let shift = self
             .pop()
             .as_long()
             .expect("Unexpected, non-long value encountered");
-        let i2 = self
+        let value = self
             .pop()
             .as_long()
             .expect("Unexpected, non-long value encountered");
-        self.push(JvmValue::Long(i1 << i2));
+        self.push(JvmValue::Long(value << (shift & 0x3f)));
     }
 
     pub fn lshr(&mut self) {
-        let i1 = self
+        let shift = self
             .pop()
             .as_long()
             .expect("Unexpected, non-long value encountered");
-        let i2 = self
+        let value = self
             .pop()
             .as_long()
             .expect("Unexpected, non-long value encountered");
-        self.push(JvmValue::Long(i1 >> i2));
+        self.push(JvmValue::Long(value >> (shift & 0x3f)));
     }
 
     pub fn lushr(&mut self) {
-        let i1 = self
+        let shift = self
             .pop()
             .as_long()
             .expect("Unexpected, non-long value encountered");
-        let i2 = self
+        let value = self
             .pop()
             .as_long()
             .expect("Unexpected, non-long value encountered");
-        self.push(JvmValue::Long((i1 as u64 >> i2 as u64) as i64));
+        self.push(JvmValue::Long(
+            (value as u64 >> (shift & 0x3f) as u64) as i64,
+        ));
     }
 
     pub fn lcmp(&mut self) {
@@ -699,9 +705,19 @@ impl InterpEvalStack {
 
     pub fn dup2(&mut self) {
         let v1 = self.pop();
-        // if v1 is double-width
+        if is_category2(&v1) {
+            self.push(v1);
+            self.push(v1);
+            return;
+        }
+
         let v2 = self.pop();
-        self.push(v2.clone());
-        self.push(v2.clone());
+        if is_category2(&v2) {
+            panic!("Illegal value layout for dup2");
+        }
+        self.push(v2);
+        self.push(v1);
+        self.push(v2);
+        self.push(v1);
     }
 }

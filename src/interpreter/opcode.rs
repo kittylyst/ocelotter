@@ -9,7 +9,7 @@ pub const ALOAD_3: u8 = 0x2d;
 // ANEWARRAY 0xbd
 pub const ARETURN: u8 = 0xb0;
 // ARRAYLENGTH 0xbe
-pub const ASTORE: u8 = 0x53;
+pub const ASTORE: u8 = 0x3a;
 pub const ASTORE_0: u8 = 0x4b;
 pub const ASTORE_1: u8 = 0x4c;
 pub const ASTORE_2: u8 = 0x4d;
@@ -217,6 +217,7 @@ fn num_params(c: u8) -> u8 {
         GETFIELD => 2,
         GETSTATIC => 2,
         GOTO => 2,
+        GOTO_W => 4,
         IF_ICMPEQ => 2,
         IFEQ => 2,
         IFGE => 2,
@@ -237,7 +238,7 @@ fn num_params(c: u8) -> u8 {
         NEW => 2,
         NEWARRAY => 1,
         JSR => 2,
-        JSR_W => 2,
+        JSR_W => 4,
         LDC => 1,
         PUTFIELD => 2,
         PUTSTATIC => 2,
